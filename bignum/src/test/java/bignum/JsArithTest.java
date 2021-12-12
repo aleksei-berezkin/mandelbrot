@@ -19,13 +19,13 @@ public class JsArithTest extends RestoreGlobalsTest {
     @Test
     public void intPositive() {
         long[] a = bigIntToBigNum(
-                BigInteger.valueOf(5_123_456_000_000L),
+                BigInteger.valueOf(5_123_000_000L),
                 BigInteger.valueOf(1_000_000L),
                 null
         );
-        _SZ_ = 3;
+        _SZ_ = 2;
         assertEquals(_SZ_, a.length);
-        assertEquals(5_123_456, toDouble(a), 0);
+        assertEquals(5_123, toDouble(a), 0);
     }
 
     @Test
@@ -49,7 +49,8 @@ public class JsArithTest extends RestoreGlobalsTest {
                 BigInteger.valueOf(1_000_000),
                 null
         );
-        _SZ_ = 3;
+        _SZ_ = 2;
+        assertEquals(_SZ_, a.length);
         assertEquals(1234.56789, toDouble(a), 2.0 / 65536);
     }
 
@@ -60,7 +61,7 @@ public class JsArithTest extends RestoreGlobalsTest {
                 BigInteger.valueOf(0x1000_0000_0000_0000L),
                 null
         );
-        _SZ_ = 5;
+        _SZ_ = 4;
         assertEquals(_SZ_, a.length);
         assertEquals((double) -0x1030_5078L / 0x1000_0000_0000_0000L, toDouble(a), 1e-10);
     }
@@ -72,7 +73,7 @@ public class JsArithTest extends RestoreGlobalsTest {
                 new BigInteger("1" + Stream.generate(() -> "0").limit(150).collect(Collectors.joining())),
                 null
         );
-        _SZ_ = 34;
+        _SZ_ = 33;
         assertEquals(_SZ_, a.length);
         assertEquals(123 / 1e150, toDouble(a), 1e-10);
     }

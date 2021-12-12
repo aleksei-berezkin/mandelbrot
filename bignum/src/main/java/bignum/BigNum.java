@@ -197,7 +197,7 @@ class BigNum {
 
     // ---- Transpile to JS from here ----
     public static int minSignificantDigits = 2;
-    public static int intSize = 2;
+    public static int intSize = 1;
     public static int maxSize = 100;
     /* don't transpile */ // Disregards macros - precision is adaptive
     static long[] bigIntToBigNum(BigInteger x, BigInteger unit, Integer size) {

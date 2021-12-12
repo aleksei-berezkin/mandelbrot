@@ -21,7 +21,7 @@ public class JsRandTest extends RestoreGlobalsTest {
     public void defaultSize() {
         for (int i = 0; i < 10_000; i++) {
             int magOffset = nextInt(8, 100);
-            int magBound = magOffset + 9;
+            int magBound = magOffset + 4;
             BigInteger p = nextBigInt(nextInt(magOffset, magBound), nextBoolean());
             BigInteger q = nextBigInt(nextInt(magOffset, magBound), false);
             long[] a = bigIntToBigNum(p, q, null);
