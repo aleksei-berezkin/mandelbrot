@@ -154,6 +154,7 @@ class BigNum {
 
         for (int i = _SZ_ - 1; i >= 0; i--) {
             long cOut = 0;
+            // TODO precision loss, cIx must be twice frac size
             for (int cIx = _SZ_ - 1; cIx >= -_INT_SZ; cIx--) {
                 // cIx = intSz - 1 + (i - intSz + 1) + (j - intSz + 1)
                 // cIx = i + j - intSz + 1
