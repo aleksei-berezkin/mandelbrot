@@ -1,6 +1,6 @@
 import path from 'path';
 import url from 'url';
-import { readFile, writeFile } from './readWriteFiles.mjs';
+import { readAroundTranspiledRegion, readTranspiledRegion, writeFile } from './readWriteFiles.mjs';
 import { transpileJavaToGlsl } from './transpileJavaToGlsl.mjs';
 import { transpileJavaToJs } from './transpileJavaToJs.mjs';
 
@@ -23,7 +23,8 @@ readTranspileWrite(
 );
 
 function readTranspileWrite(inputPath, transpiler, outputPath) {
-    const {before, transpiled: toBeTranspiled, after} = readFile(inputPath);
+    const toBeTranspiled = readTranspiledRegion(inputPath);
+    const {before, after} = readAroundTranspiledRegion(outputPath);
     const transpiled = transpiler(toBeTranspiled);
     writeFile(outputPath, {before, transpiled, after});
 }

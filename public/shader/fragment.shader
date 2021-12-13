@@ -50,6 +50,6 @@ struct BigNum {
     bool overflow;
 };
 
-// Start of transpiled region
+// ---- Start of transpiled region ----
 
-// End of transpiled region
+// ---- End of transpiled region ----
