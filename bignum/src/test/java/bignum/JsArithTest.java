@@ -10,9 +10,9 @@ import org.junit.Test;
 
 import static bignum.BigNum._INT_SZ;
 import static bignum.BigNum._SZ_;
-import static bignum.BigNum.bigIntToBigNum;
-import static bignum.BigNum.intSize;
 import static bignum.BigNum.toDouble;
+import static bignum.BigNumJs.bigIntToBigNum;
+import static bignum.BigNumJs.intSize;
 import static org.junit.Assert.assertEquals;
 
 public class JsArithTest extends RestoreGlobalsTest {

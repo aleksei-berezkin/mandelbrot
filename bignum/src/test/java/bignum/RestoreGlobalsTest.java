@@ -5,7 +5,7 @@ import org.junit.Before;
 
 import static bignum.BigNum._INT_SZ;
 import static bignum.BigNum._SZ_;
-import static bignum.BigNum.intSize;
+import static bignum.BigNumJs.intSize;
 
 public class RestoreGlobalsTest {
     private int initialSz;

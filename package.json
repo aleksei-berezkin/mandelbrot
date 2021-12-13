@@ -5,7 +5,7 @@
   "main": "public/index.mjs",
   "scripts": {
     "start": "serve public",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "transpile": "node transpile/transpile.mjs"
   },
   "author": "Aleksei Berezkin",
   "license": "ISC",
