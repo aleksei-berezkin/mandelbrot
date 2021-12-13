@@ -1,10 +1,5 @@
 package bignum;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 /**
  * Because GLSL is not unit-testable, implemented on Java then transpiled to GLSL.
  * 
@@ -52,11 +47,10 @@ class BigNum {
         /* don't transpile */ if (x < 0) {
         /* don't transpile */     throw new IllegalArgumentException(String.valueOf(x));
         /* don't transpile */ }
-
         long[] c = new long[_SZ_];
-        c[_INT_SZ - 1] = x & 0xffff;
+        c[_INT_SZ - 1] = x & 0xffffL;
         if (_INT_SZ > 1) {
-            c[_INT_SZ - 2] = (x >>> 16) & 0xffff;
+            c[_INT_SZ - 2] = (x >> 16) & 0xffffL;
         }
         return c;
     }
@@ -100,8 +94,8 @@ class BigNum {
             long cOut = 0;
             for (int i = _SZ_ - 1; i >= 0; i--) {
                 long sum = a[i] + b[i] + cOut;
-                a[i] = sum & 0xffff;
-                cOut = (sum >>> 16) & 1;
+                a[i] = sum & 0xffffL;
+                cOut = (sum >> 16) & 1L;
             }
             if (negA) {
                 setNegative(a);
@@ -116,8 +110,8 @@ class BigNum {
             long cOut = 0;
             for (int i = _SZ_ - 1; i >= 0; i--) {
                 long difference = minuend[i] - subtrahend[i] - cOut;
-                a[i] = difference & 0xffff;
-                cOut = (difference >>> 16) & 1;
+                a[i] = difference & 0xffffL;
+                cOut = (difference >> 16) & 1L;
             }
             if (negA && aAbsGTb || negB && !aAbsGTb) {
                 setNegative(a);
@@ -176,8 +170,8 @@ class BigNum {
                 }
 
                 c[cIx] += product;
-                cOut = (c[cIx] >>> 16) & 0xffff;
-                c[cIx] &= 0xffff;
+                cOut = (c[cIx] >> 16) & 0xffffL;
+                c[cIx] &= 0xffffL;
             }
 
             if (cOut != 0) {
