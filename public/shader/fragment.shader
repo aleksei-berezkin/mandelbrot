@@ -80,7 +80,7 @@ uint[_SZ_] intToBigNum(uint x) {
 }
 
 // 0 <= x <= 1 (no other floats in shader)
-uint[_SZ_] floatToBigNum(double x) {
+uint[_SZ_] floatToBigNum(float x) {
     uint[_SZ_] c = uint[_SZ_](_ARR_INIT_);
     float val = 1;
     for (int i = _INT_SZ; i < _SZ_; i++) {

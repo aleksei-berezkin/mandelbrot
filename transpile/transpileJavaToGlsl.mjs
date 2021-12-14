@@ -4,7 +4,7 @@
  */
 export function transpileJavaToGlsl(java) {
     const str0 = java.replaceAll(
-        /^ {4}|\n {4}|static |boolean|new long\[_SZ_]|long\[] |long |(0x)?[0-9a-f_]+L/g,
+        /^ {4}|\n {4}|static |boolean|double|new long\[_SZ_]|long\[] |long |(0x)?[0-9a-f_]+L/g,
         s => {
             switch (s) {
                 case '    ':
@@ -15,6 +15,8 @@ export function transpileJavaToGlsl(java) {
                     return '';
                 case 'boolean':
                     return 'bool'
+                case 'double':
+                    return 'float'
                 case 'new long[_SZ_]':
                     return 'uint[_SZ_](_ARR_INIT_)';
                 case 'long[] ':
