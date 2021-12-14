@@ -17,6 +17,7 @@ class BigNum {
     public static int _INT_SZ = 1;
 
     // ---- Start of transpiled region ----
+    // FIXME everything by value! Always  return new! No in-place!
     static boolean isNegative(long[] a) {
         return (a[0] & 1L << 31) != 0L;
     }
@@ -49,10 +50,10 @@ class BigNum {
         /* don't transpile */ }
         long[] c = new long[_SZ_];
         c[_INT_SZ - 1] = x & 0xffffL;
-        // FIXME glsl not compiled
-//        if (_INT_SZ > 1) {
-//            c[_INT_SZ - 2] = (x >> 16) & 0xffffL;
-//        }
+        int upperIx = _INT_SZ - 2;
+        if (upperIx > 0) {
+            c[upperIx] = (x >> 16) & 0xffffL;
+        }
         return c;
     }
 
