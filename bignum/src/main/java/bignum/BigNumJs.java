@@ -10,6 +10,7 @@ public class BigNumJs {
     public static int minSignificantDigits = 2;
     public static int intSize = 1;
     public static int maxSize = 100;
+
     static long[] bigIntToBigNum(BigInteger x, BigInteger unit, Integer size) {
         if (unit.compareTo(BigInteger.ZERO) <= 0 || size != null && (size <= intSize || size > maxSize)) {
             throw new IllegalArgumentException("Bad input");
@@ -20,7 +21,7 @@ public class BigNumJs {
             x = x.negate();
         }
         long intPart = Number(x.divide(unit));
-        List<Long> c = new ArrayList<>();
+        final List<Long> c = new ArrayList<>();
         int significantIntDigits = 0;
         for (int i = 0; i < intSize; i++) {
             final long d = intPart & 0xffff;
