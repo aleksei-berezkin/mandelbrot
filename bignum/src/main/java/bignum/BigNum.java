@@ -18,7 +18,7 @@ class BigNum {
 
     // ---- Start of transpiled region ----
     static boolean isNegative(long[] a) {
-        return (a[0] & 1L << 31) != 0;
+        return (a[0] & 1L << 31) != 0L;
     }
 
     static boolean takeNegative(long[] a) {
@@ -34,7 +34,7 @@ class BigNum {
     }
 
     static boolean isOverflow(long[] a) {
-        return (a[0] & (1L << 30)) != 0;
+        return (a[0] & (1L << 30)) != 0L;
     }
 
     static void setOverflow(long[] a) {
@@ -49,9 +49,10 @@ class BigNum {
         /* don't transpile */ }
         long[] c = new long[_SZ_];
         c[_INT_SZ - 1] = x & 0xffffL;
-        if (_INT_SZ > 1) {
-            c[_INT_SZ - 2] = (x >> 16) & 0xffffL;
-        }
+        // FIXME glsl not compiled
+//        if (_INT_SZ > 1) {
+//            c[_INT_SZ - 2] = (x >> 16) & 0xffffL;
+//        }
         return c;
     }
 
@@ -61,14 +62,14 @@ class BigNum {
         /* don't transpile */     throw new IllegalArgumentException(String.valueOf(x));
         /* don't transpile */ }
         long[] c = new long[_SZ_];
-        float val = 1;
+        double val = 1.0;
         for (int i = _INT_SZ; i < _SZ_; i++) {
             for (int j = 15; j >= 0; j--) {
-                val /= 2;
+                val /= 2.0;
                 if (x >= val) {
                     c[i] |= 1L << j;
                     x -= val;
-                    if (x <= 0) {
+                    if (x <= 0.0) {
                         return c;
                     }
                 }
@@ -78,20 +79,30 @@ class BigNum {
         return c;
     }
 
+    static boolean isAbsGreaterThan(long[] a, long[] b) {
+        for (int i = 0; i < _SZ_; i++) {
+            if (a[i] == b[i]) {
+                continue;
+            }
+            return a[i] > b[i];
+        }
+        return false;
+    }
+
     // Writes sum to a
-    static void addInPlace(long[] a, long[] b) {
+    static long[] addInPlace(long[] a, long[] b) {
         if (isOverflow(b)) {
             setOverflow(a);
         }
         if (isOverflow(a)) {
-            return;
+            return a;
         }
 
         boolean negA = takeNegative(a);
         boolean negB = takeNegative(b);
 
         if (negA == negB) {
-            long cOut = 0;
+            long cOut = 0L;
             for (int i = _SZ_ - 1; i >= 0; i--) {
                 long sum = a[i] + b[i] + cOut;
                 a[i] = sum & 0xffffL;
@@ -100,14 +111,21 @@ class BigNum {
             if (negA) {
                 setNegative(a);
             }
-            if (cOut != 0) {
+            if (cOut != 0L) {
                 setOverflow(a);
             }
         } else {
             boolean aAbsGTb = isAbsGreaterThan(a, b);
-            long[] minuend = aAbsGTb ? a : b;
-            long[] subtrahend = aAbsGTb ? b : a;
-            long cOut = 0;
+            long[] minuend;
+            long[] subtrahend;
+            if (aAbsGTb) {
+                minuend = a;
+                subtrahend = b;
+            } else {
+                minuend = b;
+                subtrahend = a;
+            }
+            long cOut = 0L;
             for (int i = _SZ_ - 1; i >= 0; i--) {
                 long difference = minuend[i] - subtrahend[i] - cOut;
                 a[i] = difference & 0xffffL;
@@ -121,16 +139,7 @@ class BigNum {
         if (negB) {
             setNegative(b);
         }
-    }
-
-    static boolean isAbsGreaterThan(long[] a, long[] b) {
-        for (int i = 0; i < _SZ_; i++) {
-            if (a[i] == b[i]) {
-                continue;
-            }
-            return a[i] > b[i];
-        }
-        return false;
+        return a;
     }
 
     // Creates new
@@ -147,7 +156,7 @@ class BigNum {
         long[] c = new long[_SZ_];
 
         for (int i = _SZ_ - 1; i >= 0; i--) {
-            long cOut = 0;
+            long cOut = 0L;
             // TODO precision loss, cIx must be twice frac size
             for (int cIx = _SZ_ - 1; cIx >= -_INT_SZ; cIx--) {
                 // cIx = intSz - 1 + (i - intSz + 1) + (j - intSz + 1)
@@ -159,13 +168,13 @@ class BigNum {
                     product += a[i] * b[j];
                 }
 
-                if (product == 0) {
-                    cOut = 0;
+                if (product == 0L) {
+                    cOut = 0L;
                     continue;
                 }
 
                 if (cIx < 0) {
-                    cOut = 1;
+                    cOut = 1L;
                     break;
                 }
 
@@ -174,7 +183,7 @@ class BigNum {
                 c[cIx] &= 0xffffL;
             }
 
-            if (cOut != 0) {
+            if (cOut != 0L) {
                 setOverflow(c);
                 if (neg) setNegative(c);
                 if (bNeg) setNegative(b);

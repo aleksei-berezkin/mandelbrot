@@ -20,8 +20,19 @@ export function drawScene(canvasEl, unit, xMin, yMin, w, h) {
         throw new Error('webgl2 not supported');
     }
 
+    // Units to bignum
+    const hBigNum = bigIntToBigNum(h, unit);
+    const yMinBigNum = bigIntToBigNum(yMin, unit, hBigNum.length);
+    const wBigNum = bigIntToBigNum(w, unit, hBigNum.length);
+    const xMinBigNum = bigIntToBigNum(xMin, unit, hBigNum.length);
+
+    const fTextMacroApplied = fText
+        .replaceAll('_SZ_', String(hBigNum.length))
+        .replaceAll('_INT_SZ', 1)
+        .replaceAll('_ARR_INIT_', Array.from({length: hBigNum.length}).map(() => '0u').join(','));
+
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, vText);
-    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fText);
+    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fTextMacroApplied);
     const program = createProgram(gl, vertexShader, fragmentShader);
 
     const vSize = 2;
@@ -38,12 +49,6 @@ export function drawScene(canvasEl, unit, xMin, yMin, w, h) {
     gl.enableVertexAttribArray(positionAttributeLocation);
     gl.vertexAttribPointer(positionAttributeLocation, vSize, gl.FLOAT, false, 0, 0);
 
-    // Units to bignum
-    const hBigNum = bigIntToBigNum(h, unit);
-    const yMinBigNum = bigIntToBigNum(yMin, unit, hBigNum.length);
-    const wBigNum = bigIntToBigNum(w, unit, hBigNum.length);
-    const xMinBigNum = bigIntToBigNum(xMin, unit, hBigNum.length);
-    
     // Program and uniforms
     gl.useProgram(program);
     const xMinLoc = gl.getUniformLocation(program, 'u_xMin');
