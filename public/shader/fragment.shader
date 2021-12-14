@@ -1,40 +1,40 @@
 #version 300 es
 
 precision highp float;
+precision highp uint;
 
-//uniform uint[16] u_min_x1;
+uniform uint[_SZ_] u_xMin;
+uniform uint[_SZ_] u_w;
+uniform uint[_SZ_] u_yMin;
+uniform uint[_SZ_] u_h;
 
-
-uniform float u_xMin;
-uniform float u_w;
-uniform float u_yMin;
-uniform float u_h;
-
+// 0..1
 in vec2 v_position;
 
 out vec4 outColor;
 
 void main() {
-    vec2 c = vec2(u_xMin + v_position.x * u_w, u_yMin + v_position.y * u_h);;
-    vec2 a = vec2(0, 0);    // x_i
+    uint[_SZ_] cReal = addInPlace(mulToNew(u_w, floatToBigNum(v_position.x)), u_xMin);
+    uint[_SZ_] cImg = addInPlace(mulToNew(u_h, floatToBigNum(v_position.y)), u_yMin);
 
-//    float rSq;
-//    float divergeRSq = 4.0;
+    uint[_SZ_] xReal = intToBigNum(0);
+    uint[_SZ_] xImg = xReal;
+    uint[_SZ_] two = intToBitNum(2);
     int i;
-    for (i = 1 ; i <= (0x20 << 4); i++) {
-        a = vec2(a.x * a.x - a.y * a.y, 2.0 * a.x * a.y) + c;
-        if (isinf(a.x) || isinf(a.y)) {
+    for (i = 1 ; i <= 100; i++) {
+        uint[_SZ_] xRealSq = mulToNew(xReal, xReal);
+        uint[_SZ_] xImgSqN = mulToNew(xImg, xImg);
+        setNegative(xImgSqN, !isNegative(xImgSqN));
+
+        xReal = addInPlace(addInPlace(xRealSq, yImgSqN), cReal);
+        xImg = addInPlace(mulToNew(mulToNew(xReal, xImg), two), cImg);
+
+        if (isOverflow(xReal) || isOverflow(xImg)) {
             break;
         }
-//        rSq = a.x * a.x + a.y * a.y;
-//        if (isinf(rSq)) {
-//            break;
-//        }
     }
 
-    if (isinf(a.x) || isinf(a.y)) {
-//    if (rSq > 4.0) {
-        // diverges
+    if (isOverflow(xReal) || isOverflow(xImg)) {
         float col = 1.1 - float(i) / 50.0;
         outColor = vec4(col, col, 1, 1);
     } else {
