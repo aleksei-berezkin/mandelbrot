@@ -5,16 +5,16 @@ const minSignificantDigits = 2;
 const intSize = 1;
 const maxSize = 100;
 
-export function bigIntToBigNum(x, unit, size) {
+export function bigIntToBigNum(a, unit, size) {
     if (unit <= 0n || size != null && (size <= intSize || size > maxSize)) {
         throw new Error('Bad input');
     }
 
-    const isNeg = x < 0n;
+    const isNeg = a < 0n;
     if (isNeg) {
-        x = -x;
+        a = -a;
     }
-    let intPart = Number(x / unit);
+    let intPart = Number(a / unit);
     const c = [];
     let significantIntDigits = 0;
     for (let i = 0; i < intSize; i++) {
@@ -27,7 +27,7 @@ export function bigIntToBigNum(x, unit, size) {
     }
     c.reverse();
 
-    let frPart = x % unit;
+    let frPart = a % unit;
     let val = unit;
     let significantFrDigits = 0;
     // Allow at least 1 fractional digit

@@ -11,16 +11,16 @@ public class BigNumJs {
     public static int intSize = 1;
     public static int maxSize = 100;
 
-    static long[] bigIntToBigNum(BigInteger x, BigInteger unit, Integer size) {
+    static long[] bigIntToBigNum(BigInteger a, BigInteger unit, Integer size) {
         if (unit.compareTo(BigInteger.ZERO) <= 0 || size != null && (size <= intSize || size > maxSize)) {
             throw new IllegalArgumentException("Bad input");
         }
 
-        final boolean isNeg = x.compareTo(BigInteger.ZERO) < 0;
+        final boolean isNeg = a.compareTo(BigInteger.ZERO) < 0;
         if (isNeg) {
-            x = x.negate();
+            a = a.negate();
         }
-        long intPart = Number(x.divide(unit));
+        long intPart = Number(a.divide(unit));
         final List<Long> c = new ArrayList<>();
         int significantIntDigits = 0;
         for (int i = 0; i < intSize; i++) {
@@ -33,7 +33,7 @@ public class BigNumJs {
         }
         Collections.reverse(c);
 
-        BigInteger frPart = x.remainder(unit);
+        BigInteger frPart = a.remainder(unit);
         BigInteger val = unit;
         int significantFrDigits = 0;
         // Allow at least 1 fractional digit

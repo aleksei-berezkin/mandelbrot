@@ -60,8 +60,7 @@ window.addEventListener('mouseup', function(e) {
 
 function draw() {
     const {unit, xMin, yMin, w, h} = getMathCoords(canvas);
-    const u = Number(unit);
-    drawScene(canvas, Number(xMin) / u, Number(yMin) / u, Number(w) / u, Number(h) / u);
+    drawScene(canvas, unit, xMin, yMin, w, h);
 }
 
 draw();

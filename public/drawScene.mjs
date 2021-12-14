@@ -1,5 +1,6 @@
 import { createProgram } from './createProgram.mjs';
 import { createShader } from './createShader.mjs';
+import { bigIntToBigNum } from './bigNum.js';
 
 const responses = await Promise.all([fetch('shader/vertex.shader'), fetch('shader/fragment.shader')]);
 const [vText, fText] = await Promise.all(responses.map(r => r.text()));
@@ -7,13 +8,13 @@ const [vText, fText] = await Promise.all(responses.map(r => r.text()));
 /**
  * 
  * @param canvasEl {HTMLCanvasElement}
- * @param xMin {number}
- * @param yMin {number}
- * @param w {number}
- * @param h {number}
+ * @param unit {BigInt}
+ * @param xMin {BigInt}
+ * @param yMin {BigInt}
+ * @param w {BigInt}
+ * @param h {BigInt}
  */
-export function drawScene(canvasEl, xMin, yMin, w, h) {
-    console.log(xMin, yMin, w, h);
+export function drawScene(canvasEl, unit, xMin, yMin, w, h) {
     const gl = canvasEl.getContext('webgl2');
     if (!gl) {
         throw new Error('webgl2 not supported');
@@ -22,11 +23,6 @@ export function drawScene(canvasEl, xMin, yMin, w, h) {
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, vText);
     const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fText);
     const program = createProgram(gl, vertexShader, fragmentShader);
-
-    // const vSize = 3;
-    // const triangles = [
-    //     xMin, yMin, 0,   xMin + w , yMin, 0,   xMin, yMin + h, 0,   xMin + w, yMin + h, 0,
-    // ];
 
     const vSize = 2;
     const triangles = [
@@ -42,28 +38,25 @@ export function drawScene(canvasEl, xMin, yMin, w, h) {
     gl.enableVertexAttribArray(positionAttributeLocation);
     gl.vertexAttribPointer(positionAttributeLocation, vSize, gl.FLOAT, false, 0, 0);
 
+    // Units to bignum
+    const hBigNum = bigIntToBigNum(h, unit);
+    const yMinBigNum = bigIntToBigNum(yMin, unit, hBigNum.length);
+    const wBigNum = bigIntToBigNum(w, unit, hBigNum.length);
+    const xMinBigNum = bigIntToBigNum(xMin, unit, hBigNum.length);
+    
     // Program and uniforms
     gl.useProgram(program);
-    // const toClipSpaceMatrix = [
-    //     2 / w, 0, 0, -2*xMin/w - 1,
-    //     0, 2 / h, 0, -2*yMin/h - 1,
-    //     0, 0, 1, 0,
-    //     0, 0, 0, 1,
-    // ];
-    // const txLocation = gl.getUniformLocation(program, 'u_tx');
-    // gl.uniformMatrix4fv(txLocation, false, toClipSpaceMatrix);
     const xMinLoc = gl.getUniformLocation(program, 'u_xMin');
-    gl.uniform1f(xMinLoc, xMin);
+    gl.uniform1uiv(xMinLoc, xMinBigNum);
 
     const wLoc = gl.getUniformLocation(program, 'u_w');
-    gl.uniform1f(wLoc, w);
+    gl.uniform1uiv(wLoc, wBigNum);
 
     const yMinLoc = gl.getUniformLocation(program, 'u_yMin');
-    // noinspection JSSuspiciousNameCombination
-    gl.uniform1f(yMinLoc, yMin);
+    gl.uniform1uiv(yMinLoc, yMinBigNum);
 
     const hLoc = gl.getUniformLocation(program, 'u_h');
-    gl.uniform1f(hLoc, h);
+    gl.uniform1uiv(hLoc, hBigNum);
 
     // Translate -1...+1 to:
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
