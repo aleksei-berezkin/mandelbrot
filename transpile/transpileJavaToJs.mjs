@@ -3,13 +3,13 @@
  * @return {string}
  */
 export function transpileJavaToJs(java) {
-    const funcSign = /static long\[] (\w+)\(([\w ,]+)\)/.exec(java);
-    const funcName = funcSign[1];
-    const funcArgs = funcSign[2]
+    const funcSignature = /static long\[] (\w+)\(([\w ,]+)\)/.exec(java);
+    const funcName = funcSignature[1];
+    const funcArgs = funcSignature[2]
         .split(/,\s*/)
         .map(s => s.split(/ +/)[1]) // Remove type
         .join(', ');
-    const s0 = java.replace(funcSign[0], `function ${funcName}(${funcArgs})`);
+    const s0 = java.replace(funcSignature[0], `export function ${funcName}(${funcArgs})`);
 
     const s1 = s0.replaceAll(
         /^ {4}|\n {4}|"|public static int |BigInteger.[ZERONTW]+|IllegalArgumentException|int |long |boolean |BigInteger |\.size\(\)|new ArrayList<>\(\)|final [boleangList<>]+|(!=|==) *\d+|\d+L/g,
@@ -55,54 +55,49 @@ export function transpileJavaToJs(java) {
         },
     );
 
-    const compRe = /(\w+)\.compareTo\((\w+)\) ([!><=]+) 0/;
     const s2 = s1.replaceAll(
-        new RegExp(compRe, 'g'),
-        s => {
-            const m = compRe.exec(s);
-            return `${m[1]} ${m[3]} ${m[2]}`;
+        /(\w+)\.compareTo\((\w+)\) ([!><=]+) 0/g,
+        (s, g1, g2, g3) => `${g1} ${g3} ${g2}`
+    );
+
+    const s3 = s2.replaceAll(
+        /(\w+)\.(negate|divide|subtract|remainder)\((\w*)\)/g,
+        (s, g1, g2, g3) => {
+            switch (g2) {
+                case 'negate':
+                    return `-${g1}`;
+                case 'divide':
+                    return `${g1} / ${g3}`;
+                case 'subtract':
+                    return `${g1} - ${g3}`;
+                case 'remainder':
+                    return `${g1} % ${g3}`;
+            }
         }
     );
 
-    const opRe = /(\w+)\.(negate|divide|subtract|remainder)\((\w*)\)/;
-    const s3 = s2.replaceAll(
-        new RegExp(opRe, 'g'),
-        s => {
-            const m = opRe.exec(s);
-            if (!m) {
-                return s;
-            }
-            switch (m[2]) {
-                case 'negate':
-                    return `-${m[1]}`;
-                case 'divide':
-                    return `${m[1]} / ${m[3]}`;
-                case 'subtract':
-                    return `${m[1]} - ${m[3]}`;
-                case 'remainder':
-                    return `${m[1]} % ${m[3]}`;
-            }
-        }
-    )
-
-
-    const reverseRe = /Collections\.reverse\((\w+)\)/;
     const s4 = s3.replaceAll(
-        new RegExp(reverseRe, 'g'),
-        s => {
-            const m = reverseRe.exec(s);
-            return `${m[1]}.reverse()`;
-        }
-    )
+        /Collections\.reverse\((\w+)\)/g,
+        (s, g1) => `${g1}.reverse()`
+    );
 
-    const addRe = /(\w+)\.add\((\w+)\)/
     const s5 = s4.replaceAll(
-        new RegExp(addRe, 'g'),
-        s => {
-            const m = addRe.exec(s);
-            return `${m[1]}.push(${m[2]})`;
-        }
-    )
+        /(\w+)\.add\((\w+)\)/g,
+        (s, g1, g2) => `${g1}.push(${g2})`,
+    );
 
-    return s5;
+    const s6 = s5.replaceAll(
+        /(\w+)\.get\((\w+)\)/g,
+        (s, g1, g2) => `${g1}[${g2}]`,
+    );
+
+    const s7 = s6.replaceAll(
+        /(\w+)\.set\((\w+), ([^)]+)\)/g,
+        (s, g1, g2, g3) => `${g1}[${g2}] = ${g3}`,
+    );
+
+    return s7.replaceAll(
+        /toArray\((\w+)\)/g,
+        (s, g1) => g1,
+    );
 }
