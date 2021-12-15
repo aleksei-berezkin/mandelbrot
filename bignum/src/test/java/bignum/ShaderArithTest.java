@@ -2,19 +2,18 @@ package bignum;
 
 import org.junit.Test;
 
+import static bignum.BigNum.CLR_NEGATIVE;
+import static bignum.BigNum.IS_OVERFLOW;
 import static bignum.BigNum._INT_SZ;
 import static bignum.BigNum._SZ_;
-import static bignum.BigNum.addInPlace;
+import static bignum.BigNum.add;
 import static bignum.BigNum.floatToBigNum;
 import static bignum.BigNum.intToBigNum;
-import static bignum.BigNum.isOverflow;
-import static bignum.BigNum.mulToNew;
+import static bignum.BigNum.mul;
 import static bignum.BigNum.toDouble;
 import static bignum.BigNum.toLong;
 import static bignum.TestUtil.negate;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class ShaderArithTest extends RestoreGlobalsTest {
     @Test
@@ -55,69 +54,66 @@ public class ShaderArithTest extends RestoreGlobalsTest {
     @Test
     public void addition() {
         long[] a = intToBigNum(0xffff);
-        addInPlace(a, floatToBigNum(.625F));
-        assertEquals(0xffff + .625F, toDouble(a), 0);
+        long[] c = add(a, floatToBigNum(.625F));
+        assertEquals(0xffff + .625F, toDouble(c), 0);
     }
 
     @Test
     public void additionNeg() {
         long[] a = negate(intToBigNum(0xffff));
-        addInPlace(a, floatToBigNum(.625F));
-        assertEquals(-0xffffL + .625F, toDouble(a), 0);
+        long[] c = add(a, floatToBigNum(.625F));
+        assertEquals(-0xffffL + .625F, toDouble(c), 0);
     }
 
     @Test
     public void additionMaxOverflow() {
         long[] a = maxPositive();
-        assertFalse(isOverflow(a));
-        addInPlace(a, smallestFraction());
-        assertTrue(isOverflow(a));
+        assertEquals(0L, a[0] & IS_OVERFLOW);
+        long[] c = add(a, smallestFraction());
+        assertEquals(IS_OVERFLOW, c[0] & IS_OVERFLOW);
     }
 
     @Test
     public void additionNegOverflow() {
         long[] a = negate(intToBigNum(0xfff0));
-        addInPlace(a, negate(intToBigNum(0x10)));
-        assertTrue(isOverflow(a));
+        long[] c = add(a, negate(intToBigNum(0x10)));
+        assertEquals(IS_OVERFLOW, c[0] & IS_OVERFLOW);
     }
 
     @Test
     public void subtractionAB() {
         long[] a = intToBigNum(0x2345);
-        addInPlace(a, negate(intToBigNum(0x4523)));
-        assertEquals(0x2345 - 0x4523, toLong(a));
+        long[] c = add(a, negate(intToBigNum(0x4523)));
+        assertEquals(0x2345 - 0x4523, toLong(c));
     }
 
     @Test
     public void subtractionBA() {
         long[] a = negate(intToBigNum(0x1881));
-        addInPlace(a, intToBigNum(0xabed));
-        assertEquals(0xabed - 0x1881, toLong(a));
+        long[] c = add(a, intToBigNum(0xabed));
+        assertEquals(0xabed - 0x1881, toLong(c));
     }
 
     @Test
     public void multiplication() {
-        long[] a = intToBigNum(0x12);
-        addInPlace(a, floatToBigNum(.125F));
-        long[] b = negate(intToBigNum(0x23));
-        addInPlace(b, floatToBigNum(.5F));
+        long[] a0 = intToBigNum(0x12);
+        long[] a1 = add(a0, floatToBigNum(.125F));
+        long[] b0 = negate(intToBigNum(0x23));
+        long[] b1 = add(b0, floatToBigNum(.5F));
 
-        long[] c = mulToNew(a, b);
+        long[] c = mul(a1, b1);
         assertEquals((0x12 + .125) * (-0x23 + .5F), toDouble(c), 0);
-
-        assertEquals(0x12 + .125F, toDouble(a), 0);
-        assertEquals(-0x23 + .5F, toDouble(b), 0);
     }
 
     @Test
     public void multiplicationLargerIntPart() {
         _INT_SZ = 2;
-        long[] a = intToBigNum(0x1_0034);
-        addInPlace(a, floatToBigNum(.125));
-        long[] b = intToBigNum(0xe0ab);
-        addInPlace(b, floatToBigNum(.5));
+        long[] a0 = intToBigNum(0x1_0034);
+        long[] a1 = add(a0, floatToBigNum(.125));
+        long[] b0 = intToBigNum(0xe0ab);
+        long[] b1 = add(b0, floatToBigNum(.5));
 
-        long[] c = mulToNew(a, b);
+        long[] c = mul(a1, b1);
         assertEquals((0x1_0034 + .125) * (0xe0ab + .5), toDouble(c), 0);
     }
 
@@ -128,7 +124,7 @@ public class ShaderArithTest extends RestoreGlobalsTest {
         long[] a = intToBigNum(0x3_000a);
         long[] b = intToBigNum(0x20bb);
 
-        long[] c = mulToNew(a, b);
+        long[] c = mul(a, b);
         assertEquals(0x3_000a * 0x20bb, toLong(c));
     }
 
@@ -139,21 +135,21 @@ public class ShaderArithTest extends RestoreGlobalsTest {
         long[] a = intToBigNum(0x1_0000);
         long[] b = intToBigNum(0x2_0000);
 
-        long[] c = mulToNew(a, b);
-        assertTrue(isOverflow(c));
+        long[] c = mul(a, b);
+        assertEquals(IS_OVERFLOW, c[0] & IS_OVERFLOW);
     }
 
     @Test
     public void mulMinimalOverflow() {
         long[] a = intToBigNum(0x8000L);
-        long[] c = mulToNew(a, intToBigNum(2));
+        long[] c = mul(a, intToBigNum(2));
         assertEquals(Double.POSITIVE_INFINITY, toDouble(c), 0);
     }
 
     @Test
     public void mulToMinNeg() {
         long[] a = negate(intToBigNum(0x7fffL));
-        long[] c = mulToNew(a, intToBigNum(2));
+        long[] c = mul(a, intToBigNum(2));
         assertEquals(-0xfffeL, toDouble(c), 0);
     }
 
@@ -162,6 +158,8 @@ public class ShaderArithTest extends RestoreGlobalsTest {
         for (int i = 0; i < _SZ_; i++) {
             d[i] = 0xffff;
         }
+        d[0] &= CLR_NEGATIVE;
+        d[0] &= ~IS_OVERFLOW;
         return d;
     }
 

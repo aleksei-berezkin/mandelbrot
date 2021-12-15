@@ -3,49 +3,20 @@
 precision highp float;
 precision highp int;
 
-uniform uint[_SZ_] u_xMin;
-uniform uint[_SZ_] u_w;
-uniform uint[_SZ_] u_yMin;
-uniform uint[_SZ_] u_h;
-
-// 0..1
-in vec2 v_position;
-
-out vec4 outColor;
-
 // ---- Start of transpiled region ----
-bool isNegative(uint[_SZ_] a) {
-    return (a[0] & uint(1) << 31) != uint(0);
-}
+uint IS_NEGATIVE = 0x80000000u;
+uint CLR_NEGATIVE = 0x7fffffffu;
 
-bool takeNegative(uint[_SZ_] a) {
-    if (isNegative(a)) {
-        a[0] &= uint(0x7fffffff);
-        return true;
-    }
-    return false;
-}
-
-void setNegative(uint[_SZ_] a) {
-    a[0] |= uint(1) << 31;
-}
-
-bool isOverflow(uint[_SZ_] a) {
-    return (a[0] & (uint(1) << 30)) != uint(0);
-}
-
-void setOverflow(uint[_SZ_] a) {
-    a[0] |= uint(1) << 30;
-}
+uint IS_OVERFLOW = 0x40000000u;
 
 // positive x (no other in glsl)
 uint[_SZ_] intToBigNum(uint x) {
     uint[_SZ_] c = uint[_SZ_](_ARR_INIT_);
-    c[_INT_SZ - 1] = x & uint(0xffff);
-    // FIXME glsl not compiled
-//        if (_INT_SZ > 1) {
-//            c[_INT_SZ - 2] = (x >> 16) & uint(0xffff);
-//        }
+    c[_INT_SZ - 1] = x & 0xffffu;
+    int upperIx = _INT_SZ - 2;
+    if (upperIx >= 0) {
+        c[upperIx] = (x >> 16) & 0xffffu;
+    }
     return c;
 }
 
@@ -57,7 +28,7 @@ uint[_SZ_] floatToBigNum(float x) {
         for (int j = 15; j >= 0; j--) {
             val /= 2.0;
             if (x >= val) {
-                c[i] |= uint(1) << j;
+                c[i] |= 1u << j;
                 x -= val;
                 if (x <= 0.0) {
                     return c;
@@ -79,30 +50,33 @@ bool isAbsGreaterThan(uint[_SZ_] a, uint[_SZ_] b) {
     return false;
 }
 
-// Writes sum to a
-uint[_SZ_] addInPlace(uint[_SZ_] a, uint[_SZ_] b) {
-    if (isOverflow(b)) {
-        setOverflow(a);
+uint[_SZ_] add(uint[_SZ_] a, uint[_SZ_] b) {
+    if ((b[0] & IS_OVERFLOW) != 0u) {
+        a[0] |= IS_OVERFLOW;
     }
-    if (isOverflow(a)) {
+    if ((a[0] & IS_OVERFLOW) != 0u) {
         return a;
     }
 
-    bool negA = takeNegative(a);
-    bool negB = takeNegative(b);
+    bool negA = (a[0] & IS_NEGATIVE) != 0u;
+    bool negB = (b[0] & IS_NEGATIVE) != 0u;
 
+    a[0] &= CLR_NEGATIVE;
+    b[0] &= CLR_NEGATIVE;
+
+    uint[_SZ_] c = uint[_SZ_](_ARR_INIT_);
     if (negA == negB) {
-        uint cOut = uint(0);
+        uint cOut = 0u;
         for (int i = _SZ_ - 1; i >= 0; i--) {
             uint sum = a[i] + b[i] + cOut;
-            a[i] = sum & uint(0xffff);
-            cOut = (sum >> 16) & uint(1);
+            c[i] = sum & 0xffffu;
+            cOut = (sum >> 16) & 1u;
         }
         if (negA) {
-            setNegative(a);
+            c[0] |= IS_NEGATIVE;
         }
-        if (cOut != uint(0)) {
-            setOverflow(a);
+        if (cOut != 0u) {
+            c[0] |= IS_OVERFLOW;
         }
     } else {
         bool aAbsGTb = isAbsGreaterThan(a, b);
@@ -115,40 +89,39 @@ uint[_SZ_] addInPlace(uint[_SZ_] a, uint[_SZ_] b) {
             minuend = b;
             subtrahend = a;
         }
-        uint cOut = uint(0);
+        uint cOut = 0u;
         for (int i = _SZ_ - 1; i >= 0; i--) {
             uint difference = minuend[i] - subtrahend[i] - cOut;
-            a[i] = difference & uint(0xffff);
-            cOut = (difference >> 16) & uint(1);
+            c[i] = difference & 0xffffu;
+            cOut = (difference >> 16) & 1u;
         }
         if (negA && aAbsGTb || negB && !aAbsGTb) {
-            setNegative(a);
+            c[0] |= IS_NEGATIVE;
         }
     }
 
-    if (negB) {
-        setNegative(b);
-    }
-    return a;
+    return c;
 }
 
 // Creates new
-uint[_SZ_] mulToNew(uint[_SZ_] a, uint[_SZ_] b) {
-    if (isOverflow(b)) {
-        setOverflow(a);
+uint[_SZ_] mul(uint[_SZ_] a, uint[_SZ_] b) {
+    if ((b[0] & IS_OVERFLOW) != 0u) {
+        a[0] |= IS_OVERFLOW;
     }
-    if (isOverflow(a)) {
+    if ((a[0] & IS_OVERFLOW) != 0u) {
         return a;
     }
 
-    bool bNeg = takeNegative(b);
-    bool neg = takeNegative(a) != bNeg;
+    bool neg = (a[0] & IS_NEGATIVE) != (b[0] & IS_NEGATIVE);
+    a[0] &= CLR_NEGATIVE;
+    b[0] &= CLR_NEGATIVE;
+
     uint[_SZ_] c = uint[_SZ_](_ARR_INIT_);
 
     for (int i = _SZ_ - 1; i >= 0; i--) {
-        uint cOut = uint(0);
+        uint cOut = 0u;
         // TODO precision loss, cIx must be twice frac size
-        for (int cIx = _SZ_ - 1; cIx >= -_INT_SZ; cIx--) {
+        for (int cIx = (_SZ_ - 1) + (_SZ_ - _INT_SZ); cIx >= -_INT_SZ; cIx--) {
             // cIx = intSz - 1 + (i - intSz + 1) + (j - intSz + 1)
             // cIx = i + j - intSz + 1
             int j = cIx - i + _INT_SZ - 1;
@@ -158,65 +131,84 @@ uint[_SZ_] mulToNew(uint[_SZ_] a, uint[_SZ_] b) {
                 product += a[i] * b[j];
             }
 
-            if (product == uint(0)) {
-                cOut = uint(0);
+            if (product == 0u) {
+                cOut = 0u;
                 continue;
             }
 
             if (cIx < 0) {
-                cOut = uint(1);
+                cOut = 1u;
                 break;
             }
 
+            if (cIx >= _SZ_) {
+                cOut = product >> 16;
+                continue;
+            }
+
             c[cIx] += product;
-            cOut = (c[cIx] >> 16) & uint(0xffff);
-            c[cIx] &= uint(0xffff);
+            cOut = (c[cIx] >> 16) & 0xffffu;
+            c[cIx] &= 0xffffu;
         }
 
-        if (cOut != uint(0)) {
-            setOverflow(c);
-            if (neg) setNegative(c);
-            if (bNeg) setNegative(b);
+        if (cOut != 0u) {
+            c[0] |= IS_OVERFLOW;
+            if (neg) c[0] |= IS_NEGATIVE;
             return c;
         }
     }
 
-    if (neg) setNegative(c);
-    if (bNeg) setNegative(b);
+    if (neg) c[0] |= IS_NEGATIVE;
+
     return c;
 }
 // ---- End of transpiled region ----
 
+uniform uint[_SZ_] u_xMin;
+uniform uint[_SZ_] u_w;
+uniform uint[_SZ_] u_yMin;
+uniform uint[_SZ_] u_h;
+
+// 0..1
+in vec2 v_position;
+
+out vec4 outColor;
+
 void main() {
-    uint[_SZ_] cReal = addInPlace(mulToNew(u_w, floatToBigNum(v_position.x)), u_xMin);
-    uint[_SZ_] cImg = addInPlace(mulToNew(u_h, floatToBigNum(v_position.y)), u_yMin);
+    uint[_SZ_] cReal = add(u_xMin, mul(u_w, floatToBigNum(v_position.x)));
+    uint[_SZ_] cImg = add(u_yMin, mul(u_h, floatToBigNum(v_position.y)));
 
     uint[_SZ_] xReal = intToBigNum(0u);
     uint[_SZ_] xImg = xReal;
     uint[_SZ_] two = intToBigNum(2u);
     int i;
-    for (i = 1 ; i <= 2000; i++) {
-        uint[_SZ_] xRealSq = mulToNew(xReal, xReal);
-        uint[_SZ_] xImgSqN = mulToNew(xImg, xImg);
-        if (isNegative(xImgSqN)) {
-            takeNegative(xImgSqN);
-        } else {
-            setNegative(xImgSqN);
-        }
+    for (i = 1 ; i <= 1000; i++) {
+        uint[_SZ_] xRealSq = mul(xReal, xReal);
+        uint[_SZ_] xImgSqN = mul(xImg, xImg);
+        xImgSqN[0] ^= IS_NEGATIVE;
 
-        xReal = addInPlace(addInPlace(xRealSq, xImgSqN), cReal);
-        xImg = addInPlace(mulToNew(mulToNew(xReal, xImg), two), cImg);
+        xImg = add(mul(two, mul(xReal, xImg)), cImg);
+        xReal = add(add(xRealSq, xImgSqN), cReal);
 
-        if (isOverflow(xReal) || isOverflow(xImg)) {
+        if (((xReal[0] | xImg[0]) & IS_OVERFLOW) != 0u) {
             break;
         }
     }
 
-    if (isOverflow(xReal) || isOverflow(xImg)) {
-//        float col = 1.1 - float(i) / 50.0;
-        outColor = vec4(1, 1, 1, 1);
+    if (((xReal[0] | xImg[0]) & IS_OVERFLOW) != 0u) {
+        float col = 1.1 - float(i) / 5.0;
+        outColor = vec4(1, col, 1, 1);
     } else {
         // converges
+//        uint[_SZ_] n = add(u_xMin, mul(u_w, floatToBigNum(v_position.x)));
+//    n = mul(n, n);
+//        float col = float(n[0] & CLR_NEGATIVE) / 3.0 + float(n[1]) / 3.0 / 65536.0;
+//    
+//    uint[_SZ_] nn = add(u_yMin, mul(u_h, floatToBigNum(v_position.y)));
+//    float coll = float(nn[0] & CLR_NEGATIVE) / 3.0 + float(nn[1]) / 3.0 / 65536.0;
+
+    //        float col = isNegative(n) ? 0.0 : 1.0;
+//        outColor = vec4(col, 0, 0, 1);
         outColor = vec4(0, 0, 0, 1);
     }
 }

@@ -5,18 +5,16 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.junit.Before;
 import org.junit.Test;
 
+import static bignum.BigNum.IS_NEGATIVE;
+import static bignum.BigNum.IS_OVERFLOW;
 import static bignum.BigNum._INT_SZ;
-import static bignum.BigNum.addInPlace;
+import static bignum.BigNum.add;
 import static bignum.BigNum.floatToBigNum;
 import static bignum.BigNum.intToBigNum;
-import static bignum.BigNum.isNegative;
-import static bignum.BigNum.isOverflow;
-import static bignum.BigNum.mulToNew;
-import static bignum.BigNum.setNegative;
+import static bignum.BigNum.mul;
 import static bignum.BigNum.toDouble;
 import static bignum.TestUtil.negate;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 
@@ -30,7 +28,7 @@ public class ShaderRandTest extends RestoreGlobalsTest {
     @Test
     public void noOverflow() {
         long[] a = intToBigNum(1);
-        addInPlace(a, floatToBigNum(.125F));
+        a = add(a, floatToBigNum(.125F));
         double expected = 1.125;
         int iterations = 1000;
         double startDelta = .00001;
@@ -43,40 +41,40 @@ public class ShaderRandTest extends RestoreGlobalsTest {
 
                 if (nextBool()) {
                     b = -b;
-                    setNegative(bb);
+                    bb[0] |= IS_NEGATIVE;
                 }
 
-                a = mulToNew(a, bb);
+                a = mul(a, bb);
                 expected *= b;
             } else if (nextBool()) {
                 int b = nextSmallInt();
                 double c = nextDouble();
 
                 long[] bb = intToBigNum(b);
-                addInPlace(bb, floatToBigNum(c));
+                bb = add(bb, floatToBigNum(c));
 
                 if (nextBool()) {
                     b = -b;
                     c = -c;
-                    setNegative(bb);
+                    bb[0] |= IS_NEGATIVE;
                 }
 
-                a = mulToNew(a, bb);
+                a = mul(a, bb);
                 expected *= b + c;
             } else {
                 int b = nextInt();
                 double c = nextDouble();
 
                 long[] bb = intToBigNum(b);
-                addInPlace(bb, floatToBigNum(c));
+                bb = add(bb, floatToBigNum(c));
 
                 if (nextBool()) {
                     b = -b;
                     c = -c;
-                    setNegative(bb);
+                    bb[0] |= IS_NEGATIVE;
                 }
 
-                addInPlace(a, bb);
+                a = add(a, bb);
 
                 expected += b + c;
             }
@@ -99,7 +97,7 @@ public class ShaderRandTest extends RestoreGlobalsTest {
         int startInt = nextSmallInt();
         double startDouble = nextDouble();
         long[] a = intToBigNum(startInt);
-        addInPlace(a, floatToBigNum(startDouble));
+        a = add(a, floatToBigNum(startDouble));
         double expected = startInt + startDouble;
         double expectedOverflow = 0x1_0000_0000L;
         for (int i = 0; i < 0x40_0000; i++) {
@@ -109,13 +107,12 @@ public class ShaderRandTest extends RestoreGlobalsTest {
             expected += nextInt + nextDouble;
 
             long[] b = intToBigNum(nextInt);
-            addInPlace(b, floatToBigNum(nextDouble));
+            b = add(b, floatToBigNum(nextDouble));
 
-            addInPlace(a, b);
+            a = add(a, b);
 
-            if (isOverflow(a)) {
+            if ((a[0] & IS_OVERFLOW) != 0L) {
                 assertEquals(1, expected / expectedOverflow, 0.0001);
-                assertFalse(isOverflow(b));
                 assertEquals(nextInt + nextDouble, toDouble(b), 0.0000000001);
                 return;
             }
@@ -129,7 +126,7 @@ public class ShaderRandTest extends RestoreGlobalsTest {
         int startInt = nextSmallInt();
         double startDouble = nextDouble();
         long[] a = negate(intToBigNum(startInt));
-        addInPlace(a, negate(floatToBigNum(startDouble)));
+        a = add(a, negate(floatToBigNum(startDouble)));
         double expected = -startInt - startDouble;
         double expectedOverflow = -0x1_0000_0000L;
         for (int i = 0; i < 0x40_0000; i++) {
@@ -139,14 +136,12 @@ public class ShaderRandTest extends RestoreGlobalsTest {
             expected -= nextInt + nextDouble;
 
             long[] b = negate(intToBigNum(nextInt));
-            addInPlace(b, negate(floatToBigNum(nextDouble)));
+            b = add(b, negate(floatToBigNum(nextDouble)));
 
-            addInPlace(a, b);
+            a = add(a, b);
 
-            if (isOverflow(a)) {
+            if ((a[0] & IS_OVERFLOW) != 0L) {
                 assertEquals(1, expected / expectedOverflow, 0.0001);
-                assertFalse(isOverflow(b));
-                assertEquals(-nextInt - nextDouble, toDouble(b), 0.0000000001);
                 return;
             }
         }
@@ -159,7 +154,7 @@ public class ShaderRandTest extends RestoreGlobalsTest {
         int startInt = nextInt();
         double startDouble = nextDouble();
         long[] a = intToBigNum(startInt);
-        addInPlace(a, floatToBigNum(startDouble));
+        a = add(a, floatToBigNum(startDouble));
         double expected = startInt + startDouble;
         double expectedOverflow = 0x1_0000_0000L;
         for (int i = 0; i < 100000; i++) {
@@ -176,20 +171,18 @@ public class ShaderRandTest extends RestoreGlobalsTest {
             expected *= nextInt + nextDouble;
 
             long[] b = intToBigNum(nextInt);
-            addInPlace(b, floatToBigNum(nextDouble));
+            b = add(b, floatToBigNum(nextDouble));
 
             boolean isBNeg = nextBool();
             if (isBNeg) {
                 expected = -expected;
-                setNegative(b);
+                b[0] |= IS_NEGATIVE;
             }
 
-            a = mulToNew(a, b);
+            a = mul(a, b);
 
-            if (isOverflow(a)) {
-                assertEquals(isNegative(a) ? -1 : 1, expected / expectedOverflow, 0.002);
-                assertFalse(isOverflow(b));
-                assertEquals((nextInt + nextDouble) * (isBNeg ? -1 : 1), toDouble(b), 0.0000000001);
+            if ((a[0] & IS_OVERFLOW) != 0L) {
+                assertEquals(((a[0] & IS_NEGATIVE) != 0L) ? -1 : 1, expected / expectedOverflow, 0.002);
                 return;
             }
         }

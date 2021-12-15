@@ -11,6 +11,7 @@ initMathCoords(canvas);
 trackCanvasSize(canvas);
 trackMouseLocation(canvas);
 
+let timer = 0;
 window.addEventListener('wheel', function (e) {
     e.preventDefault();
 
@@ -31,8 +32,14 @@ window.addEventListener('wheel', function (e) {
     const newYMin = y - mulBigIntByFraction(newH, frY);
 
     setMathCoords(canvas, {unit, xMin: newXMin, w: newW, yMin: newYMin, h: newH});
-    
-    draw();
+
+    if (!timer) {
+        timer = setTimeout(() => {
+            draw();
+            timer = 0;
+        }, 1000);
+    }
+    // draw();
 }, {passive: false});
 
 let dragStartX = undefined;

@@ -1,15 +1,14 @@
 package bignum;
 
-import static bignum.BigNum.isNegative;
-import static bignum.BigNum.setNegative;
-import static bignum.BigNum.takeNegative;
+import static bignum.BigNum.CLR_NEGATIVE;
+import static bignum.BigNum.IS_NEGATIVE;
 
 class TestUtil {
     static long[] negate(long[] x) {
-        if (isNegative(x)) {
-            takeNegative(x);
+        if ((x[0] & IS_NEGATIVE) != 0L) {
+            x[0] &= CLR_NEGATIVE;
         } else {
-            setNegative(x);
+            x[0] |= IS_NEGATIVE;
         }
         return x;
     }

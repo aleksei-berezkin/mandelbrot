@@ -25,7 +25,7 @@ export function transpileJavaToGlsl(java) {
                     return 'uint ';
                 default:
                     if (s.endsWith('L')) {
-                        return `uint(${s.replaceAll(/[_L]/g, '')})`;
+                        return `${s.replaceAll(/[_L]/g, '')}u`;
                     }
                     throw new Error(s);
             }
