@@ -1,5 +1,5 @@
 import { drawScene } from './drawScene.mjs';
-import { getMathCoords, initMathCoords, setMathCoords } from './coords.mjs';
+import { getMathCoords, initMathCoords, setMathCoords } from './mathCoords.mjs';
 import { trackCanvasSize } from './canvasSize.mjs';
 import { getMouseLocationFraction, trackMouseLocation } from './mouseLocation.mjs';
 import { mulBigIntByFraction } from './mulBigIntByFraction.mjs';
@@ -66,8 +66,7 @@ window.addEventListener('mouseup', function(e) {
 })
 
 async function draw() {
-    const {unit, xMin, yMin, w, h} = getMathCoords(canvas);
-    const t = await drawScene(canvas, unit, xMin, yMin, w, h);
+    const t = await drawScene(canvas, getMathCoords(canvas));
 }
 
 void draw();

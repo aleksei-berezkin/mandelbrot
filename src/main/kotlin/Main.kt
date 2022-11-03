@@ -13,6 +13,10 @@ import java.util.regex.Pattern
 fun main() {
     embeddedServer(Netty, 8080) {
         routing {
+            get("/") {
+                call.respondBytes(readFileBytes("index.html")!!, ContentType.Text.Html)
+            }
+
             get("*") {
                 val fileNameAndType = getFileNameAndContentType(call.request.path())
                 if (fileNameAndType == null) {
@@ -21,25 +25,40 @@ fun main() {
                 }
 
                 val (fileName, contentType) = fileNameAndType
-                val fileStream = javaClass.classLoader.getResourceAsStream("web/${fileName}")
-                if (fileStream == null) {
+                val bytes = readFileBytes(fileName)
+                if (bytes == null) {
                     call.respond(HttpStatusCode.NotFound)
                     return@get
-                }
-
-                val bytes = withContext(Dispatchers.IO) {
-                    fileStream.readAllBytes()
                 }
 
                 call.respondBytes(bytes, contentType)
             }
 
             get("/api/draw") {
+                draw(
+                    bigDecimal(call.parameters["unit"]!!),
+                    bigDecimal(call.parameters["xMin"]!!),
+                    bigDecimal(call.parameters["w"]!!),
+                    bigDecimal(call.parameters["yMin"]!!),
+                    bigDecimal(call.parameters["h"]!!),
+                    call.parameters["canvasW"]!!.toInt(),
+                    call.parameters["canvasH"]!!.toInt()
+                )
                 call.respondText { "Hi!!!" }
             }
         }
     }.start(wait = true)
 }
+
+suspend fun readFileBytes(fileName: String): ByteArray? {
+    val fileStream = Dummy.javaClass.getResourceAsStream("web/${fileName}") ?: return null
+
+    return withContext(Dispatchers.IO) {
+        fileStream.readAllBytes()
+    }
+}
+
+object Dummy
 
 val filePathPattern: Pattern = Pattern.compile("/(\\w+\\.(css|js|html|mjs))")
 

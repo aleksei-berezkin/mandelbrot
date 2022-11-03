@@ -1,15 +1,9 @@
 export const precision = 16;
-export const intPrecision = 2;
 
 /**
  * 'unit' means '1'
  * @typedef {{unit: BigInt, xMin: BigInt, w: BigInt, yMin: BigInt, h: BigInt}} Coords
  */
-
-/**
- * @type {Map<HTMLCanvasElement, Coords>}
- */
-const canvasToCoords = new Map();
 
 const initialHeight = 3;
 
@@ -22,18 +16,20 @@ export function initMathCoords(canvas) {
     const w = h * BigInt(Math.round(r.width)) / BigInt(Math.round(r.height));
     const xMin = -w / 2n;
 
-    /**
-     * @type {Coords}
-     */
-    const coords = {unit, xMin, w, yMin, h};
-    canvasToCoords.set(canvas, coords);
+   setMathCoords(canvas, {unit, xMin, w, yMin, h});
 }
 
 /**
  * @return {Coords}
  */
 export function getMathCoords(canvas) {
-    return canvasToCoords.get(canvas);
+    return {
+        unit: BigInt(canvas.dataset.mathUnit),
+        xMin: BigInt(canvas.dataset.mathXMin),
+        w: BigInt(canvas.dataset.mathW),
+        yMin: BigInt(canvas.dataset.mathYMin),
+        h: BigInt(canvas.dataset.mathH),
+    };
 }
 
 /**
@@ -41,5 +37,9 @@ export function getMathCoords(canvas) {
  * @param coords {Coords}
  */
 export function setMathCoords(canvas, coords) {
-    canvasToCoords.set(canvas, coords);
+    canvas.dataset.mathUnit = String(coords.unit);
+    canvas.dataset.mathXMin = String(coords.xMin);
+    canvas.dataset.mathW = String(coords.w);
+    canvas.dataset.mathYMin = String(coords.yMin);
+    canvas.dataset.mathH = String(coords.h);
 }

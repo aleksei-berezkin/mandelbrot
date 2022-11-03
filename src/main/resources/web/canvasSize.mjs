@@ -1,7 +1,7 @@
 export function trackCanvasSize(canvas) {
     function setCanvasSize() {
         const rect = canvas.getBoundingClientRect();
-        const ddp = 1;
+        const ddp = window.devicePixelRatio ?? 1;
         canvas.width = rect.width * ddp;
         canvas.height = rect.height * ddp;
     }

@@ -1,12 +1,8 @@
 /**
- * @param canvasEl {HTMLCanvasElement}
- * @param unit {BigInt}
- * @param xMin {BigInt}
- * @param yMin {BigInt}
- * @param w {BigInt}
- * @param h {BigInt}
+ * @param canvas {HTMLCanvasElement}
+ * @param coords {Coords}
  */
-export async function drawScene(canvasEl, unit, xMin, yMin, w, h) {
-    const response = await fetch(`/api/draw?unit=${unit}&xMin=${xMin}&yMin=${yMin}&w=${w}&h=${h}`)
+export async function drawScene(canvas, coords) {
+    const response = await fetch(`/api/draw?unit=${coords.unit}&xMin=${coords.xMin}&w=${coords.w}&yMin=${coords.yMin}&h=${coords.h}&canvasW=${canvas.width}&canvasH=${canvas.height}`);
     return response.text()
 }
