@@ -34,8 +34,8 @@ window.addEventListener('wheel', function (e) {
     setMathCoords(canvas, {unit, xMin: newXMin, w: newW, yMin: newYMin, h: newH});
 
     if (!timer) {
-        timer = setTimeout(() => {
-            draw();
+        timer = setTimeout(async() => {
+            await draw();
             timer = 0;
         }, 1000);
     }
@@ -65,9 +65,9 @@ window.addEventListener('mouseup', function(e) {
     dragStartY = undefined;
 })
 
-function draw() {
+async function draw() {
     const {unit, xMin, yMin, w, h} = getMathCoords(canvas);
-    drawScene(canvas, unit, xMin, yMin, w, h);
+    const t = await drawScene(canvas, unit, xMin, yMin, w, h);
 }
 
-draw();
+void draw();
