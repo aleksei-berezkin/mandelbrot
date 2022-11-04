@@ -16,6 +16,7 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.4.4")
     implementation("io.ktor:ktor-server-core:2.1.3")
     implementation("io.ktor:ktor-server-netty:2.1.3")
+    implementation("io.ktor:ktor-server-compression:2.1.3")
     testImplementation(kotlin("test"))
 }
 

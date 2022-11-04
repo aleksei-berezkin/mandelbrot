@@ -3,6 +3,7 @@ import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import io.ktor.server.plugins.compression.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -14,6 +15,8 @@ import java.util.regex.Pattern
 
 fun main() {
     embeddedServer(Netty, 3000) {
+        install(Compression)
+
         routing {
             get("/") {
                 call.respondBytes(readFileBytes("index.html")!!, ContentType.Text.Html)
