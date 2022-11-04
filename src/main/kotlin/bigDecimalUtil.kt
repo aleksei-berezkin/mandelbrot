@@ -2,8 +2,9 @@ import java.math.BigDecimal
 import java.math.MathContext
 import java.math.RoundingMode
 
-val PR: MathContext = MathContext(5, RoundingMode.HALF_EVEN)
+val PR: MathContext = MathContext(6, RoundingMode.HALF_EVEN)
 val TWO: BigDecimal = bigDecimal(2)
+val FOUR: BigDecimal = bigDecimal(4)
 val ZERO: BigDecimal = bigDecimal(0)
 fun bigDecimal(v: String) = BigDecimal(v.toCharArray(), 0, v.length, PR)
 fun bigDecimal(v: Double) = BigDecimal(v, PR)

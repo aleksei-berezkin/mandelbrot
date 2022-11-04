@@ -8,7 +8,7 @@ export function trackMouseLocation(canvas) {
 /**
  * @return {[number, number]} [0, 0] is bottom-left, [1, 1] is top-right
  */
-export function getMouseLocationFraction(canvas, unit) {
+export function getMouseLocationFraction(canvas) {
     const {width, height} = canvas.getBoundingClientRect();
     const ds = canvas.dataset;
     const mouseOffsetX = Number(ds.mouseOffsetX ?? 0);

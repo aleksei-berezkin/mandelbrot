@@ -3,10 +3,12 @@
  * @typedef {{unit: BigInt, xMin: BigInt, w: BigInt, yMin: BigInt, h: BigInt}} Coords
  */
 
+const initUnit = 4000n;
+
 export function initMathCoords(canvas) {
     const r = canvas.getBoundingClientRect();
 
-    const unit = 1024n * 1024n;
+    const unit = initUnit;
     const h = 3n * unit;
     const yMin = -h / 2n;
     const w = h * BigInt(Math.round(r.width)) / BigInt(Math.round(r.height));
@@ -33,9 +35,26 @@ export function getMathCoords(canvas) {
  * @param coords {Coords}
  */
 export function setMathCoords(canvas, coords) {
+    if (coords.w < initUnit || coords.h < initUnit) {
+        coords = scaleCoords(coords)
+    }
+
     canvas.dataset.mathUnit = String(coords.unit);
     canvas.dataset.mathXMin = String(coords.xMin);
     canvas.dataset.mathW = String(coords.w);
     canvas.dataset.mathYMin = String(coords.yMin);
     canvas.dataset.mathH = String(coords.h);
+}
+
+/**
+ * @param coords {Coords}
+ */
+function scaleCoords(coords) {
+    return {
+        unit: coords.unit * initUnit,
+        xMin: coords.xMin * initUnit,
+        w: coords.w * initUnit,
+        yMin: coords.yMin * initUnit,
+        h: coords.h * initUnit,
+    };
 }
