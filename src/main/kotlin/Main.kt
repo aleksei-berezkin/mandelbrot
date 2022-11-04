@@ -8,6 +8,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.util.regex.Pattern
 
 fun main() {
@@ -51,8 +52,16 @@ fun main() {
 }
 
 suspend fun readFileBytes(fileName: String): ByteArray? {
-    val fileStream = Dummy.javaClass.getResourceAsStream("web/${fileName}") ?: return null
+    val serveDir = System.getProperty("serveFromDir")
+    if (serveDir != null) {
+        val file = File(serveDir, fileName)
+        if (!file.isFile) {
+            return null
+        }
+        return file.readBytes()
+    }
 
+    val fileStream = Dummy.javaClass.getResourceAsStream("web/${fileName}") ?: return null
     return withContext(Dispatchers.IO) {
         fileStream.readAllBytes()
     }
