@@ -1,17 +1,13 @@
-export const precision = 16;
-
 /**
  * 'unit' means '1'
  * @typedef {{unit: BigInt, xMin: BigInt, w: BigInt, yMin: BigInt, h: BigInt}} Coords
  */
 
-const initialHeight = 3;
-
 export function initMathCoords(canvas) {
     const r = canvas.getBoundingClientRect();
 
-    const unit = 2n ** BigInt(precision);
-    const h = unit * BigInt(initialHeight);
+    const unit = 1024n * 1024n;
+    const h = 3n * unit;
     const yMin = -h / 2n;
     const w = h * BigInt(Math.round(r.width)) / BigInt(Math.round(r.height));
     const xMin = -w / 2n;

@@ -2,8 +2,7 @@ import java.math.BigDecimal
 
 const val maxIter = 20
 
-fun draw(unit: BigDecimal, xMinUnit: BigDecimal, wUnit: BigDecimal, yMinUnit: BigDecimal, hUnit: BigDecimal, canvasW: Int, canvasH: Int): Array<Byte> {
-    println(Runtime.getRuntime().availableProcessors())
+fun draw(unit: BigDecimal, xMinUnit: BigDecimal, wUnit: BigDecimal, yMinUnit: BigDecimal, hUnit: BigDecimal, canvasW: Int, canvasH: Int): ByteArray {
     val xMin = div(xMinUnit, unit)
     val w = div(wUnit, unit)
     val yMin = div(yMinUnit, unit)
@@ -11,7 +10,7 @@ fun draw(unit: BigDecimal, xMinUnit: BigDecimal, wUnit: BigDecimal, yMinUnit: Bi
 
     val wStepFraction = mul(w, bigDecimal(1.0 / canvasW))
     val hStepFraction = mul(h, bigDecimal(1.0 / canvasH))
-    val outRgbaArray = Array<Byte>(4 * canvasW * canvasH) { 0 }
+    val outRgbaArray = ByteArray(4 * canvasW * canvasH) { i -> if (i % 4 == 3) 0xff.toByte() else 0 }
     for (i in 0 until canvasW) {
         val x0 = add(xMin, mul(wStepFraction, bigDecimal(i)))
         for (j in 0 until canvasH) {
@@ -22,10 +21,9 @@ fun draw(unit: BigDecimal, xMinUnit: BigDecimal, wUnit: BigDecimal, yMinUnit: Bi
                 val xNext = add(sub(sqr(x), sqr(y)), x0)
                 val yNext = add(mul(mul(TWO, x), y), y0)
                 if (xNext > TWO && yNext > TWO) {
-                    outRgbaArray[4 * (j * canvasW + i) + 0] = 1
-                    outRgbaArray[4 * (j * canvasW + i) + 1] = 1
-                    outRgbaArray[4 * (j * canvasW + i) + 2] = 1
-                    outRgbaArray[4 * (j * canvasW + i) + 3] = 1
+                    outRgbaArray[4 * (j * canvasW + i) + 0] = 0xff.toByte()
+                    outRgbaArray[4 * (j * canvasW + i) + 1] = 0xff.toByte()
+                    outRgbaArray[4 * (j * canvasW + i) + 2] = 0xff.toByte()
                     break
                 }
                 x = xNext

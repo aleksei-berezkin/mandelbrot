@@ -11,7 +11,7 @@ import kotlinx.coroutines.withContext
 import java.util.regex.Pattern
 
 fun main() {
-    embeddedServer(Netty, 8080) {
+    embeddedServer(Netty, 3000) {
         routing {
             get("/") {
                 call.respondBytes(readFileBytes("index.html")!!, ContentType.Text.Html)
@@ -35,7 +35,7 @@ fun main() {
             }
 
             get("/api/draw") {
-                draw(
+                val byteArray = draw(
                     bigDecimal(call.parameters["unit"]!!),
                     bigDecimal(call.parameters["xMin"]!!),
                     bigDecimal(call.parameters["w"]!!),
@@ -44,7 +44,7 @@ fun main() {
                     call.parameters["canvasW"]!!.toInt(),
                     call.parameters["canvasH"]!!.toInt()
                 )
-                call.respondText { "Hi!!!" }
+                call.respondBytes(byteArray)
             }
         }
     }.start(wait = true)

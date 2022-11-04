@@ -1,4 +1,4 @@
-const scaler = 1024 * 1024 * 1024;
+const scaler = 1024 * 1024;
 const scalerN = BigInt(scaler);
 
 /**

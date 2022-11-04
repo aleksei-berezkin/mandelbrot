@@ -1,5 +1,3 @@
-import { mulBigIntByFraction } from './mulBigIntByFraction.mjs';
-
 export function trackMouseLocation(canvas) {
     canvas.addEventListener('mousemove', function(e) {
         canvas.dataset.mouseOffsetX = e.offsetX;

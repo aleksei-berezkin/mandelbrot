@@ -1,15 +1,15 @@
-import { drawScene } from './drawScene.mjs';
+import { draw } from './draw.mjs';
 import { getMathCoords, initMathCoords, setMathCoords } from './mathCoords.mjs';
-import { trackCanvasSize } from './canvasSize.mjs';
-import { getMouseLocationFraction, trackMouseLocation } from './mouseLocation.mjs';
+import { trackCanvasSizeAndDraw } from './trackCanvasSizeAndDraw.mjs';
+import { getMouseLocationFraction, trackMouseLocation } from './trackMouseLocation.mjs';
 import { mulBigIntByFraction } from './mulBigIntByFraction.mjs';
 
 const canvas = document.getElementById('main-canvas');
 
 initMathCoords(canvas);
-
-trackCanvasSize(canvas);
 trackMouseLocation(canvas);
+
+trackCanvasSizeAndDraw(canvas);
 
 let timer = 0;
 window.addEventListener('wheel', function (e) {
@@ -64,9 +64,3 @@ window.addEventListener('mouseup', function(e) {
     dragStartX = undefined;
     dragStartY = undefined;
 })
-
-async function draw() {
-    const t = await drawScene(canvas, getMathCoords(canvas));
-}
-
-void draw();
