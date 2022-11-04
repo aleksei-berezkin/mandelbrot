@@ -9,6 +9,7 @@ import io.ktor.server.routing.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.math.BigDecimal
 import java.util.regex.Pattern
 
 fun main() {
@@ -37,11 +38,11 @@ fun main() {
 
             get("/api/draw") {
                 val byteArray = draw(
-                    bigDecimal(call.parameters["unit"]!!),
-                    bigDecimal(call.parameters["xMin"]!!),
-                    bigDecimal(call.parameters["w"]!!),
-                    bigDecimal(call.parameters["yMin"]!!),
-                    bigDecimal(call.parameters["h"]!!),
+                    BigDecimal(call.parameters["unit"]!!),
+                    BigDecimal(call.parameters["xMin"]!!),
+                    BigDecimal(call.parameters["w"]!!),
+                    BigDecimal(call.parameters["yMin"]!!),
+                    BigDecimal(call.parameters["h"]!!),
                     call.parameters["canvasW"]!!.toInt(),
                     call.parameters["canvasH"]!!.toInt()
                 )

@@ -1,16 +1,47 @@
+
 import java.math.BigDecimal
 import java.math.MathContext
-import java.math.RoundingMode
 
-val PR: MathContext = MathContext(6, RoundingMode.HALF_EVEN)
-val TWO: BigDecimal = bigDecimal(2)
-val FOUR: BigDecimal = bigDecimal(4)
-val ZERO: BigDecimal = bigDecimal(0)
-fun bigDecimal(v: String) = BigDecimal(v.toCharArray(), 0, v.length, PR)
-fun bigDecimal(v: Double) = BigDecimal(v, PR)
-fun bigDecimal(v: Int) = BigDecimal(v, PR)
-fun add(a: BigDecimal, b: BigDecimal): BigDecimal = a.add(b, PR)
-fun sub(a: BigDecimal, b: BigDecimal): BigDecimal = a.subtract(b, PR)
-fun mul(a: BigDecimal, b: BigDecimal): BigDecimal = a.multiply(b, PR)
-fun div(a: BigDecimal, b: BigDecimal): BigDecimal = a.divide(b, PR)
-fun sqr(a: BigDecimal): BigDecimal = mul(a, a)
+fun createArithmetic(precision: Int) = DoubleArithmetic()
+
+interface Arithmetic {
+    val zero: Number
+    fun fromInt(a: Int): Number
+    fun add(a: Number, b: Number): Number
+    fun sub(a: Number, b: Number): Number
+    fun mul(a: Number, b: Number): Number
+    fun div(a: Number, b: Number): Number
+    fun oneOver(a: Int): Number
+    fun twoTimesMul(a: Number, b: Number): Number
+    fun sqr(a: Number): Number = mul(a, a)
+    fun sumGt4(a: Number, b: Number): Boolean
+}
+
+class BigDecimalArithmetic(precision: Int): Arithmetic {
+    private val mathContext = MathContext(precision)
+    private val one = BigDecimal.ONE
+    private val two = one.add(one, mathContext)
+    private val four = BigDecimal(4)
+
+    override val zero: BigDecimal = BigDecimal.ZERO
+    override fun fromInt(a: Int) = BigDecimal(a)
+    override fun add(a: Number, b: Number): Number = (a as BigDecimal).add(b as BigDecimal, mathContext)
+    override fun sub(a: Number, b: Number): Number = (a as BigDecimal).subtract(b as BigDecimal, mathContext)
+    override fun mul(a: Number, b: Number): Number = (a as BigDecimal).multiply(b as BigDecimal, mathContext)
+    override fun div(a: Number, b: Number): Number = (a as BigDecimal).divide(b as BigDecimal, mathContext)
+    override fun oneOver(a: Int): Number = div(one, BigDecimal(a))
+    override fun twoTimesMul(a: Number, b: Number): Number = mul(two, mul(a, b))
+    override fun sumGt4(a: Number, b: Number) = add(a, b) as BigDecimal >= four
+}
+
+class DoubleArithmetic: Arithmetic {
+    override val zero = 0.0
+    override fun fromInt(a: Int): Number = a.toDouble()
+    override fun add(a: Number, b: Number) = a.toDouble() + b.toDouble()
+    override fun sub(a: Number, b: Number) = a.toDouble() - b.toDouble()
+    override fun mul(a: Number, b: Number) = a.toDouble() * b.toDouble()
+    override fun div(a: Number, b: Number) = a.toDouble() / b.toDouble()
+    override fun oneOver(a: Int): Number = 1.0 / a
+    override fun twoTimesMul(a: Number, b: Number) = 2.0 * a.toDouble() * b.toDouble()
+    override fun sumGt4(a: Number, b: Number) = a.toDouble() + b.toDouble() >= 4.0
+}
