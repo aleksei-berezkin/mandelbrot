@@ -11,6 +11,8 @@ import kotlin.math.sin
 
 val nThreads = Runtime.getRuntime().availableProcessors() + 1
 
+const val taskSize = 20
+
 const val minIterations = 70
 
 val executorService = ThreadPoolExecutor(
@@ -18,7 +20,7 @@ val executorService = ThreadPoolExecutor(
     nThreads,
     0L,
     TimeUnit.MILLISECONDS,
-    LinkedBlockingQueue(nThreads * 4),
+    LinkedBlockingQueue(nThreads),
     ThreadPoolExecutor.CallerRunsPolicy()
 )
 
@@ -31,37 +33,40 @@ fun draw(unit: BigDecimal, xMinUnit: BigDecimal, wUnit: BigDecimal, yMinUnit: Bi
     val h = a.div(hUnit, unit)
     val yMax = a.add(yMin, h)
 
-    val sizeLog = log10(min(w, h))
+    val sizeLog = log10(min(w.toDouble(), h.toDouble()))
     val maxIterations = if (sizeLog < -1) ceil(-sizeLog * minIterations).toInt() else minIterations
 
     val wStepFraction = a.mul(w, a.oneOver(canvasW))
     val hStepFraction = a.mul(h, a.oneOver(canvasH))
     val rgbaArray = ByteArray(4 * canvasW * canvasH) { i -> if (i % 4 == 3) 0xff.toByte() else 0 }
-    val futures = Array<Future<*>?>(canvasH) { null }
-    for (pY in 0 until canvasH) {
-        // canvas has (0, 0) at the left-top, so flip Y
-        val y0 = a.sub(yMax, a.mul(hStepFraction, a.fromInt(pY)))
-        futures[pY] = executorService.submit {
-            for (pX in 0 until canvasW) {
-                val arrayOffset = 4 * (pY * canvasW + pX)
-                val x0 = a.add(xMin, a.mul(wStepFraction, a.fromInt(pX)))
-                var x = a.zero
-                var y = a.zero
-                for (k in 0..maxIterations) {
-                    try {
-                        val xSqr = a.sqr(x)
-                        val ySqr = a.sqr(y)
-                        val xNext = a.add(a.sub(xSqr, ySqr), x0)
-                        val yNext = a.add(a.twoTimesMul(x, y), y0)
-                        if (a.sumGt4(xSqr, ySqr)) {
+    val tasksNum = ceil(canvasH.toDouble() / taskSize).toInt()
+    val futures = Array<Future<*>?>(tasksNum) { null }
+    for (task in 0 until tasksNum) {
+        futures[task] = executorService.submit{
+            for (pY in task * taskSize until min((task + 1) * taskSize, canvasH)) {
+                // canvas has (0, 0) at the left-top, so flip Y
+                val y0 = a.sub(yMax, a.mul(hStepFraction, a.fromInt(pY)))
+                for (pX in 0 until canvasW) {
+                    val arrayOffset = 4 * (pY * canvasW + pX)
+                    val x0 = a.add(xMin, a.mul(wStepFraction, a.fromInt(pX)))
+                    var x = a.zero
+                    var y = a.zero
+                    for (k in 0..maxIterations) {
+                        try {
+                            val xSqr = a.sqr(x)
+                            val ySqr = a.sqr(y)
+                            val xNext = a.add(a.sub(xSqr, ySqr), x0)
+                            val yNext = a.add(a.twoTimesMul(x, y), y0)
+                            if (a.sumGt4(xSqr, ySqr)) {
+                                setDiverges(rgbaArray, arrayOffset, k)
+                                break
+                            }
+                            x = xNext
+                            y = yNext
+                        } catch (e: ArithmeticException) {
                             setDiverges(rgbaArray, arrayOffset, k)
                             break
                         }
-                        x = xNext
-                        y = yNext
-                    } catch (e: ArithmeticException) {
-                        setDiverges(rgbaArray, arrayOffset, k)
-                        break
                     }
                 }
             }

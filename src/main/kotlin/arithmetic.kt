@@ -2,7 +2,7 @@
 import java.math.BigDecimal
 import java.math.MathContext
 
-fun createArithmetic(precision: Int) = DoubleArithmetic()
+fun createArithmetic(precision: Int): Arithmetic = BigDecimalArithmetic(precision)
 
 interface Arithmetic {
     val zero: Number
