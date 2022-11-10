@@ -4,11 +4,8 @@
   "description": "Mandelbrot interactive visualization",
   "main": "public/index.html",
   "scripts": {
-    "test": "node tests",
-    "start": "npx serve public",
-    "asbuild:debug": "asc assembly/index.ts --target debug",
-    "asbuild:release": "asc assembly/index.ts --target release",
-    "asbuild": "npm run asbuild:debug && npm run asbuild:release"
+    "build": "cd assembly ; npm run asbuild ; cd ..",
+    "start": "npx serve public"
   },
   "repository": {
     "type": "git",
@@ -21,14 +18,7 @@
   },
   "homepage": "https://github.com/aleksei-berezkin/mandelbrot#readme",
   "devDependencies": {
-    "assemblyscript": "^0.22.0",
     "serve": "^14.1.1"
   },
-  "type": "module",
-  "exports": {
-    ".": {
-      "import": "./build/release.js",
-      "types": "./build/release.d.ts"
-    }
-  }
+  "type": "module"
 }

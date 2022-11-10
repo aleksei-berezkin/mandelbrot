@@ -15,9 +15,18 @@ export async function draw(canvas) {
     } while (pending);
 }
 
+const minIterations = 70;
+
 async function draw0(canvas) {
     const coords = getMathCoords(canvas);
-    const rgbaArray = renderMandelbrot(
+
+    const sizeLog = Math.log10(Math.min(Number(coords.w), Number(coords.h)))
+    const maxIterations = sizeLog < -1 ? Math.ceil(-sizeLog * minIterations) : minIterations
+
+    /**
+     * @type {Uint16Array}
+     */
+    const outArray = renderMandelbrot(
         Number(coords.unit),
         Number(coords.xMin),
         Number(coords.w),
@@ -25,13 +34,26 @@ async function draw0(canvas) {
         Number(coords.h),
         canvas.width,
         canvas.height,
+        maxIterations,
     );
-    // const response = await fetch(`/api/draw?unit=${coords.unit}&xMin=${coords.xMin}&w=${coords.w}&yMin=${coords.yMin}&h=${coords.h}&canvasW=${canvas.width}&canvasH=${canvas.height}`);
-    // const rgbaArray = new Uint8ClampedArray(await response.arrayBuffer())
-    const ctx = canvas.getContext('2d')
-    ctx.putImageData(
+
+    debugger;
+
+    const rgbaArray = new Uint8ClampedArray(outArray.length * 4);
+    for (let i = 0; i < outArray.length; i++) {
+        const iterCount = outArray[i];
+        const arrOffset = i * 4;
+        if (iterCount < maxIterations) {
+            rgbaArray[arrOffset]     = (Math.sin(iterCount / 10) + 1) / 2 * 255;
+            rgbaArray[arrOffset + 1] = (Math.sin(iterCount / 10 + 5) + 1) / 2 * 255;
+            rgbaArray[arrOffset + 2] = (Math.sin(iterCount / 10 + 9) + 1) / 2 * 255;
+        }
+        rgbaArray[arrOffset + 3] = 255;
+    }
+
+    canvas.getContext('2d').putImageData(
         new ImageData(rgbaArray, canvas.width, canvas.height),
         0,
         0
-    )
+    );
 }
