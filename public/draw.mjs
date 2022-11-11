@@ -17,6 +17,11 @@ export async function draw(canvas) {
 const minIterations = 70;
 
 /**
+ * @type {WebAssemblyInstantiatedSource}
+ */
+let wasmInstObj;
+
+/**
  * @param canvas {HTMLCanvasElement}
  */
 async function draw0(canvas) {
@@ -26,22 +31,24 @@ async function draw0(canvas) {
     const maxIterations = sizeLog < -1 ? Math.ceil(-sizeLog * minIterations) : minIterations
 
     const outByteSize = 2 * canvas.width * canvas.height;
-    const outPagesNumber = ((outByteSize & ~0xffff) >>> 16) + ((outByteSize & 0xffff) ? 1 : 0);
+    if (!wasmInstObj || wasmInstObj.instance.exports.memory.buffer.byteLength < outByteSize) {
+        const outPagesNumber = ((outByteSize & ~0xffff) >>> 16) + ((outByteSize & 0xffff) ? 1 : 0);
+        const memory = new WebAssembly.Memory(
+            {
+                initial: outPagesNumber
+            }
+        );
 
-    const memory = new WebAssembly.Memory(
-        {
-            initial: outPagesNumber
-        }
-    );
+        wasmInstObj = await WebAssembly.instantiateStreaming(
+            fetch("build/debug.wasm"),
+            {
+                env: {memory}
+            },
+        );
 
-    const wasmResultObj = await WebAssembly.instantiateStreaming(
-        fetch("build/debug.wasm"),
-        {
-            env: {memory}
-        },
-    );
+    }
 
-    wasmResultObj.instance.exports.renderMandelbrot(
+    wasmInstObj.instance.exports.renderMandelbrot(
         Number(coords.unit),
         Number(coords.xMin),
         Number(coords.w),
@@ -52,7 +59,7 @@ async function draw0(canvas) {
         maxIterations,
     );
 
-    const iterArray = new Uint16Array(memory.buffer)
+    const iterArray = new Uint16Array(wasmInstObj.instance.exports.memory.buffer)
     const rgbaArray = new Uint8ClampedArray(4 * canvas.width * canvas.height);
     for (let i = 0; i < iterArray.length; i++) {
         const iterCount = iterArray[i];

@@ -22,11 +22,11 @@ export function renderMandelbrot(unit: f64, xMinUnit: f64, wUnit: f64, yMinUnit:
       for (i = 0; i < maxIterations; i++) {
         const xSqr = x * x;
         const ySqr = y * y;
-        const xNext = xSqr - ySqr + x0;
-        const yNext = 2.0 * x * y + y0;
         if (xSqr + ySqr > 4.0) {
           break;
         }
+        const xNext = xSqr - ySqr + x0;
+        const yNext = 2.0 * x * y + y0;
         x = xNext
         y = yNext
       }
