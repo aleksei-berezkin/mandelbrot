@@ -1,5 +1,4 @@
 import { getMathCoords } from './mathCoords.mjs';
-import { renderMandelbrot } from './build/debug.js';
 
 let pending = 0;
 
@@ -17,16 +16,32 @@ export async function draw(canvas) {
 
 const minIterations = 70;
 
+/**
+ * @param canvas {HTMLCanvasElement}
+ */
 async function draw0(canvas) {
     const coords = getMathCoords(canvas);
 
     const sizeLog = Math.log10(Math.min(Number(coords.w), Number(coords.h)))
     const maxIterations = sizeLog < -1 ? Math.ceil(-sizeLog * minIterations) : minIterations
 
-    /**
-     * @type {Uint16Array}
-     */
-    const outArray = renderMandelbrot(
+    const outByteSize = 2 * canvas.width * canvas.height;
+    const outPagesNumber = ((outByteSize & ~0xffff) >>> 16) + ((outByteSize & 0xffff) ? 1 : 0);
+
+    const memory = new WebAssembly.Memory(
+        {
+            initial: outPagesNumber
+        }
+    );
+
+    const wasmResultObj = await WebAssembly.instantiateStreaming(
+        fetch("build/debug.wasm"),
+        {
+            env: {memory}
+        },
+    );
+
+    wasmResultObj.instance.exports.renderMandelbrot(
         Number(coords.unit),
         Number(coords.xMin),
         Number(coords.w),
@@ -37,11 +52,10 @@ async function draw0(canvas) {
         maxIterations,
     );
 
-    debugger;
-
-    const rgbaArray = new Uint8ClampedArray(outArray.length * 4);
-    for (let i = 0; i < outArray.length; i++) {
-        const iterCount = outArray[i];
+    const iterArray = new Uint16Array(memory.buffer)
+    const rgbaArray = new Uint8ClampedArray(4 * canvas.width * canvas.height);
+    for (let i = 0; i < iterArray.length; i++) {
+        const iterCount = iterArray[i];
         const arrOffset = i * 4;
         if (iterCount < maxIterations) {
             rgbaArray[arrOffset]     = (Math.sin(iterCount / 10) + 1) / 2 * 255;

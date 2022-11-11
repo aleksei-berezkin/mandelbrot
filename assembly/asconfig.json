@@ -17,6 +17,9 @@
     }
   },
   "options": {
-    "bindings": "esm"
+    "bindings": "raw",
+    "importMemory": true,
+    "optimizeLevel": 3,
+    "runtime": "stub"
   }
 }

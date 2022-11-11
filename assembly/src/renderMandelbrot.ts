@@ -1,4 +1,5 @@
-export function renderMandelbrot(unit: f64, xMinUnit: f64, wUnit: f64, yMinUnit: f64, hUnit: f64, canvasW: u32, canvasH: u32, maxIterations: u16): Uint16Array {
+// noinspection JSUnusedGlobalSymbols
+export function renderMandelbrot(unit: f64, xMinUnit: f64, wUnit: f64, yMinUnit: f64, hUnit: f64, canvasW: u32, canvasH: u32, maxIterations: u16): void {
   const xMin = xMinUnit / unit;
   const w = wUnit / unit;
   const yMin = yMinUnit / unit;
@@ -7,7 +8,6 @@ export function renderMandelbrot(unit: f64, xMinUnit: f64, wUnit: f64, yMinUnit:
 
   const wStepFraction: f64 = w * (1.0 / (canvasW as f64))
   const hStepFraction: f64 = h * (1.0 / (canvasH as f64))
-  const outArray = new Uint16Array(canvasW * canvasH);
 
   for (let pY: u32 = 0; pY < canvasH; pY++) {
     // canvas has (0, 0) at the left-top, so flip Y
@@ -31,9 +31,7 @@ export function renderMandelbrot(unit: f64, xMinUnit: f64, wUnit: f64, yMinUnit:
         y = yNext
       }
 
-      outArray[pY * canvasW + pX] = i;
+      store<u16>(2 * (pY * canvasW + pX), i);
     }
   }
-
-  return outArray;
 }
