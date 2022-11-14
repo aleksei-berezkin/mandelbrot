@@ -35,7 +35,7 @@ window.addEventListener('wheel', function (e) {
 
     if (!timer) {
         timer = setTimeout(async() => {
-            await draw();
+            await draw(canvas);
             timer = 0;
         }, 1000);
     }
