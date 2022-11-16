@@ -1,6 +1,6 @@
-import { draw } from './draw.mjs';
+import { render } from './render.mjs';
 import { getMathCoords, initMathCoords, setMathCoords } from './mathCoords.mjs';
-import { trackCanvasSizeAndDraw } from './trackCanvasSizeAndDraw.mjs';
+import { trackCanvasSizeAndRender } from './trackCanvasSizeAndRender.mjs';
 import { getMouseLocationFraction, trackMouseLocation } from './trackMouseLocation.mjs';
 import { mulBigIntByFraction } from './mulBigIntByFraction.mjs';
 
@@ -9,7 +9,7 @@ const canvas = document.getElementById('main-canvas');
 initMathCoords(canvas);
 trackMouseLocation(canvas);
 
-trackCanvasSizeAndDraw(canvas);
+trackCanvasSizeAndRender(canvas);
 
 let timer = 0;
 window.addEventListener('wheel', function (e) {
@@ -35,12 +35,12 @@ window.addEventListener('wheel', function (e) {
 
     if (!timer) {
         timer = setTimeout(async() => {
-            await draw(canvas);
+            await render(canvas);
             timer = 0;
         }, 1000);
     }
 
-    setTimeout(() => draw(canvas), 750);
+    setTimeout(() => render(canvas), 100);
 
 }, {passive: false});
 
@@ -59,7 +59,7 @@ window.addEventListener('mousemove', function(e) {
         translateX -= (dragStartX - e.clientX);
         translateY -= (dragStartY - e.clientY);
     }
-    // draw();
+    // render();
 });
 
 window.addEventListener('mouseup', function(e) {

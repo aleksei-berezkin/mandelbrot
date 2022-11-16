@@ -1,4 +1,4 @@
-const minIterations = 70;
+const baseIterations = 43;
 
 /**
  * @type {WebAssemblyInstantiatedSource}
@@ -9,20 +9,28 @@ let wasmInstObj;
  * @param message {{data: [Coords, number, number]}}
  */
 async function messageHandler(message) {
-    const [coords, canvasW, canvasH] = message.data;
-    const rgbaArray = await doRender(coords, canvasW, canvasH);
+    const [coords, canvasW, canvasH, zoom] = message.data;
+    const rgbaArray = await doRender(coords, canvasW, canvasH, zoom);
     self.postMessage(rgbaArray);
 }
+
+/**
+ * @type {Map<number, [number, number, number]>}
+ */
+const colorCache = new Map();
 
 /**
  * @param coords {Coords}
  * @param canvasW {number}
  * @param canvasH {number}
+ * @param zoom {number}
  * @return {Uint8ClampedArray}
  */
-async function doRender(coords, canvasW, canvasH) {
-    const sizeLog = Math.log10(Math.min(Number(coords.w), Number(coords.h)) / Number(coords.unit));
-    const maxIterations = sizeLog < -1 ? Math.ceil(-sizeLog * minIterations) : minIterations;
+async function doRender(coords, canvasW, canvasH, zoom) {
+    const maxIterations = Math.max(
+        baseIterations,
+        Math.round((Math.log10(zoom) + 1) * baseIterations),
+    );
 
     const outByteSize = 2 * canvasW * canvasH;
     if (!wasmInstObj || wasmInstObj.instance.exports.memory.buffer.byteLength < outByteSize) {
@@ -39,7 +47,6 @@ async function doRender(coords, canvasW, canvasH) {
                 env: {memory}
             },
         );
-
     }
 
     wasmInstObj.instance.exports.renderMandelbrot(
@@ -56,13 +63,25 @@ async function doRender(coords, canvasW, canvasH) {
     const iterArray = new Uint16Array(wasmInstObj.instance.exports.memory.buffer)
     const rgbaArray = new Uint8ClampedArray(4 * canvasW * canvasH);
     for (let i = 0; i < iterArray.length; i++) {
+
         const iterCount = iterArray[i];
         const arrOffset = i * 4;
         if (iterCount < maxIterations) {
-            rgbaArray[arrOffset]     = (Math.sin(iterCount / 10) + 1) / 2 * 255;
-            rgbaArray[arrOffset + 1] = (Math.sin(iterCount / 10 + 5) + 1) / 2 * 255;
-            rgbaArray[arrOffset + 2] = (Math.sin(iterCount / 10 + 9) + 1) / 2 * 255;
+            let r, g, b;
+            if (colorCache.has(iterCount)) {
+                [r, g, b] = colorCache.get(iterCount);
+            } else {
+                r = (Math.sin(iterCount / 13) + 1) / 2 * 255;
+                g = (Math.sin(iterCount / 13 + 5) + 1) / 2 * 255;
+                b = (Math.sin(iterCount / 13 + 9) + 1) / 2 * 255;
+                colorCache.set(iterCount, [r, g, b]);
+            }
+
+            rgbaArray[arrOffset] = r;
+            rgbaArray[arrOffset + 1] = g;
+            rgbaArray[arrOffset + 2] = b;
         }
+
         rgbaArray[arrOffset + 3] = 255;
     }
 

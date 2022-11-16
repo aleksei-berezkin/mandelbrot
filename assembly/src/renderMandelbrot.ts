@@ -9,10 +9,11 @@ export function renderMandelbrot(unit: f64, xMinUnit: f64, wUnit: f64, yMinUnit:
   const wStepFraction: f64 = w * (1.0 / (canvasW as f64))
   const hStepFraction: f64 = h * (1.0 / (canvasH as f64))
 
-  for (let pY: u32 = 0; pY < canvasH; pY++) {
+  for (let pY: u16 = 0; pY < canvasH; pY++) {
     // canvas has (0, 0) at the left-top, so flip Y
     const y0 = yMax - hStepFraction * pY;
-    for (let pX: u32 = 0; pX < canvasW; pX++) {
+    const rowOffset = pY * canvasW;
+    for (let pX: u16 = 0; pX < canvasW; pX++) {
       const x0 = xMin + wStepFraction * pX
 
       let x = 0 as f64
@@ -31,7 +32,7 @@ export function renderMandelbrot(unit: f64, xMinUnit: f64, wUnit: f64, yMinUnit:
         y = yNext
       }
 
-      store<u16>(2 * (pY * canvasW + pX), i);
+      store<u16>(2 * (rowOffset + pX), i);
     }
   }
 }

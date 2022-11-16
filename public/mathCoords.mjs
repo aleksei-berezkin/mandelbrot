@@ -5,11 +5,13 @@
 
 const initUnit = 4000n;
 
+const initH = 3;
+
 export function initMathCoords(canvas) {
     const r = canvas.getBoundingClientRect();
 
     const unit = initUnit;
-    const h = 3n * unit;
+    const h = BigInt(initH) * unit;
     const yMin = -h / 2n;
     const w = h * BigInt(Math.round(r.width)) / BigInt(Math.round(r.height));
     const xMin = -w / 2n;
