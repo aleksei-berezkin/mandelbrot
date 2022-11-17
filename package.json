@@ -4,7 +4,10 @@
   "description": "Mandelbrot interactive visualization",
   "main": "public/index.html",
   "scripts": {
-    "build": "cd assembly ; npm run asbuild ; cd ..",
+    "postinstall": "cd assembly ; npm i ; cd ..",
+    "clean": "rm -rf public/build",
+    "build:debug": "cd assembly ; npm run asbuild ; cd ..",
+    "build": "cd assembly ; npm run asbuild:release ; cd ..",
     "start": "npx serve public"
   },
   "repository": {
@@ -17,8 +20,5 @@
     "url": "https://github.com/aleksei-berezkin/mandelbrot/issues"
   },
   "homepage": "https://github.com/aleksei-berezkin/mandelbrot#readme",
-  "devDependencies": {
-    "serve": "^14.1.1"
-  },
   "type": "module"
 }

@@ -20,7 +20,7 @@ export function renderMandelbrot(unit: f64, xMinUnit: f64, wUnit: f64, yMinUnit:
       let y = 0 as f64
 
       let i: u16 = 0;
-      for (i = 0; i < maxIterations; i++) {
+      for ( ; i < maxIterations; i++) {
         const xSqr = x * x;
         const ySqr = y * y;
         if (xSqr + ySqr > 4.0) {
