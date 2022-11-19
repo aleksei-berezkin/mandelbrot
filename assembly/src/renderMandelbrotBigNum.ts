@@ -18,10 +18,6 @@ function add(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32) {
 
     if (aIsNeg === bIsNeg) {
         addPositive(aPtr, bPtr, cPtr, fracPrecision);
-        if (isNegative(cPtr)) {
-            setOverflow(cPtr);
-            return;
-        }
         if (aIsNeg) {
             setNegative(cPtr);
         }
@@ -52,15 +48,15 @@ function add(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32) {
 function addPositive(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32) {
     let cOut: u64 = 0;
     for (let i: i32 = intPrecision + fracPrecision - 1; i > 0; i--) {
-        const a_i: u64 = load<u32>(aPtr + i) as u64;
-        const b_i: u64 = load<u32>(bPtr + i) as u64;
+        const a_i: u64 = load<u32>(aPtr + 4 * i) as u64;
+        const b_i: u64 = load<u32>(bPtr + 4 * i) as u64;
         const c_i = a_i + b_i + cOut;
-        store<u32>(cPtr + i, c_i as u32);
+        store<u32>(cPtr + 4 * i, c_i as u32);
         // noinspection ShiftOutOfRangeJS
         cOut = c_i >>> 32;
     }
 
-    if (cOut !== 0) {
+    if (cOut !== 0 || isNegative(cPtr)) {
         setOverflow(cPtr);
     }
 }
@@ -71,8 +67,8 @@ function addPositive(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32) {
 function subPositive(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32) {
     let cOut: u64 = 0;
     for (let i: i32 = intPrecision + fracPrecision - 1; i > 0; i--) {
-        const a_i = load<u32>(aPtr + i) as u64;
-        const b_i = load<u32>(bPtr + i) as u64 + cOut;
+        const a_i = load<u32>(aPtr + 4 * i) as u64;
+        const b_i = load<u32>(bPtr + 4 * i) as u64 + cOut;
         let c_i: u64;
         if (a_i >= b_i) {
             c_i = a_i - b_i;
@@ -81,7 +77,7 @@ function subPositive(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32) {
             c_i = (a_i | 0x1_0000_0000) - b_i;
             cOut = 1;
         }
-        store<u32>(cPtr + i, c_i as u32);
+        store<u32>(cPtr + 4 * i, c_i as u32);
     }
 }
 
@@ -91,8 +87,8 @@ function subPositive(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32) {
 function cmpPositive(aPtr: u32, bPtr: u32, fracPrecision: u32): i32 {
     const precision = intPrecision + fracPrecision;
     for (let i: u32 = 0; i < precision; i++) {
-        const a_i = load<u32>(aPtr);
-        const b_i = load<u32>(bPtr);
+        const a_i = load<u32>(aPtr + 4 * i);
+        const b_i = load<u32>(bPtr + 4 * i);
         if (a_i > b_i) {
             return 1;
         } else if (a_i < b_i) {
@@ -121,39 +117,37 @@ function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32, fracPrecision: u32) {
     let cOut: u64 = 0;
     for (let i: i32 = precision - 1; i >= 0; i--) {
         for (let j: i32 = precision - 1; j >= 0; j--) {
-            const a: u64 = load<u32>(aPtr + i);
-            const b: u64 = load<u32>(bPtr + j);
+            const a: u64 = load<u32>(aPtr + 4 * i);
+            const b: u64 = load<u32>(bPtr + 4 * j);
             const t_ix = i + j + 1;
-            let t: u64 = load<u32>(t_ix);
+            let t: u64 = load<u32>(tPtr + 4 * t_ix);
             t += a * b + cOut;
-            store<u32>(tPtr + t_ix, t as u32);
+            store<u32>(tPtr + 4 * t_ix, t as u32);
             // noinspection ShiftOutOfRangeJS
             cOut = t >>> 32;
         }
 
         for (let j: i32 = i; j >= 0 && cOut > 0; j--) {
-            let t: u64 = load<u32>(tPtr + j);
+            let t: u64 = load<u32>(tPtr + 4 * j);
             t += cOut;
-            store<u32>(tPtr + j, t as u32);
+            store<u32>(tPtr + 4 * j, t as u32);
             // noinspection ShiftOutOfRangeJS
             cOut = t >>> 32;
         }
-
-        if (cOut > 0) {
-            setOverflow(cPtr);
-            return;
-        }
     }
 
+    if (aIsNeg) setNegative(aPtr);
+    if (bIsNeg) setNegative(bPtr);
+
     if (load<u32>(tPtr) !== 0       // Int precision === 1, that's why only [0]
-        || isOverflow(cPtr + intPrecision)
-        || isNegative(cPtr + intPrecision)
+        || isOverflow(cPtr + 4 * intPrecision)
+        || isNegative(cPtr + 4 * intPrecision)
     ) {
         setOverflow(cPtr);
         return;
     }
 
-    memmove(cPtr, tPtr + intPrecision, precision * 4);
+    memmove(cPtr, tPtr + 4 * intPrecision, 4 * precision);
 
     if (aIsNeg !== bIsNeg) {
         setNegative(cPtr);
@@ -166,15 +160,23 @@ function twoTimes(aPtr: u32, cPtr: u32, fracPrecision: u32) {
         return;
     }
 
+    const isNeg = takeNegative(aPtr);
+
     const precision = intPrecision + fracPrecision;
     let cOut: u32 = 0;
     for (let i: i32 = precision - 1; i >= 0; i++) {
-        const c = (load<u32>(aPtr + i) as u64) << 2;
-        store<u32>(cPtr + i, (c as u32) | cOut);
+        const c = (load<u32>(aPtr + 4 * i) as u64) << 2;
+        store<u32>(cPtr + 4 * i, (c as u32) | cOut);
         // noinspection ShiftOutOfRangeJS
         cOut = (c >>> 32) as u32;
     }
-    //// TODO
+
+    if (cOut !== 0 || isNegative(cPtr)) {
+        setOverflow(cPtr);
+        return;
+    }
+
+    if (isNeg) setNegative(cPtr);
 }
 
 function isOverflow(ptr: u32) {
@@ -202,7 +204,7 @@ function takeNegative(ptr: u32): boolean {
 function setZero(ptr: u32, fracPrecision: u32) {
     const precision = intPrecision + fracPrecision;
     for (let i = 0; i < precision; i++) {
-        store<u32>(ptr, 0);
+        store<u32>(ptr + 4 * i, 0);
     }
 }
 
