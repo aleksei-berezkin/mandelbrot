@@ -4,6 +4,7 @@
  */
 
 import {memmove, memset} from "util/memory";
+import {findFiles} from "assemblyscript/util/find";
 
 const intPrecision: u32 = 1;
 
@@ -82,6 +83,13 @@ function subPositive(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32) {
 }
 
 /**
+ * @param aPtr Positive
+ */
+function gtEq4Pos(aPtr: u32) {
+    return load<u32>(aPtr) >= 4;
+}
+
+/**
  * Both operands must be non-overflown positive.
  */
 function cmpPositive(aPtr: u32, bPtr: u32, fracPrecision: u32): i32 {
@@ -154,6 +162,30 @@ function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32, fracPrecision: u32) {
     }
 }
 
+function mulByUint(aPtr: u32, b: u32, cPtr: u32, fracPrecision: u32) {
+    if (isOverflow(aPtr)) {
+        setOverflow(cPtr);
+        return;
+    }
+
+    const aIsNeg = takeNegative(aPtr);
+    let cOut: u64 = 0;
+    for (let i: i32 = intPrecision + fracPrecision - 1; i >= 0; i--) {
+        const a = load<u32>(aPtr + 4 * i) as u64;
+        const c: u64 = a * b + cOut;
+        // noinspection ShiftOutOfRangeJS
+        store<u32>(cPtr + 4 * i, c as u32);
+        // noinspection ShiftOutOfRangeJS
+        cOut = c >>> 32
+    }
+
+    if (aIsNeg) setNegative(aPtr);
+
+    if (cOut !== 0 || isNegative(cPtr)) {
+        setOverflow(cPtr);
+    }
+}
+
 function twoTimes(aPtr: u32, cPtr: u32, fracPrecision: u32) {
     if (isOverflow(aPtr)) {
         setOverflow(cPtr);
@@ -177,6 +209,35 @@ function twoTimes(aPtr: u32, cPtr: u32, fracPrecision: u32) {
     }
 
     if (isNeg) setNegative(cPtr);
+}
+
+function fromDouble(a: f64, cPtr: u32, fracPrecision: u32) {
+    let aPos = a < 0 ? -a : a;
+    let i = 29;
+    const minI = -32 * fracPrecision;
+    let mask = 1 << 29;
+    if (aPos > mask) {
+        setOverflow(cPtr);
+        return;
+    }
+
+    setZero(cPtr, fracPrecision);
+
+    for ( ; i >= minI && aPos > 0; i--) {
+        const word = i >= 0
+            ? 0                     // 31..0 => 0
+            : ((-i + 31) >>> 5)     // -1..-32 => (32..63) => 1
+        const bit = i >= 0
+            ? i                     // 31..0 => 31..0
+            : ((-i - 1) & 0x1f)     // -1..-32 => (0..31)
+        if (aPos >= mask) {
+            const w = load<u32>(cPtr + 4 * word);
+            store<u32>(cPtr + 4 * word, w | (1 << bit));
+            aPos -= mask;
+        }
+    }
+
+    if (a < 0) setNegative(cPtr);
 }
 
 function isOverflow(ptr: u32) {
