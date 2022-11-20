@@ -6,8 +6,10 @@
   "scripts": {
     "asbuild:debug": "asc src/renderMandelbrot.ts --target debug",
     "asbuild:release": "asc src/renderMandelbrot.ts --target release",
+    "asbuild:bigNum:debug": "asc src/renderMandelbrotBigNum.ts --target bigNum:debug",
+    "asbuild:bigNum:release": "asc src/renderMandelbrotBigNum.ts --target bigNum:release",
     "asbuild": "npm run asbuild:debug && npm run asbuild:release",
-    "test": "node tests"
+    "test": "node ../tests"
   },
   "devDependencies": {
     "assemblyscript": "^0.22.0"

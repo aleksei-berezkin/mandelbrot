@@ -3,12 +3,11 @@
  * Overflow is 0x8000_0000 bit in [0], negative flag is 0x4000_0000 bit in [0];
  */
 
-import {memmove, memset} from "util/memory";
-import {findFiles} from "assemblyscript/util/find";
+import { memmove, memset } from "util/memory";
 
 const intPrecision: u32 = 1;
 
-function add(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32) {
+export function add(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32): void {
     if (isOverflow(aPtr) || isOverflow(bPtr)) {
         setOverflow(cPtr);
         return;
@@ -46,9 +45,9 @@ function add(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32) {
 /**
  * Both operands must be non-overflown positive; a must be not less than b.
  */
-function addPositive(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32) {
+export function addPositive(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32): void {
     let cOut: u64 = 0;
-    for (let i: i32 = intPrecision + fracPrecision - 1; i > 0; i--) {
+    for (let i: i32 = intPrecision + fracPrecision - 1; i >= 0; i--) {
         const a_i: u64 = load<u32>(aPtr + 4 * i) as u64;
         const b_i: u64 = load<u32>(bPtr + 4 * i) as u64;
         const c_i = a_i + b_i + cOut;
@@ -65,7 +64,7 @@ function addPositive(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32) {
 /**
  * Both operands must be non-overflown positive; a must be not less than b.
  */
-function subPositive(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32) {
+function subPositive(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32): void {
     let cOut: u64 = 0;
     for (let i: i32 = intPrecision + fracPrecision - 1; i > 0; i--) {
         const a_i = load<u32>(aPtr + 4 * i) as u64;
@@ -85,7 +84,7 @@ function subPositive(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32) {
 /**
  * @param aPtr Positive
  */
-function gtEq4Pos(aPtr: u32) {
+function gtEq4Pos(aPtr: u32): boolean {
     return load<u32>(aPtr) >= 4;
 }
 
@@ -109,7 +108,7 @@ function cmpPositive(aPtr: u32, bPtr: u32, fracPrecision: u32): i32 {
 /**
  * Size of tPtr memory must be 2*precision
  */
-function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32, fracPrecision: u32) {
+export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32, fracPrecision: u32): void {
     if (isOverflow(aPtr) || isOverflow(bPtr)) {
         setOverflow(cPtr);
         return;
@@ -120,7 +119,7 @@ function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32, fracPrecision: u32) {
 
     const precision = intPrecision + fracPrecision;
 
-    memset(tPtr, 4 * 2 * precision, 0);
+    memset(tPtr, 0, 4 * 2 * precision);
 
     let cOut: u64 = 0;
     for (let i: i32 = precision - 1; i >= 0; i--) {
@@ -162,7 +161,7 @@ function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32, fracPrecision: u32) {
     }
 }
 
-function mulByUint(aPtr: u32, b: u32, cPtr: u32, fracPrecision: u32) {
+function mulByUint(aPtr: u32, b: u32, cPtr: u32, fracPrecision: u32): void {
     if (isOverflow(aPtr)) {
         setOverflow(cPtr);
         return;
@@ -186,7 +185,7 @@ function mulByUint(aPtr: u32, b: u32, cPtr: u32, fracPrecision: u32) {
     }
 }
 
-function twoTimes(aPtr: u32, cPtr: u32, fracPrecision: u32) {
+function twoTimes(aPtr: u32, cPtr: u32, fracPrecision: u32): void {
     if (isOverflow(aPtr)) {
         setOverflow(cPtr);
         return;
@@ -211,7 +210,7 @@ function twoTimes(aPtr: u32, cPtr: u32, fracPrecision: u32) {
     if (isNeg) setNegative(cPtr);
 }
 
-function fromDouble(a: f64, cPtr: u32, fracPrecision: u32) {
+function fromDouble(a: f64, cPtr: u32, fracPrecision: u32): void {
     let aPos = a < 0 ? -a : a;
     let i = 29;
     const minI = -32 * fracPrecision;
@@ -240,7 +239,7 @@ function fromDouble(a: f64, cPtr: u32, fracPrecision: u32) {
     if (a < 0) setNegative(cPtr);
 }
 
-function isOverflow(ptr: u32) {
+function isOverflow(ptr: u32): boolean {
     return (load<u32>(ptr) & 0x8000_0000) !== 0;
 }
 
@@ -248,7 +247,7 @@ function isNegative(ptr: u32): boolean {
     return (load<u32>(ptr) & 0x4000_0000) !== 0;
 }
 
-function negate(ptr: u32) {
+function negate(ptr: u32): void {
     const a = load<u32>(ptr);
     store<u32>(ptr, a ^ 0x4000_0000);
 }
@@ -262,18 +261,18 @@ function takeNegative(ptr: u32): boolean {
     return false;
 }
 
-function setZero(ptr: u32, fracPrecision: u32) {
+function setZero(ptr: u32, fracPrecision: u32): void {
     const precision = intPrecision + fracPrecision;
-    for (let i = 0; i < precision; i++) {
+    for (let i: u32 = 0; i < precision; i++) {
         store<u32>(ptr + 4 * i, 0);
     }
 }
 
-function setOverflow(ptr: u32) {
-    store(ptr, 0x8000_0000);
+function setOverflow(ptr: u32): void {
+    store<u32>(ptr, 0x8000_0000);
 }
 
-function setNegative(ptr: u32) {
+function setNegative(ptr: u32): void {
     const a = load<u32>(ptr);
-    store(ptr, a | 0x4000_0000);
+    store<u32>(ptr, a | 0x4000_0000);
 }
