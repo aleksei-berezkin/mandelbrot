@@ -8,30 +8,48 @@ const buf = new Uint32Array(wExports.memory.buffer);
 
 const w = 4;
 
-test('Simple add', () => {
-    writeBigNum(0, [1, 0]);
-    writeBigNum(2, [2, 0]);
-    wExports.add(0, w * 2, w * 4, 1);
-    assertEquals([3, 0], readBigNum(4, 1));
+test('Test from/to double randomized', () => {
+    for (let i = 0; i < 2000; i++) {
+        const sourceDouble = Math.random() * 0x3fff_ffff * (Math.random() > .5 ? -1 : -1);
+        const targetDouble = toDouble(fromDouble(sourceDouble, 2));
+        assertEquals(sourceDouble, targetDouble);
+    }
 });
 
-test('Add with frac', () => {
+test('Simple add', () => {
     writeBigNum(0, [10, 0x8000_0000]);
     writeBigNum(2, [21, 0x8800_0000]);
     wExports.add(0, w * 2, w * 4, 1);
-
-    const cBigNum = readBigNum(4, 1);
-    assertEquals([32, 0x0800_0000], cBigNum);
-    assertEquals(32.03125, toDouble(cBigNum))
+    assertEquals(32.03125, toDouble(readBigNum(4, 1)))
 });
 
-test('Test from/to double randomized', () => {
-    for (let i = 0; i < 2000; i++) {
-        const sourceDouble = Math.random() * 0x3999_9999 * (Math.random() > .5 ? -1 : -1);
-        const bigNum = fromDouble(sourceDouble, 2);
-        const targetDouble = toDouble(bigNum);
-        assertEquals(sourceDouble, targetDouble);
-    }
+test('Overflow in pos add', () => {
+    writeBigNum(0, [0x3fff_ffff, 0xffff_ffff]);
+    writeBigNum(2, [0, 0x0000_0001]);
+    wExports.add(0, w * 2, w * 4, 1);
+    assertEquals(Number.POSITIVE_INFINITY, toDouble(readBigNum(4, 1)));
+});
+
+test('cmpPositive', () => {
+    writeBigNum(0, fromDouble(1.5, 1));
+    writeBigNum(2, fromDouble(2.25, 1));
+    assertEquals(-1, wExports.cmpPositive(0, w * 2, 1));
+    assertEquals(+1, wExports.cmpPositive(w * 2, 0, 1));
+    assertEquals(0, wExports.cmpPositive(0, 0, 1));
+});
+
+test('Subtract simple a-b', () => {
+    writeBigNum(0, fromDouble(3.5, 1));
+    writeBigNum(2, fromDouble(-1.125, 1));
+    wExports.add(0, w * 2, w * 4, 1);
+    assertEquals(2.375, toDouble(readBigNum(4, 1)));
+});
+
+test('Subtract simple b-a', () => {
+    writeBigNum(0, fromDouble(-13.5, 1));
+    writeBigNum(2, fromDouble(1.125, 1));
+    wExports.add(0, w * 2, w * 4, 1);
+    assertEquals(-12.375, toDouble(readBigNum(4, 1)));
 });
 
 function readBigNum(offsetU32, fracPrecision) {
@@ -127,7 +145,7 @@ function assertEquals(expected, actual) {
 }
 
 /**
- * @return {Promise<{memory: Memory, add: Function, mul: Function}>}
+ * @return {Promise<{memory: Memory, add: Function, mul: Function, cmpPositive: Function}>}
  */
 async function instantiate() {
     const memory = new WebAssembly.Memory(

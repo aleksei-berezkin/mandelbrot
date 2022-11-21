@@ -66,7 +66,7 @@ export function addPositive(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32)
  */
 function subPositive(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32): void {
     let cOut: u64 = 0;
-    for (let i: i32 = intPrecision + fracPrecision - 1; i > 0; i--) {
+    for (let i: i32 = intPrecision + fracPrecision - 1; i >= 0; i--) {
         const a_i = load<u32>(aPtr + 4 * i) as u64;
         const b_i = load<u32>(bPtr + 4 * i) as u64 + cOut;
         let c_i: u64;
@@ -91,7 +91,7 @@ function gtEq4Pos(aPtr: u32): boolean {
 /**
  * Both operands must be non-overflown positive.
  */
-function cmpPositive(aPtr: u32, bPtr: u32, fracPrecision: u32): i32 {
+export function cmpPositive(aPtr: u32, bPtr: u32, fracPrecision: u32): i32 {
     const precision = intPrecision + fracPrecision;
     for (let i: u32 = 0; i < precision; i++) {
         const a_i = load<u32>(aPtr + 4 * i);
