@@ -10,22 +10,44 @@ const w = 4;
 
 test('Test from/to double randomized', () => {
     for (let i = 0; i < 2000; i++) {
-        const sourceDouble = Math.random() * 0x3fff_ffff * (Math.random() > .5 ? -1 : -1);
+        const sourceDouble = Math.random() * 0x3fff_ffff * randomSign();
         const targetDouble = toDouble(fromDouble(sourceDouble, 2));
         assertEquals(sourceDouble, targetDouble);
     }
 });
 
 test('Simple add', () => {
-    writeBigNum(0, [10, 0x8000_0000]);
-    writeBigNum(2, [21, 0x8800_0000]);
+    writeBigNum(0, fromDouble(10.5, 1));
+    writeBigNum(2, fromDouble(21.75, 1));
     wExports.add(0, w * 2, w * 4, 1);
-    assertEquals(32.03125, toDouble(readBigNum(4, 1)))
+    assertEquals(10.5, toDouble(readBigNum(0, 1)));
+    assertEquals(21.75, toDouble(readBigNum(2, 1)));
+    assertEquals(32.25, toDouble(readBigNum(4, 1)))
+});
+
+test('Add near overflow', () => {
+    writeBigNum(0, [0x2fff_fffe, 0xffff_ffff]);
+    writeBigNum(2, [0x1000_0000, 0x0000_0001]);
+    wExports.add(0, w * 2, w * 4, 1);
+    assertEquals([0x3fff_ffff, 0], readBigNum(4, 1));
 });
 
 test('Overflow in pos add', () => {
-    writeBigNum(0, [0x3fff_ffff, 0xffff_ffff]);
-    writeBigNum(2, [0, 0x0000_0001]);
+    const a = [0x3fff_ffff, 0xffff_ffff];
+    const b = [0, 0x0000_0001];
+    writeBigNum(0, a);
+    writeBigNum(2, b);
+    wExports.add(0, w * 2, w * 4, 1);
+    assertEquals(a, readBigNum(0, 1));
+    assertEquals(b, readBigNum(2, 1));
+    assertEquals(Number.POSITIVE_INFINITY, toDouble(readBigNum(4, 1)));
+});
+
+test('Overflow in neg add', () => {
+    const a = [0x7fff_ffff, 0xffff_ffff];
+    const b = [0x4000_0000, 1];
+    writeBigNum(0, a);
+    writeBigNum(2, b);
     wExports.add(0, w * 2, w * 4, 1);
     assertEquals(Number.POSITIVE_INFINITY, toDouble(readBigNum(4, 1)));
 });
@@ -42,6 +64,8 @@ test('Subtract simple a-b', () => {
     writeBigNum(0, fromDouble(3.5, 1));
     writeBigNum(2, fromDouble(-1.125, 1));
     wExports.add(0, w * 2, w * 4, 1);
+    assertEquals(3.5, toDouble(readBigNum(0, 1)));
+    assertEquals(-1.125, toDouble(readBigNum(2, 1)));
     assertEquals(2.375, toDouble(readBigNum(4, 1)));
 });
 
@@ -49,10 +73,35 @@ test('Subtract simple b-a', () => {
     writeBigNum(0, fromDouble(-13.5, 1));
     writeBigNum(2, fromDouble(1.125, 1));
     wExports.add(0, w * 2, w * 4, 1);
+    assertEquals(-13.5, toDouble(readBigNum(0, 1)));
+    assertEquals(1.125, toDouble(readBigNum(2, 1)));
     assertEquals(-12.375, toDouble(readBigNum(4, 1)));
 });
 
+test('Subtract near overflow', () => {
+    writeBigNum(0, [0x7fff_ffff, 0]);
+    writeBigNum(2, [0, 1]);
+    wExports.add(0, w * 2, w * 4, 1);
+    assertEquals([0x7fff_fffe, 0xffff_ffff], readBigNum(4, 1));
+});
+
+test('Randomized add', () => {
+    for (let i = 0; i < 2000; i++) {
+        const a = Math.random() * 0x1fff_ffff * randomSign();
+        const b = Math.random() * 0x1fff_ffff * randomSign();
+        writeBigNum(0, fromDouble(a, 1));
+        writeBigNum(2, fromDouble(b, 1));
+        wExports.add(0, w * 2, w * 4, 1);
+        assertEquals(a, toDouble(readBigNum(0, 1)));
+        assertEquals(b, toDouble(readBigNum(2, 1)));
+        assertEquals(a + b, toDouble(readBigNum(4, 1)));
+    }
+});
+
 function readBigNum(offsetU32, fracPrecision) {
+    if (!fracPrecision) {
+        throw 'No fracPrecision';
+    }
     const precision = 1 + fracPrecision;
     return Array.from({length: precision}).map((_, i) => buf[offsetU32 + i]);
 }
@@ -106,6 +155,10 @@ function toDouble(bigNum) {
     return res;
 }
 
+function randomSign() {
+    return Math.random() < .5 ? -1 : +1;
+}
+
 function test(description, cb) {
     try {
         cb();
@@ -139,6 +192,18 @@ function assertEquals(expected, actual) {
     ) {
         return;
     }
+
+    if (typeof expected === 'number'
+        && typeof actual === 'number'
+        && !Number.isInteger(expected)
+        && !Number.isInteger(actual)
+        && Math.abs(expected) > 1000
+        && Math.abs(actual) > 1000
+        && Math.abs(expected - actual) < 1e-9
+    ) {
+        return;
+    }
+
     if (expected !== actual) {
         throw [expected, actual];
     }
