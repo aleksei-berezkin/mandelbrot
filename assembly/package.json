@@ -4,11 +4,11 @@
   "description": "",
   "main": "index.ts",
   "scripts": {
-    "asbuild:debug": "asc src/renderMandelbrot.ts --target debug",
-    "asbuild:release": "asc src/renderMandelbrot.ts --target release",
+    "asbuild:double:debug": "asc src/renderMandelbrotDouble.ts --target double:debug",
+    "asbuild:double:release": "asc src/renderMandelbrotDouble.ts --target double:release",
     "asbuild:bigNum:debug": "asc src/renderMandelbrotBigNum.ts --target bigNum:debug",
     "asbuild:bigNum:release": "asc src/renderMandelbrotBigNum.ts --target bigNum:release",
-    "asbuild": "npm run asbuild:debug && npm run asbuild:release",
+    "asbuild": "npm run asbuild:double:debug && npm run asbuild:double:release && npm run asbuild:bigNum:debug && npm run asbuild:bigNum:release",
     "test": "node ../tests"
   },
   "devDependencies": {

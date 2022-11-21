@@ -5,11 +5,11 @@
   "main": "public/index.html",
   "scripts": {
     "postinstall": "cd assembly ; npm i ; cd ..",
-    "clean": "rm -rf public/build",
+    "clean": "rm -rf public/asmDouble ; rm -rf public/asmBigNum",
+    "build": "cd assembly ; npm run asbuild:double:release ; npm run asbuild:bigNum:release ; cd ..",
     "build:full": "cd assembly ; npm run asbuild ; cd ..",
-    "build": "cd assembly ; npm run asbuild:release ; cd ..",
-    "start": "npx serve public",
-    "test": "jest"
+    "build:test": "cd assembly ; npm run asbuild:bigNum:debug ; cd ..",
+    "start": "npx serve public"
   },
   "repository": {
     "type": "git",
@@ -21,9 +21,5 @@
     "url": "https://github.com/aleksei-berezkin/mandelbrot/issues"
   },
   "homepage": "https://github.com/aleksei-berezkin/mandelbrot#readme",
-  "type": "module",
-  "devDependencies": {
-    "@jest/globals": "^29.3.1",
-    "jest": "^29.3.1"
-  }
+  "type": "module"
 }
