@@ -126,6 +126,13 @@ test('Multiply randomized', () => {
     }
 });
 
+test('Square', () => {
+    writeBigNum(0, fromDouble(-2, 1));
+    wExports.mul(0, 0, w * 2, w * 4, 1);
+    assertEquals(-2, toDouble(readBigNum(0, 1)));
+    assertEquals(4, toDouble(readBigNum(2, 1)));
+});
+
 function readBigNum(offsetU32, fracPrecision) {
     if (!fracPrecision) {
         throw 'No fracPrecision';

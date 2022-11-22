@@ -115,7 +115,7 @@ export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32, fracPrecision: u
     }
 
     const aIsNeg = takeNegative(aPtr);
-    const bIsNeg = takeNegative(bPtr);
+    const bIsNeg = aPtr === bPtr ? aIsNeg : takeNegative(bPtr);
 
     const precision = intPrecision + fracPrecision;
 
@@ -144,7 +144,7 @@ export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32, fracPrecision: u
     }
 
     if (aIsNeg) setNegative(aPtr);
-    if (bIsNeg) setNegative(bPtr);
+    if (bIsNeg && aPtr !== bPtr) setNegative(bPtr);
 
     if (load<u32>(tPtr) !== 0       // Int precision === 1, that's why only [0]
         || isOverflow(tPtr + 4 * intPrecision)
@@ -253,9 +253,9 @@ function negate(ptr: u32): void {
 }
 
 function takeNegative(ptr: u32): boolean {
-    const upper = load<u32>(ptr);
-    if ((upper & 0x4000_0000) !== 0) {
-        store<u32>(ptr, upper & (~0x4000_0000));
+    const a = load<u32>(ptr);
+    if ((a & 0x4000_0000) !== 0) {
+        store<u32>(ptr, a & (~0x4000_0000));
         return true;
     }
     return false;
