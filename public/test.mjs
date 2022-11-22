@@ -86,7 +86,7 @@ test('Subtract near overflow', () => {
 });
 
 test('Randomized add', () => {
-    for (let i = 0; i < 2000; i++) {
+    for (let i = 0; i < 20000; i++) {
         const a = Math.random() * 0x1fff_ffff * randomSign();
         const b = Math.random() * 0x1fff_ffff * randomSign();
         writeBigNum(0, fromDouble(a, 2));
@@ -94,7 +94,7 @@ test('Randomized add', () => {
         wExports.add(0, w * 3, w * 6, 1);
         assertEquals(a, toDouble(readBigNum(0, 2)));
         assertEquals(b, toDouble(readBigNum(3, 2)));
-        assertEquals(a + b, toDouble(readBigNum(6, 2)));
+        assertEquals(a + b, toDouble(readBigNum(6, 2)), 1e-7);
     }
 });
 
@@ -114,14 +114,15 @@ test('Multiply overflow', () => {
 
 test('Multiply randomized', () => {
     for (let i = 0; i < 1000; i++) {
-        const a = Math.random() * 0x1000 * randomSign();
-        const b = Math.random() * 0x1000 * randomSign();
+        const a = Math.random() * 0xf000 * randomSign();
+        const b = Math.random() * 0xf000 * randomSign();
         writeBigNum(0, fromDouble(a, 2));
         writeBigNum(3, fromDouble(b, 2));
         wExports.mul(0, w * 3, w * 6, w * 9, 2);
         assertEquals(a, toDouble(readBigNum(0, 2)));
         assertEquals(b, toDouble(readBigNum(3, 2)));
-        assertEquals(a * b, toDouble(readBigNum(6, 2)));
+        const expected = Math.abs(a * b) >= 0x4000_0000 ? Number.POSITIVE_INFINITY : a * b;
+        assertEquals(expected, toDouble(readBigNum(6, 2)), 1e-6);
     }
 });
 
@@ -214,7 +215,7 @@ function fmt(x) {
     return x;
 }
 
-function assertEquals(expected, actual) {
+function assertEquals(expected, actual, delta = 0) {
     if (Array.isArray(expected)
         && Array.isArray(actual)
         && expected.length === actual.length
@@ -227,7 +228,7 @@ function assertEquals(expected, actual) {
         && typeof actual === 'number'
         && !Number.isInteger(expected)
         && !Number.isInteger(actual)
-        && Math.abs(expected - actual) < 1e-8
+        && Math.abs(expected - actual) < delta
     ) {
         return;
     }
