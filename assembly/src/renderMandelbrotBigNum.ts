@@ -147,8 +147,8 @@ export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32, fracPrecision: u
     if (bIsNeg) setNegative(bPtr);
 
     if (load<u32>(tPtr) !== 0       // Int precision === 1, that's why only [0]
-        || isOverflow(cPtr + 4 * intPrecision)
-        || isNegative(cPtr + 4 * intPrecision)
+        || isOverflow(tPtr + 4 * intPrecision)
+        || isNegative(tPtr + 4 * intPrecision)
     ) {
         setOverflow(cPtr);
         return;

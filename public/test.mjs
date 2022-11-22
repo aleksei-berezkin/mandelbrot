@@ -98,6 +98,33 @@ test('Randomized add', () => {
     }
 });
 
+test('Multiply simple', () => {
+    writeBigNum(0, fromDouble(1.5, 1));
+    writeBigNum(2, fromDouble(2.25, 1));
+    wExports.mul(0, w * 2, w * 4, w * 6, 1);
+    assertEquals(3.375, toDouble(readBigNum(4, 1)));
+});
+
+test('Multiply overflow', () => {
+    writeBigNum(0, [0x7f00_0000, 0]);
+    writeBigNum(2, fromDouble(2, 1));
+    wExports.mul(0, w * 2, w * 4, w * 6, 1);
+    assertEquals(Number.POSITIVE_INFINITY, toDouble(readBigNum(4, 1)));
+});
+
+test('Multiply randomized', () => {
+    for (let i = 0; i < 1000; i++) {
+        const a = Math.random() * 0x1000 * randomSign();
+        const b = Math.random() * 0x1000 * randomSign();
+        writeBigNum(0, fromDouble(a, 2));
+        writeBigNum(3, fromDouble(b, 2));
+        wExports.mul(0, w * 3, w * 6, w * 9, 2);
+        assertEquals(a, toDouble(readBigNum(0, 2)));
+        assertEquals(b, toDouble(readBigNum(3, 2)));
+        assertEquals(a * b, toDouble(readBigNum(6, 2)));
+    }
+});
+
 function readBigNum(offsetU32, fracPrecision) {
     if (!fracPrecision) {
         throw 'No fracPrecision';
@@ -111,6 +138,9 @@ function writeBigNum(offsetU32, bigNum) {
 }
 
 function fromDouble(double, fracPrecision) {
+    if (!fracPrecision) {
+        throw 'No precision';
+    }
     const precision = 1 + fracPrecision;
     if (!Number.isFinite(double) || Math.abs(double) >= 0x4000_0000) {
         return Array.from({length: precision}).map((_, i) => !i ? 0x8000_0000 : 0);
@@ -197,9 +227,7 @@ function assertEquals(expected, actual) {
         && typeof actual === 'number'
         && !Number.isInteger(expected)
         && !Number.isInteger(actual)
-        && Math.abs(expected) > 1000
-        && Math.abs(actual) > 1000
-        && Math.abs(expected - actual) < 1e-9
+        && Math.abs(expected - actual) < 1e-8
     ) {
         return;
     }
