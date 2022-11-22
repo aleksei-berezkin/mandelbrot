@@ -161,7 +161,7 @@ export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32, fracPrecision: u
     }
 }
 
-function mulByUint(aPtr: u32, b: u32, cPtr: u32, fracPrecision: u32): void {
+export function mulByUint(aPtr: u32, b: u32, cPtr: u32, fracPrecision: u32): void {
     if (isOverflow(aPtr)) {
         setOverflow(cPtr);
         return;
@@ -178,10 +178,13 @@ function mulByUint(aPtr: u32, b: u32, cPtr: u32, fracPrecision: u32): void {
         cOut = c >>> 32
     }
 
-    if (aIsNeg) setNegative(aPtr);
-
     if (cOut !== 0 || isNegative(cPtr)) {
         setOverflow(cPtr);
+    }
+
+    if (aIsNeg) {
+        setNegative(aPtr);
+        setNegative(cPtr);
     }
 }
 

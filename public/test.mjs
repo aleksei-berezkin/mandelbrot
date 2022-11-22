@@ -133,6 +133,23 @@ test('Square', () => {
     assertEquals(4, toDouble(readBigNum(2, 1)));
 });
 
+test('Mul by uint simple', () => {
+    writeBigNum(0, fromDouble(1.5, 1));
+    wExports.mulByUint(0, 10, w * 2, 1);
+    assertEquals(15, toDouble(readBigNum(2, 1)));
+});
+
+test('Mul by uint randomized', () => {
+    for (let i = 0; i < 1000; i++) {
+        const a = Math.random() * 0xa000 * randomSign();
+        const b = Math.round(Math.random() * 0xa000);
+        writeBigNum(0, fromDouble(a, 1));
+        wExports.mulByUint(0, b, w * 2, 1);
+        const expected = Math.abs(a * b) >= 0x4000_0000 ? Number.POSITIVE_INFINITY : a * b;
+        assertEquals(expected, toDouble(readBigNum(2, 1)), 1e-5);
+    }
+});
+
 function readBigNum(offsetU32, fracPrecision) {
     if (!fracPrecision) {
         throw 'No fracPrecision';
@@ -246,7 +263,7 @@ function assertEquals(expected, actual, delta = 0) {
 }
 
 /**
- * @return {Promise<{memory: Memory, add: Function, mul: Function, cmpPositive: Function}>}
+ * @return {Promise<{memory: Memory, add: Function, mul: Function, cmpPositive: Function, mulByUint}>}
  */
 async function instantiate() {
     const memory = new WebAssembly.Memory(
