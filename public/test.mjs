@@ -89,12 +89,12 @@ test('Randomized add', () => {
     for (let i = 0; i < 2000; i++) {
         const a = Math.random() * 0x1fff_ffff * randomSign();
         const b = Math.random() * 0x1fff_ffff * randomSign();
-        writeBigNum(0, fromDouble(a, 1));
-        writeBigNum(2, fromDouble(b, 1));
-        wExports.add(0, w * 2, w * 4, 1);
-        assertEquals(a, toDouble(readBigNum(0, 1)));
-        assertEquals(b, toDouble(readBigNum(2, 1)));
-        assertEquals(a + b, toDouble(readBigNum(4, 1)));
+        writeBigNum(0, fromDouble(a, 2));
+        writeBigNum(3, fromDouble(b, 2));
+        wExports.add(0, w * 3, w * 6, 1);
+        assertEquals(a, toDouble(readBigNum(0, 2)));
+        assertEquals(b, toDouble(readBigNum(3, 2)));
+        assertEquals(a + b, toDouble(readBigNum(6, 2)));
     }
 });
 
