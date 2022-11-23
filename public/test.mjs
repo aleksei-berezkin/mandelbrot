@@ -2,6 +2,8 @@
  * Because debugging WASM in a browser is easier
  */
 
+import { bigIntToBigNum } from './bigIntToBigNum.mjs';
+
 const wExports = await instantiate();
 
 const buf = new Uint32Array(wExports.memory.buffer);
@@ -143,10 +145,77 @@ test('Mul by uint randomized', () => {
     for (let i = 0; i < 1000; i++) {
         const a = Math.random() * 0xa000 * randomSign();
         const b = Math.round(Math.random() * 0xa000);
-        writeBigNum(0, fromDouble(a, 1));
-        wExports.mulByUint(0, b, w * 2, 1);
+        const aBigNum = fromDouble(a, 2);
+        writeBigNum(0, aBigNum);
+        wExports.mulByUint(0, b, w * 3, 2);
+        assertEquals(aBigNum, readBigNum(0, 2));
         const expected = Math.abs(a * b) >= 0x4000_0000 ? Number.POSITIVE_INFINITY : a * b;
-        assertEquals(expected, toDouble(readBigNum(2, 1)), 1e-5);
+        assertEquals(expected, toDouble(readBigNum(3, 2)), 1e-5);
+    }
+});
+
+test('Two times simple', () => {
+    writeBigNum(0, fromDouble(11.25, 1));
+    wExports.twoTimes(0, w * 2, 1);
+    assertEquals(22.5, toDouble(readBigNum(2, 1)));
+});
+
+test('Two times randomized', () => {
+    for (let i = 0; i < 2000; i++) {
+        const a = Math.random() * 0x6000_0000 * randomSign();
+        const aBigNum = fromDouble(a, 2);
+        writeBigNum(0, aBigNum);
+        wExports.twoTimes(0, w * 3, 2);
+        assertEquals(aBigNum, readBigNum(0, 2));
+        const expected = Math.abs(2 * a) >= 0x4000_0000 ? Number.POSITIVE_INFINITY : 2 * a;
+        assertEquals(expected, toDouble(readBigNum(3, 2)));
+    }
+});
+
+test('From double asm simple', () => {
+    wExports.fromDouble(-2.25, 0, 1);
+    assertEquals(-2.25, toDouble(readBigNum(0, 1)));
+});
+
+test('From double asm randomized', () => {
+    for (let i = 0; i < 2000; i++) {
+        const a = Math.random() * 0x8000_0000 * randomSign();
+        wExports.fromDouble(a, 0, 2);
+        const expected = Math.abs(a) >= 0x4000_0000 ? Number.POSITIVE_INFINITY : a;
+        assertEquals(expected, toDouble(readBigNum(0, 2)));
+    }
+});
+
+test('Negate', () => {
+    writeBigNum(0, fromDouble(-1.5, 1));
+    wExports.negate(0);
+    assertEquals(1.5, toDouble(readBigNum(0, 1)));
+    wExports.negate(0);
+    assertEquals(-1.5, toDouble(readBigNum(0, 1)));
+});
+
+test('bigIntToBigNum', () => {
+    for (let i = 0; i < 1000; i++) {
+        const a = BigInt(Math.round(Math.random() * 0x3fff_0000) * randomSign());
+        const unit = BigInt(Math.round(Math.random() * 0x3fff_0000) + 1);
+        const bigNum = bigIntToBigNum(a, unit, 3);
+        assertEquals(Number(a) / Number(unit), toDouble(bigNum), 1e-9);
+    }
+});
+
+test('bigIntToBigNum very large and very small', () => {
+    for (let i = 0; i < 10000; i++) {
+        let p = BigInt(Math.round(Math.random() * 0x100) * randomSign());
+        let q = BigInt(Math.round(Math.random() * 0x100_0000_0000) + 1);
+
+        const verySmall = bigIntToBigNum(p, q, 5);
+        assertEquals(Number(p) / Number(q), toDouble(verySmall), 1e-7);
+
+        p = (p < 0 ? -p : p) + 1n;
+        q *= BigInt(randomSign());
+        const veryLarge = bigIntToBigNum(q, p, 5);
+        const expected = (q < 0 ? -q : q) / p >= 0x4000_0000n ? Number.POSITIVE_INFINITY : Number(q) / Number(p);
+        assertEquals(expected, toDouble(veryLarge), 1e-7);
     }
 });
 
@@ -263,7 +332,7 @@ function assertEquals(expected, actual, delta = 0) {
 }
 
 /**
- * @return {Promise<{memory: Memory, add: Function, mul: Function, cmpPositive: Function, mulByUint}>}
+ * @return {Promise<{memory: Memory, add: Function, mul: Function, cmpPositive: Function, mulByUint: Function, twoTimes: Function, fromDouble: Function, negate: Function}>}
  */
 async function instantiate() {
     const memory = new WebAssembly.Memory(

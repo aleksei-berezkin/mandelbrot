@@ -1,9 +1,15 @@
+// noinspection JSUnusedGlobalSymbols
+
 /*
- * Arbitrary-precision fixed-point numbers. Stored in u32 arrays. Integer part is always at [0].
- * Overflow is 0x8000_0000 bit in [0], negative flag is 0x4000_0000 bit in [0];
+ * Arbitrary-precision fixed-point numbers. Stored as u32 components, most significant component first.
+ * The most significant component is an integer part, and it always has one component. Fractional part size
+ * (fracPrecision) varies, minimum is 1.
+ *
+ * Integer part stores also 2 flags: overflow (0x8000_0000) and negative (0x4000_0000).
+ * So the greatest (by abs) number is 0x3fff_ffff.0xffff_ffff... (= 1_073_741_823.99999...).
  */
 
-import { memmove, memset } from "util/memory";
+import { memmove, memset } from 'util/memory';
 
 const intPrecision: u32 = 1;
 
@@ -188,7 +194,7 @@ export function mulByUint(aPtr: u32, b: u32, cPtr: u32, fracPrecision: u32): voi
     }
 }
 
-function twoTimes(aPtr: u32, cPtr: u32, fracPrecision: u32): void {
+export function twoTimes(aPtr: u32, cPtr: u32, fracPrecision: u32): void {
     if (isOverflow(aPtr)) {
         setOverflow(cPtr);
         return;
@@ -197,46 +203,37 @@ function twoTimes(aPtr: u32, cPtr: u32, fracPrecision: u32): void {
     const isNeg = takeNegative(aPtr);
 
     const precision = intPrecision + fracPrecision;
-    let cOut: u32 = 0;
-    for (let i: i32 = precision - 1; i >= 0; i++) {
-        const c = (load<u32>(aPtr + 4 * i) as u64) << 2;
-        store<u32>(cPtr + 4 * i, (c as u32) | cOut);
+    let cOut: u64 = 0;
+    for (let i: i32 = precision - 1; i >= 0; i--) {
+        const a: u64 = load<u32>(aPtr + 4 * i) as u64;
+        const c: u64 = (a << 1) | cOut;
+        store<u32>(cPtr + 4 * i, c as u32);
         // noinspection ShiftOutOfRangeJS
-        cOut = (c >>> 32) as u32;
+        cOut = c >>> 32;
     }
 
     if (cOut !== 0 || isNegative(cPtr)) {
         setOverflow(cPtr);
-        return;
     }
 
-    if (isNeg) setNegative(cPtr);
+    if (isNeg) {
+        setNegative(aPtr);
+        setNegative(cPtr);
+    }
 }
 
-function fromDouble(a: f64, cPtr: u32, fracPrecision: u32): void {
-    let aPos = a < 0 ? -a : a;
-    let i = 29;
-    const minI = -32 * fracPrecision;
-    let mask = 1 << 29;
-    if (aPos > mask) {
+export function fromDouble(a: f64, cPtr: u32, fracPrecision: u32): void {
+    let aPos: f64 = a < 0 ? -a : a;
+    if (aPos >= 0x4000_0000) {
         setOverflow(cPtr);
         return;
     }
 
-    setZero(cPtr, fracPrecision);
-
-    for ( ; i >= minI && aPos > 0; i--) {
-        const word = i >= 0
-            ? 0                     // 31..0 => 0
-            : ((-i + 31) >>> 5)     // -1..-32 => (32..63) => 1
-        const bit = i >= 0
-            ? i                     // 31..0 => 31..0
-            : ((-i - 1) & 0x1f)     // -1..-32 => (0..31)
-        if (aPos >= mask) {
-            const w = load<u32>(cPtr + 4 * word);
-            store<u32>(cPtr + 4 * word, w | (1 << bit));
-            aPos -= mask;
-        }
+    const precision: u32 = intPrecision + fracPrecision;
+    for (let i: u32 = 0; i < precision; i++) {
+        const item: u32 = (aPos as u32);
+        aPos = (aPos - item) * 0x1_0000_0000;
+        store<u32>(cPtr + 4 * i, item);
     }
 
     if (a < 0) setNegative(cPtr);
@@ -250,7 +247,7 @@ function isNegative(ptr: u32): boolean {
     return (load<u32>(ptr) & 0x4000_0000) !== 0;
 }
 
-function negate(ptr: u32): void {
+export function negate(ptr: u32): void {
     const a = load<u32>(ptr);
     store<u32>(ptr, a ^ 0x4000_0000);
 }
