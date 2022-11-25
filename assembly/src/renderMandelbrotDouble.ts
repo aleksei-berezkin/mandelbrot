@@ -1,9 +1,5 @@
 // noinspection JSUnusedGlobalSymbols
-export function renderMandelbrot(unit: f64, xMinUnit: f64, wUnit: f64, yMinUnit: f64, hUnit: f64, canvasW: u32, canvasH: u32, maxIterations: u16): void {
-  const xMin = xMinUnit / unit;
-  const w = wUnit / unit;
-  const yMin = yMinUnit / unit;
-  const h = hUnit / unit;
+export function renderMandelbrot(xMin: f64, w: f64, yMin: f64, h: f64, canvasW: u32, canvasH: u32, maxIterations: u16): void {
   const yMax = yMin + h;
 
   const wStepFraction: f64 = w * (1.0 / (canvasW as f64))
