@@ -37,11 +37,11 @@ export function renderMandelbrot(canvasW: u32, canvasH: u32, maxIterations: u32,
 
     add(yMinPtr, hPtr, yMaxPtr, fracPrecision);
 
-    // wStepFraction = w * (1.0 / canvasW)
-    fromDouble(t0Ptr, 1.0 / (canvasW as f64), fracPrecision);
+    // wStepFraction = w * (1.0 / canvasW)(t0)
+    fromDouble(1.0 / (canvasW as f64), t0Ptr, fracPrecision);
     mul(wPtr, t0Ptr, wStepFractionPtr, t2Ptr, fracPrecision);
 
-    fromDouble(t0Ptr, 1.0 / (canvasH as f64), fracPrecision);
+    fromDouble(1.0 / (canvasH as f64), t0Ptr, fracPrecision);
     mul(hPtr, t0Ptr, hStepFractionPtr, t2Ptr, fracPrecision);
 
     for (let pY: u16 = 0; pY < canvasH; pY++) {
