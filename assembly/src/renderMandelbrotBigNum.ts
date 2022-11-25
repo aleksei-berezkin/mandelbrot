@@ -11,6 +11,95 @@
 
 import { memmove, memset } from 'util/memory';
 
+export function renderMandelbrot(canvasW: u32, canvasH: u32, maxIterations: u32, fracPrecision: u32): void {
+    const precision = intPrecision + fracPrecision;
+
+    const xMinPtr = 0;
+    const wPtr = 4 * precision;
+    const yMinPtr = 2 * 4 * precision;
+    const yMaxPtr = 3 * 4 * precision;
+    const hPtr = 4 * 4 * precision;
+    const t0Ptr = 5 * 4 * precision;
+    const t1Ptr = 6 * 4 * precision;
+    const t2Ptr = 7 * 4 * precision;    // wide
+
+    const wStepFractionPtr = 9 * 4 * precision;
+    const hStepFractionPtr = 10 * 4 * precision;
+
+    const x0Ptr = 11 * 4 * precision;
+    const y0Ptr = 12 * 4 * precision;
+    let xPtr = 13 * 4 * precision;
+    let yPtr = 14 * 4 * precision;
+    let xNextPtr = 15 * 4 * precision;
+    let yNextPtr = 16 * 4 * precision;
+
+    const outArrayOffset = 17 * 4 * precision;
+
+    add(yMinPtr, hPtr, yMaxPtr, fracPrecision);
+
+    // wStepFraction = w * (1.0 / canvasW)
+    fromDouble(t0Ptr, 1.0 / (canvasW as f64), fracPrecision);
+    mul(wPtr, t0Ptr, wStepFractionPtr, t2Ptr, fracPrecision);
+
+    fromDouble(t0Ptr, 1.0 / (canvasH as f64), fracPrecision);
+    mul(hPtr, t0Ptr, hStepFractionPtr, t2Ptr, fracPrecision);
+
+    for (let pY: u16 = 0; pY < canvasH; pY++) {
+        // canvas has (0, 0) at the left-top, so flip Y
+        // y0 = yMax - hStepFraction * pY
+        mulByUint(hStepFractionPtr, pY, t0Ptr, fracPrecision);
+        negate(t0Ptr);
+        add(yMaxPtr, t0Ptr, y0Ptr, fracPrecision);
+
+        const rowOffset = pY * canvasW;
+
+        for (let pX: u16 = 0; pX < canvasW; pX++) {
+            // x0 = xMin + wStepFraction * pX
+            mulByUint(wStepFractionPtr, pX, t0Ptr, fracPrecision);
+            add(xMinPtr, t0Ptr, x0Ptr, fracPrecision);
+
+            // x0 = 0; y0 = 0
+            setZero(xPtr, fracPrecision);
+            setZero(yPtr, fracPrecision);
+
+            let i: u16 = 0;
+            for ( ; i < maxIterations; i++) {
+                // t0 = xSqr = x * x;
+                // t1 = ySqr = y * y;
+                mul(xPtr, xPtr, t0Ptr, t2Ptr, fracPrecision);
+                mul(yPtr, yPtr, t1Ptr, t2Ptr, fracPrecision);
+                // t2 = xSqr(t0) + ySqr(t1)
+                add(t0Ptr, t1Ptr, t2Ptr, fracPrecision);
+                if (gtEq4Pos(t2Ptr)) {
+                    break;
+                }
+
+                // xNext = (xSqr(t0) - ySqr(t1))(t2) + x0;
+                negate(t1Ptr);
+                add(t0Ptr, t1Ptr, t2Ptr, fracPrecision);
+                add(t2Ptr, x0Ptr, xNextPtr, fracPrecision);
+
+                // yNext = (2.0 * (x * y)(t0))(t1) + y0;
+                mul(xPtr, yPtr, t0Ptr, t2Ptr, fracPrecision);
+                twoTimes(t0Ptr, t1Ptr, fracPrecision);
+                add(t1Ptr, y0Ptr, yNextPtr, fracPrecision);
+
+                // Swap x and xNext
+                let t: u32 = xPtr;
+                xPtr = xNextPtr;
+                xNextPtr = t;
+
+                t = yPtr;
+                yPtr = yNextPtr;
+                yNextPtr = t;
+            }
+
+            store<u16>(outArrayOffset + 2 * (rowOffset + pX), i);
+        }
+    }
+}
+
+
 const intPrecision: u32 = 1;
 
 export function add(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32): void {
