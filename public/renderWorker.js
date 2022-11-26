@@ -40,7 +40,7 @@ async function doRender(coords, canvasW, canvasH, zoom) {
     const outByteSize = 2 * canvasW * canvasH;
 
     const wNum = Number(coords.w) / Number(coords.unit);
-    const _wasmBigNum = wNum < 1e-12;
+    const _wasmBigNum = true;//wNum < 1e-12;
     const bigIntToBigNum = await bigIntToBigNumPromise;
     const wBigNum = _wasmBigNum
         ? bigIntToBigNum(coords.w, coords.unit)
@@ -64,7 +64,6 @@ async function doRender(coords, canvasW, canvasH, zoom) {
     );
 
     if (_wasmBigNum) {
-        console.log('Precision: BigNum', wBigNum.length * 32, 'bit')
         const fracPrecision = precision - 1;
         const u32Buf = new Uint32Array(wasmExports.memory.buffer);
 
@@ -80,7 +79,6 @@ async function doRender(coords, canvasW, canvasH, zoom) {
             fracPrecision,
         );
     } else {
-        console.log('Precision: float', 64, 'bit')
         const unit = Number(coords.unit);
         wasmExports.renderMandelbrot(
             Number(coords.xMin) / unit,

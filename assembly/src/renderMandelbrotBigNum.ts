@@ -219,9 +219,12 @@ export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32, fracPrecision: u
     let cOut: u64 = 0;
     for (let i: i32 = precision - 1; i >= 0; i--) {
         for (let j: i32 = precision - 1; j >= 0; j--) {
+            const t_ix = i + j + 1;
+            if (t_ix > (precision as i32)) {
+                continue;
+            }
             const a: u64 = load<u32>(aPtr + 4 * i);
             const b: u64 = load<u32>(bPtr + 4 * j);
-            const t_ix = i + j + 1;
             let t: u64 = load<u32>(tPtr + 4 * t_ix);
             t += a * b + cOut;
             store<u32>(tPtr + 4 * t_ix, t as u32);

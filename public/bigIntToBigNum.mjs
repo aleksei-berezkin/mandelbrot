@@ -3,7 +3,7 @@
  * @param unit {BigInt}
  * @param fracPrecision {number?}
  */
-export function bigIntToBigNum(a, unit, fracPrecision) {
+export function bigIntToBigNum(a, unit, fracPrecision=2) {
     let aPos = (a < 0 ? -a : a);
     if (aPos / unit >= 0x4000_0000n) {
         return  [0x8000_0000, 0];
