@@ -17,8 +17,8 @@ export function renderMandelbrot(canvasW: u32, canvasH: u32, maxIterations: u32,
     const xMinPtr = 0;
     const wPtr = 4 * precision;
     const yMinPtr = 2 * 4 * precision;
-    const yMaxPtr = 3 * 4 * precision;
-    const hPtr = 4 * 4 * precision;
+    const hPtr = 3 * 4 * precision;
+    const yMaxPtr = 4 * 4 * precision;
     const t0Ptr = 5 * 4 * precision;
     const t1Ptr = 6 * 4 * precision;
     const t2Ptr = 7 * 4 * precision;    // wide

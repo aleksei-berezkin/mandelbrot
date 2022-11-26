@@ -25,10 +25,9 @@ const baseIterations = 43;
 let wasmExports;
 
 /**
- * @type {'double' | 'BigNum'}
+ * @type {boolean}
  */
-let wasmType;
-// TODO boolean wasmBigNum
+let wasmBigNum;
 
 /**
  * @param coords {Coords}
@@ -40,22 +39,23 @@ let wasmType;
 async function doRender(coords, canvasW, canvasH, zoom) {
     const outByteSize = 2 * canvasW * canvasH;
 
-    const wNum = Number(coords.w) / coords.unit;
-    const _wasmType = wNum < 1e-12 ? 'BigNum' : 'double';
-    const wBigNum = _wasmType === 'BigNum'
-        ? (await bigIntToBigNumPromise)(coords.w, coords.unit)
+    const wNum = Number(coords.w) / Number(coords.unit);
+    const _wasmBigNum = wNum < 1e-12;
+    const bigIntToBigNum = await bigIntToBigNumPromise;
+    const wBigNum = _wasmBigNum
+        ? bigIntToBigNum(coords.w, coords.unit)
         : undefined;
     const precision = wBigNum?.length;
 
-    const requiredMemoryBytes = _wasmType === 'double'
-        ? outByteSize
-        : 17 * 4 * precision;
+    const requiredMemoryBytes = _wasmBigNum
+        ? 17 * 4 * precision
+        : outByteSize;
 
     if (!wasmExports
-        || wasmType !== _wasmType
+        || wasmBigNum !== _wasmBigNum
         || wasmExports.memory.buffer.byteLength < requiredMemoryBytes) {
-        wasmExports = await instantiate(outByteSize, _wasmType);
-        wasmType = _wasmType;
+        wasmExports = await instantiate(outByteSize, _wasmBigNum);
+        wasmBigNum = _wasmBigNum;
     }
 
     const maxIterations = Math.max(
@@ -63,38 +63,46 @@ async function doRender(coords, canvasW, canvasH, zoom) {
         Math.round((Math.log10(zoom) + 1) * baseIterations),
     );
 
-    if (_wasmType === 'double') {
+    if (_wasmBigNum) {
+        console.log('Precision: BigNum', wBigNum.length * 32, 'bit')
+        const fracPrecision = precision - 1;
+        const u32Buf = new Uint32Array(wasmExports.memory.buffer);
+
+        writeBigNum(0, bigIntToBigNum(coords.xMin, coords.unit, fracPrecision), u32Buf);
+        writeBigNum(precision, wBigNum, u32Buf);
+        writeBigNum(2 * precision, bigIntToBigNum(coords.yMin, coords.unit, fracPrecision), u32Buf)
+        writeBigNum(3 * precision, bigIntToBigNum(coords.h, coords.unit, fracPrecision), u32Buf)
+
+        wasmExports.renderMandelbrot(
+            canvasW,
+            canvasH,
+            maxIterations,
+            fracPrecision,
+        );
+    } else {
+        console.log('Precision: float', 64, 'bit')
         const unit = Number(coords.unit);
         wasmExports.renderMandelbrot(
-            Number(coords.unit) / unit,
             Number(coords.xMin) / unit,
-            Number(coords.w) / unit,
+            wNum,
             Number(coords.yMin) / unit,
             Number(coords.h) / unit,
             canvasW,
             canvasH,
             maxIterations,
         );
-    } else {
-        // TODO fill memory
-        wasmExports.renderMandelbrot(
-            canvasW,
-            canvasH,
-            maxIterations,
-            precision - 1,
-        )
     }
 
-    const iterArray = new Uint16Array(wasmExports.memory.buffer, wasmType === 'BigNum' ? 17 * 4 * precision : 0);
+    const iterArray = new Uint16Array(wasmExports.memory.buffer, _wasmBigNum ? 17 * 4 * precision : 0);
     return mapToRgba(iterArray, canvasW, canvasH, maxIterations);
 }
 
 /**
  * @param requiredMemBytes {number}
- * @param wasmType {'double' | 'BigNum'}
+ * @param bigNum {boolean}
  * @return {Promise<{memory: Memory, renderMandelbrot: Function}>}
  */
-async function instantiate(requiredMemBytes, wasmType) {
+async function instantiate(requiredMemBytes, bigNum) {
     const requiredPages = ((requiredMemBytes & ~0xffff) >>> 16) + ((requiredMemBytes & 0xffff) ? 1 : 0);
     const memory = new WebAssembly.Memory(
         {initial: requiredPages}
@@ -102,9 +110,9 @@ async function instantiate(requiredMemBytes, wasmType) {
 
     const instObj = await WebAssembly.instantiateStreaming(
         fetch(
-            wasmType === 'double'
-                ? 'asmDouble/release.wasm'
-                : 'asmBigNum/release.wasm'
+            bigNum
+                ? 'asmBigNum/release.wasm'
+                : 'asmDouble/release.wasm'
         ),
         {
             env: {memory}
@@ -114,6 +122,9 @@ async function instantiate(requiredMemBytes, wasmType) {
     return instObj.instance.exports;
 }
 
+function writeBigNum(offsetU32, bigNum, u32Buf) {
+    bigNum.forEach((v, i) => u32Buf[offsetU32 + i] = v);
+}
 
 /**
  * @type {Map<number, [number, number, number]>}
