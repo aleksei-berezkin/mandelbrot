@@ -40,7 +40,7 @@ async function doRender(coords, canvasW, canvasH, zoom) {
     const outByteSize = 2 * canvasW * canvasH;
 
     const wNum = Number(coords.w) / Number(coords.unit);
-    const _wasmBigNum = wNum < 1e-12;
+    const _wasmBigNum = wNum < 1e-13;
     const bigIntToBigNum = await bigIntToBigNumPromise;
     const wBigNum = _wasmBigNum
         ? bigIntToBigNum(coords.w, coords.unit)
@@ -48,13 +48,13 @@ async function doRender(coords, canvasW, canvasH, zoom) {
     const precision = wBigNum?.length;
 
     const requiredMemoryBytes = _wasmBigNum
-        ? 17 * 4 * precision
+        ? 17 * 4 * precision + outByteSize
         : outByteSize;
 
     if (!wasmExports
         || wasmBigNum !== _wasmBigNum
         || wasmExports.memory.buffer.byteLength < requiredMemoryBytes) {
-        wasmExports = await instantiate(outByteSize, _wasmBigNum);
+        wasmExports = await instantiate(requiredMemoryBytes, _wasmBigNum);
         wasmBigNum = _wasmBigNum;
     }
 

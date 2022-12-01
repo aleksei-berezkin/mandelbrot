@@ -3,7 +3,7 @@
  * @typedef {{unit: BigInt, xMin: BigInt, w: BigInt, yMin: BigInt, h: BigInt}} Coords
  */
 
-const initUnit = 4000n;
+const initUnit = 20000n;
 
 const initH = 3;
 

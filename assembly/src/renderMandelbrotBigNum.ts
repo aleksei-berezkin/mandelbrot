@@ -9,7 +9,7 @@
  * So the greatest (by abs) number is 0x3fff_ffff.0xffff_ffff... (= 1_073_741_823.99999...).
  */
 
-import { memmove, memset } from 'util/memory';
+import { memcpy, memset } from 'util/memory';
 
 export function renderMandelbrot(canvasW: u32, canvasH: u32, maxIterations: u32, fracPrecision: u32): void {
     const precision = intPrecision + fracPrecision;
@@ -220,7 +220,7 @@ export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32, fracPrecision: u
     for (let i: i32 = precision - 1; i >= 0; i--) {
         for (let j: i32 = precision - 1; j >= 0; j--) {
             const t_ix = i + j + 1;
-            if (t_ix > (precision as i32)) {
+            if (t_ix > (precision as i32) + 1) {
                 continue;
             }
             const a: u64 = load<u32>(aPtr + 4 * i);
@@ -252,7 +252,7 @@ export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32, fracPrecision: u
         return;
     }
 
-    memmove(cPtr, tPtr + 4 * intPrecision, 4 * precision);
+    memcpy(cPtr, tPtr + 4 * intPrecision, 4 * precision);
 
     if (aIsNeg !== bIsNeg) {
         setNegative(cPtr);
