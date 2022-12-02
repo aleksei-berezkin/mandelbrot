@@ -48,7 +48,7 @@ async function doRender(coords, canvasW, canvasH, zoom) {
     const precision = wBigNum?.length;
 
     const requiredMemoryBytes = _wasmBigNum
-        ? 17 * 4 * precision + outByteSize
+        ? 16 * 4 * precision + outByteSize
         : outByteSize;
 
     if (!wasmExports
@@ -91,7 +91,7 @@ async function doRender(coords, canvasW, canvasH, zoom) {
         );
     }
 
-    const iterArray = new Uint16Array(wasmExports.memory.buffer, _wasmBigNum ? 17 * 4 * precision : 0);
+    const iterArray = new Uint16Array(wasmExports.memory.buffer, _wasmBigNum ? 16 * 4 * precision : 0);
     return mapToRgba(iterArray, canvasW, canvasH, maxIterations);
 }
 

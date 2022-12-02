@@ -9,7 +9,7 @@
  * So the greatest (by abs) number is 0x3fff_ffff.0xffff_ffff... (= 1_073_741_823.99999...).
  */
 
-import { memcpy, memset } from 'util/memory';
+import { memset } from 'util/memory';
 
 export function renderMandelbrot(canvasW: u32, canvasH: u32, maxIterations: u32, fracPrecision: u32): void {
     const precision = intPrecision + fracPrecision;
@@ -21,19 +21,19 @@ export function renderMandelbrot(canvasW: u32, canvasH: u32, maxIterations: u32,
     const yMaxPtr = 4 * 4 * precision;
     const t0Ptr = 5 * 4 * precision;
     const t1Ptr = 6 * 4 * precision;
-    const t2Ptr = 7 * 4 * precision;    // wide
+    const t2Ptr = 7 * 4 * precision;
 
-    const wStepFractionPtr = 9 * 4 * precision;
-    const hStepFractionPtr = 10 * 4 * precision;
+    const wStepFractionPtr = 8 * 4 * precision;
+    const hStepFractionPtr = 9 * 4 * precision;
 
-    const x0Ptr = 11 * 4 * precision;
-    const y0Ptr = 12 * 4 * precision;
-    let xPtr = 13 * 4 * precision;
-    let yPtr = 14 * 4 * precision;
-    let xNextPtr = 15 * 4 * precision;
-    let yNextPtr = 16 * 4 * precision;
+    const x0Ptr = 10 * 4 * precision;
+    const y0Ptr = 11 * 4 * precision;
+    let xPtr = 12 * 4 * precision;
+    let yPtr = 13 * 4 * precision;
+    let xNextPtr = 14 * 4 * precision;
+    let yNextPtr = 15 * 4 * precision;
 
-    const outArrayOffset = 17 * 4 * precision;
+    const outArrayOffset = 16 * 4 * precision;
 
     add(yMinPtr, hPtr, yMaxPtr, fracPrecision);
 
@@ -200,9 +200,6 @@ export function cmpPositive(aPtr: u32, bPtr: u32, fracPrecision: u32): i32 {
     return 0;
 }
 
-/**
- * Size of tPtr memory must be 2*precision
- */
 export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32, fracPrecision: u32): void {
     if (isOverflow(aPtr) || isOverflow(bPtr)) {
         setOverflow(cPtr);
@@ -214,7 +211,8 @@ export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32, fracPrecision: u
 
     const precision = intPrecision + fracPrecision;
 
-    memset(tPtr, 0, 4 * 2 * precision);
+    memset(cPtr, 0, 4 * precision);
+    memset(tPtr, 0, 4);
 
     let cOut: u64 = 0;
     for (let i: i32 = precision - 1; i >= 0; i--) {
@@ -224,8 +222,8 @@ export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32, fracPrecision: u
         }
 
         for (let j: i32 = precision - 1; j >= 0; j--) {
-            const t_ix = i + j + 1;
-            if (t_ix > (precision as i32) + 1) {
+            let pIx = i + j;
+            if (pIx > (precision as i32)) {
                 continue;
             }
             const b: u64 = load<u32>(bPtr + 4 * j);
@@ -233,34 +231,36 @@ export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32, fracPrecision: u
                 continue;
             }
 
-            let t: u64 = load<u32>(tPtr + 4 * t_ix);
-            t += a * b + cOut;
-            store<u32>(tPtr + 4 * t_ix, t as u32);
+            const pPtr = pIx < (precision as i32) ? cPtr : tPtr;
+            pIx %= precision;
+
+            let p: u64 = load<u32>(pPtr + 4 * pIx);
+            p += a * b + cOut;
+            store<u32>(pPtr + 4 * pIx, p as u32);
             // noinspection ShiftOutOfRangeJS
-            cOut = t >>> 32;
+            cOut = p >>> 32;
         }
 
-        for (let j: i32 = i; j >= 0 && cOut > 0; j--) {
-            let t: u64 = load<u32>(tPtr + 4 * j);
-            t += cOut;
-            store<u32>(tPtr + 4 * j, t as u32);
+        for (let j: i32 = i - 1; j >= 0 && cOut !== 0; j--) {
+            let p: u64 = load<u32>(cPtr + 4 * j);
+            p += cOut;
+            store<u32>(cPtr + 4 * j, p as u32);
             // noinspection ShiftOutOfRangeJS
-            cOut = t >>> 32;
+            cOut = p >>> 32;
+        }
+
+        if (cOut !== 0) {
+            break;
         }
     }
 
     if (aIsNeg) setNegative(aPtr);
     if (bIsNeg && aPtr !== bPtr) setNegative(bPtr);
 
-    if (load<u32>(tPtr) !== 0       // Int precision === 1, that's why only [0]
-        || isOverflow(tPtr + 4 * intPrecision)
-        || isNegative(tPtr + 4 * intPrecision)
-    ) {
+    if (cOut !== 0 || isOverflow(cPtr) || isNegative(cPtr)) {
         setOverflow(cPtr);
         return;
     }
-
-    memcpy(cPtr, tPtr + 4 * intPrecision, 4 * precision);
 
     if (aIsNeg !== bIsNeg) {
         setNegative(cPtr);
