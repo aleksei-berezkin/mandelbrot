@@ -25,32 +25,46 @@ async function render0(canvas) {
     let hNum = Number(coords.h) / Number(coords.unit);
     const zoom = 3 / hNum;
 
-    const parts = [...splitWork(coords.yMin, coords.h, canvas.height, workers.length)];
+    const parts = [...splitWork(coords.yMin, coords.h, canvas.height, workers.length * 8)];
 
-    const workerPromises = parts.map(async (part, i) => {
-        const rgbaArray = await renderOnWorker(
-            workers[i],
-            {
-                unit: coords.unit,
-                xMin: coords.xMin,
-                w: coords.w,
-                yMin: part.yMin,
-                h: part.h,
-            },
-            canvas.width,
-            part.canvasH,
-            zoom,
-        );
-        return {rgbaArray, canvasYMin: part.canvasYMin, canvasH: part.canvasH};
+    // const tasksNum = parts.length;
+    // let tasksDone = 0;
+
+    const workerPromises = workers.map(async worker => {
+        const results = [];
+        while (parts.length) {
+            const part = parts.splice(0, 1)[0]
+            const rgbaArray = await renderOnWorker(
+                worker,
+                {
+                    unit: coords.unit,
+                    xMin: coords.xMin,
+                    w: coords.w,
+                    yMin: part.yMin,
+                    h: part.h,
+                },
+                canvas.width,
+                part.canvasH,
+                zoom,
+            );
+            results.push({
+                rgbaArray,
+                canvasYMin: part.canvasYMin,
+                canvasH: part.canvasH,
+            });
+        }
+        return results;
     });
 
     const ctx = canvas.getContext('2d');
-    for (const renderedPart of await Promise.all(workerPromises)) {
-        ctx.putImageData(
-            new ImageData(renderedPart.rgbaArray, canvas.width, renderedPart.canvasH),
-            0,
-            canvas.height - renderedPart.canvasYMin - renderedPart.canvasH,
-        );
+    for (const results of await Promise.all(workerPromises)) {
+        for (const result of results) {
+            ctx.putImageData(
+                new ImageData(result.rgbaArray, canvas.width, result.canvasH),
+                0,
+                canvas.height - result.canvasYMin - result.canvasH,
+            );
+        }
     }
 }
 
@@ -72,41 +86,51 @@ async function renderOnWorker(worker, coords, canvasW, canvasH, zoom) {
     });
 }
 
+const minCanvasH = 12;
+
 /**
  * @param yMin {BigInt}
  * @param h {BigInt}
  * @param canvasH {number}
- * @param n {number}
+ * @param nApprox {number}
  * @return {Generator<{yMin: BigInt, h: BigInt, canvasYMin: number, canvasH: number}>}
  */
-function* splitWork(yMin, h, canvasH, n) {
-    if (h < 32) {
-        yield {yMin, h, canvasYMin: 0, canvasH};
-        // noinspection JSValidateTypes
-        return;
-    }
+function* splitWork(yMin, h, canvasH, nApprox) {
+    const _nApprox = Math.min(nApprox, Math.ceil(canvasH / minCanvasH));
 
-    const yPart = h / BigInt(n);
-    const canvasHPart = Math.round(canvasH / n);
+    const yPart = h / BigInt(_nApprox);
 
     let yDone = 0n;
-    let canvasYDone = 0;
+    let yRemaining = h;
 
-    for (let i = 0; i < n - 1; i++) {
+    let canvasYDone = 0;
+    let canvasYRemaining = canvasH;
+
+    while (yRemaining) {
+        if (yRemaining <= yPart) {
+            yield {
+                yMin: yMin + yDone,
+                h: yRemaining,
+                canvasYMin: canvasYDone,
+                canvasH: canvasYRemaining,
+            };
+            // noinspection JSValidateTypes
+            return;
+        }
+
+        const canvasHPart = Number(BigInt(canvasH) * (yDone + yPart) / h) - canvasYDone;
+
         yield {
             yMin: yMin + yDone,
             h: yPart,
             canvasYMin: canvasYDone,
             canvasH: canvasHPart,
         };
-        yDone += yPart;
-        canvasYDone += canvasHPart;
-    }
 
-    yield {
-        yMin: yMin + yDone,
-        h: h - yDone,
-        canvasYMin: canvasYDone,
-        canvasH: canvasH - canvasYDone,
-    };
+        yDone += yPart;
+        yRemaining -= yPart;
+
+        canvasYDone += canvasHPart;
+        canvasYRemaining -= canvasHPart;
+    }
 }
