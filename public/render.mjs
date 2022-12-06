@@ -25,10 +25,14 @@ async function render0(canvas) {
     let hNum = Number(coords.h) / Number(coords.unit);
     const zoom = 3 / hNum;
 
-    const parts = [...splitWork(coords.yMin, coords.h, canvas.height, workers.length * 8)];
+    const parts = [...splitWork(coords.yMin, coords.h, canvas.height, workers.length * 16)];
 
-    // const tasksNum = parts.length;
-    // let tasksDone = 0;
+    const tasksNum = parts.length;
+    let tasksDone = 0;
+
+    const loaderWr = document.getElementById('main-loader-wr');
+    loaderWr.style.display = 'block';
+    loaderWr.style.setProperty('--progress', '0%');
 
     const workerPromises = workers.map(async worker => {
         const results = [];
@@ -52,6 +56,12 @@ async function render0(canvas) {
                 canvasYMin: part.canvasYMin,
                 canvasH: part.canvasH,
             });
+            tasksDone++;
+            if (tasksDone === tasksNum) {
+                loaderWr.style.display = 'none';
+            } else {
+                loaderWr.style.setProperty('--progress', `${tasksDone / tasksNum * 100}%`);
+            }
         }
         return results;
     });

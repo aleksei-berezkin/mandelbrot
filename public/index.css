@@ -5,6 +5,42 @@ html, body {
     padding: 0;
     width: 100%;
 }
+
+#main-loader-wr {
+    display: none;
+    height: 100px;
+    left: 50%;
+    position: absolute;
+    top: 50%;
+    transform: translate3d(-50%, -50%, 0);
+    width: 100px;
+
+    --pi: 3.141592653589793;
+    --progress: 0%;
+}
+
+.main-loader {
+    height: 100%;
+    width: 100%;
+    filter: drop-shadow(0 0 4px #fff);
+}
+
+.main-loader > circle {
+    fill: none;
+    stroke-width: 8%;
+}
+
+.main-loader > .circle-bg {
+    stroke: #fff6;
+}
+
+.main-loader > .circle-fg {
+    transform: rotate(-90deg);
+    transform-origin: center;
+    stroke: #fffa;
+    stroke-dasharray: calc(.46 * 2 * var(--pi) * var(--progress)) 1000%;
+}
+
 #main-canvas {
     background-color: aliceblue;
     border: none;

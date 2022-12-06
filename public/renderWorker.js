@@ -40,7 +40,7 @@ async function doRender(coords, canvasW, canvasH, zoom) {
     const outByteSize = 2 * canvasW * canvasH;
 
     const wNum = Number(coords.w) / Number(coords.unit);
-    const _wasmBigNum = wNum < 1e-13;
+    const _wasmBigNum = wNum < 1e-12;   // TODO exported func, use in render.mjs
     const bigIntToBigNum = await bigIntToBigNumPromise;
     const wBigNum = _wasmBigNum
         ? bigIntToBigNum(coords.w, coords.unit)
