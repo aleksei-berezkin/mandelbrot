@@ -67,6 +67,9 @@ export function renderMandelbrot(canvasW: u32, canvasH: u32, maxIterations: u32,
                 // t0 = xSqr = x * x;
                 // t1 = ySqr = y * y;
                 mul(xPtr, xPtr, t0Ptr, t2Ptr, fracPrecision);
+                if (gtEq4Pos(t0Ptr)) {
+                    break;
+                }
                 mul(yPtr, yPtr, t1Ptr, t2Ptr, fracPrecision);
                 // t2 = xSqr(t0) + ySqr(t1)
                 add(t0Ptr, t1Ptr, t2Ptr, fracPrecision);
@@ -210,23 +213,24 @@ export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32, fracPrecision: u
     const bIsNeg = aPtr === bPtr ? aIsNeg : takeNegative(bPtr);
 
     const precision = intPrecision + fracPrecision;
+    const maxIx = precision - 1;
 
     memset(cPtr, 0, 4 * precision);
     memset(tPtr, 0, 4);
 
     let cOut: u64 = 0;
-    for (let i: i32 = precision - 1; i >= 0; i--) {
-        const a: u64 = load<u32>(aPtr + 4 * i);
+    for (let i: i32 = maxIx; i >= 0; i--) {
+        const a: u64 = load<u32>(aPtr + (i << 2));
         if (a === 0) {
             continue;
         }
 
-        for (let j: i32 = precision - 1; j >= 0; j--) {
+        for (let j: i32 = maxIx; j >= 0; j--) {
             let pIx = i + j;
             if (pIx > (precision as i32)) {
                 continue;
             }
-            const b: u64 = load<u32>(bPtr + 4 * j);
+            const b: u64 = load<u32>(bPtr + (j << 2));
             if (b === 0 && cOut === 0) {
                 continue;
             }
@@ -234,17 +238,19 @@ export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32, fracPrecision: u
             const pPtr = pIx < (precision as i32) ? cPtr : tPtr;
             pIx %= precision;
 
-            let p: u64 = load<u32>(pPtr + 4 * pIx);
+            const _pPtr = pPtr + (pIx << 2);
+            let p: u64 = load<u32>(_pPtr);
             p += a * b + cOut;
-            store<u32>(pPtr + 4 * pIx, p as u32);
+            store<u32>(_pPtr, p as u32);
             // noinspection ShiftOutOfRangeJS
             cOut = p >>> 32;
         }
 
         for (let j: i32 = i - 1; j >= 0 && cOut !== 0; j--) {
-            let p: u64 = load<u32>(cPtr + 4 * j);
+            const _cPtr = cPtr + (j << 2);
+            let p: u64 = load<u32>(_cPtr);
             p += cOut;
-            store<u32>(cPtr + 4 * j, p as u32);
+            store<u32>(_cPtr, p as u32);
             // noinspection ShiftOutOfRangeJS
             cOut = p >>> 32;
         }

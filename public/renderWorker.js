@@ -5,6 +5,13 @@ const bigIntToBigNumPromise = (async () => {
     return bigIntToBigNum;
 })()
 
+const isBigNumPromise = (async () => {
+    const text = await (await fetch('isBigNum.mjs')).text();
+    eval(text.replace('export', ''));
+    // noinspection JSUnresolvedVariable
+    return isBigNum;
+})()
+
 /**
  * @param message {{data: [Coords, number, number, number]}}
  */
@@ -16,8 +23,6 @@ async function messageHandler(message) {
 
 self.onmessage = messageHandler
 
-
-const baseIterations = 43;
 
 /**
  * @type {{memory: Memory, renderMandelbrot: Function}}
@@ -33,14 +38,13 @@ let wasmBigNum;
  * @param coords {Coords}
  * @param canvasW {number}
  * @param canvasH {number}
- * @param zoom {number}
+ * @param maxIterations {number}
  * @return {Uint8ClampedArray}
  */
-async function doRender(coords, canvasW, canvasH, zoom) {
+async function doRender(coords, canvasW, canvasH, maxIterations) {
     const outByteSize = 2 * canvasW * canvasH;
 
-    const wNum = Number(coords.w) / Number(coords.unit);
-    const _wasmBigNum = wNum < 1e-12;   // TODO exported func, use in render.mjs
+    const _wasmBigNum = (await isBigNumPromise)(coords.w, coords.unit);
     const bigIntToBigNum = await bigIntToBigNumPromise;
     const wBigNum = _wasmBigNum
         ? bigIntToBigNum(coords.w, coords.unit)
@@ -57,11 +61,6 @@ async function doRender(coords, canvasW, canvasH, zoom) {
         wasmExports = await instantiate(requiredMemoryBytes, _wasmBigNum);
         wasmBigNum = _wasmBigNum;
     }
-
-    const maxIterations = Math.max(
-        baseIterations,
-        Math.round((Math.log10(zoom) + 1) * baseIterations),
-    );
 
     if (_wasmBigNum) {
         const fracPrecision = precision - 1;
@@ -82,7 +81,7 @@ async function doRender(coords, canvasW, canvasH, zoom) {
         const unit = Number(coords.unit);
         wasmExports.renderMandelbrot(
             Number(coords.xMin) / unit,
-            wNum,
+            Number(coords.w) / unit,
             Number(coords.yMin) / unit,
             Number(coords.h) / unit,
             canvasW,

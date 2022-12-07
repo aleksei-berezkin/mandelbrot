@@ -1,6 +1,12 @@
 import { getMathCoords } from './mathCoords.mjs';
+import { isBigNum } from './isBigNum.mjs';
+import { bigIntToBigNum } from './bigIntToBigNum.mjs';
+import { mulBigIntByFraction } from './mulBigIntByFraction.mjs';
 
 let pending = 0;
+
+const baseIterations = 45;
+
 
 export async function render(canvas) {
     if (++pending > 1) {
@@ -24,8 +30,23 @@ async function render0(canvas) {
 
     let hNum = Number(coords.h) / Number(coords.unit);
     const zoom = 3 / hNum;
+    const maxIterations = Math.max(
+        baseIterations,
+        Math.round((Math.log10(zoom) + 1) * baseIterations),
+    );
 
-    const parts = [...splitWork(coords.yMin, coords.h, canvas.height, workers.length * 16)];
+    const bigNum = isBigNum(coords.w, coords.unit);
+    const wBigNum = bigNum ? bigIntToBigNum(coords.w, coords.unit) : undefined;
+
+    document.getElementById('precision').innerText = wBigNum ? `Precision: BigNum ${wBigNum.length * 32} bits` : 'Precision: float 64 bits';
+    document.getElementById('max-iterations').innerText = `Max iterations: ${maxIterations}`;
+
+    const parts = [...splitWork(
+        coords.yMin,
+        coords.h,
+        canvas.height,
+        workers.length * (bigNum ? 48 : 8),
+    )];
 
     const tasksNum = parts.length;
     let tasksDone = 0;
@@ -49,7 +70,7 @@ async function render0(canvas) {
                 },
                 canvas.width,
                 part.canvasH,
-                zoom,
+                maxIterations,
             );
             results.push({
                 rgbaArray,
@@ -59,6 +80,7 @@ async function render0(canvas) {
             tasksDone++;
             if (tasksDone === tasksNum) {
                 loaderWr.style.display = 'none';
+                loaderWr.style.setProperty('--progress', '0%');
             } else {
                 loaderWr.style.setProperty('--progress', `${tasksDone / tasksNum * 100}%`);
             }
@@ -117,30 +139,28 @@ function* splitWork(yMin, h, canvasH, nApprox) {
     let canvasYRemaining = canvasH;
 
     while (yRemaining) {
-        if (yRemaining <= yPart) {
-            yield {
-                yMin: yMin + yDone,
-                h: yRemaining,
-                canvasYMin: canvasYDone,
-                canvasH: canvasYRemaining,
-            };
-            // noinspection JSValidateTypes
-            return;
-        }
-
-        const canvasHPart = Number(BigInt(canvasH) * (yDone + yPart) / h) - canvasYDone;
+        const currentYPart = min(yRemaining, mulBigIntByFraction(yPart, (Math.random() + .5)));
+        const currentCanvasHPart = Number(BigInt(canvasH) * (yDone + currentYPart) / h) - canvasYDone;
 
         yield {
             yMin: yMin + yDone,
-            h: yPart,
+            h: currentYPart,
             canvasYMin: canvasYDone,
-            canvasH: canvasHPart,
+            canvasH: currentCanvasHPart,
         };
 
-        yDone += yPart;
-        yRemaining -= yPart;
+        yDone += currentYPart;
+        yRemaining -= currentYPart;
 
-        canvasYDone += canvasHPart;
-        canvasYRemaining -= canvasHPart;
+        canvasYDone += currentCanvasHPart;
+        canvasYRemaining -= currentCanvasHPart;
     }
+}
+
+/**
+ * @param a {BigInt}
+ * @param b {BigInt}
+ */
+function min(a, b) {
+    if (a < b) return a; else return b;
 }

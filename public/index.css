@@ -1,5 +1,6 @@
 html, body {
     border: none;
+    font-family: 'Roboto', sans-serif;
     height: 100%;
     margin: 0;
     padding: 0;
@@ -27,7 +28,7 @@ html, body {
 
 .main-loader > circle {
     fill: none;
-    stroke-width: 8%;
+    stroke-width: 7%;
 }
 
 .main-loader > .circle-bg {
@@ -39,6 +40,7 @@ html, body {
     transform-origin: center;
     stroke: #fffa;
     stroke-dasharray: calc(.46 * 2 * var(--pi) * var(--progress)) 1000%;
+    transition: stroke-dasharray 100ms;
 }
 
 #main-canvas {
@@ -48,4 +50,15 @@ html, body {
     margin: 0;
     padding: 0;
     width: 100%;
+}
+
+.bottom-info-wr {
+    bottom: 0;
+    color: #000b;
+    filter: drop-shadow(0 0 3px #fff9);
+    font-size: 14px;
+    padding: .5em;
+    position: absolute;
+    right: 0;
+    text-align: right;
 }
