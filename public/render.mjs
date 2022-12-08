@@ -41,10 +41,13 @@ async function render0(canvas) {
     document.getElementById('precision').innerText = wBigNum ? `Precision: BigNum ${wBigNum.length * 32} bits` : 'Precision: float 64 bits';
     document.getElementById('max-iterations').innerText = `Max iterations: ${maxIterations}`;
 
+    const canvasW = canvas.width;
+    const canvasH = canvas.height;
+
     const parts = [...splitWork(
         coords.yMin,
         coords.h,
-        canvas.height,
+        canvasH,
         workers.length * (bigNum ? 48 : 8),
     )];
 
@@ -68,7 +71,7 @@ async function render0(canvas) {
                     yMin: part.yMin,
                     h: part.h,
                 },
-                canvas.width,
+                canvasW,
                 part.canvasH,
                 maxIterations,
             );
@@ -88,8 +91,14 @@ async function render0(canvas) {
         return results;
     });
 
+
     const ctx = canvas.getContext('2d');
-    for (const results of await Promise.all(workerPromises)) {
+    const resultsArr = await Promise.all(workerPromises);
+    if (canvas.width !== canvasW || canvas.height !== canvasH) {
+        return;
+    }
+
+    for (const results of resultsArr) {
         for (const result of results) {
             ctx.putImageData(
                 new ImageData(result.rgbaArray, canvas.width, result.canvasH),
