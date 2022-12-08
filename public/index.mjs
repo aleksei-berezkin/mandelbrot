@@ -11,7 +11,6 @@ trackMouseLocation(canvas);
 
 trackCanvasSizeAndRender(canvas);
 
-let timer = 0;
 window.addEventListener('wheel', function (e) {
     e.preventDefault();
 
@@ -32,13 +31,6 @@ window.addEventListener('wheel', function (e) {
     const newYMin = y - mulBigIntByFraction(newH, frY);
 
     setMathCoords(canvas, {unit, xMin: newXMin, w: newW, yMin: newYMin, h: newH});
-
-    if (!timer) {
-        timer = setTimeout(async() => {
-            await render(canvas);
-            timer = 0;
-        }, 1000);
-    }
 
     setTimeout(() => render(canvas), 100);
 

@@ -1,7 +1,7 @@
 export function trackMouseLocation(canvas) {
-    canvas.addEventListener('mousemove', function(e) {
-        canvas.dataset.mouseOffsetX = e.offsetX;
-        canvas.dataset.mouseOffsetY = e.offsetY;
+    window.addEventListener('mousemove', function(e) {
+        canvas.dataset.mouseOffsetX = String(e.clientX);
+        canvas.dataset.mouseOffsetY = String(e.clientY);
     });
 }
 
@@ -9,13 +9,15 @@ export function trackMouseLocation(canvas) {
  * @return {[number, number]} [0, 0] is bottom-left, [1, 1] is top-right
  */
 export function getMouseLocationFraction(canvas) {
-    const {width, height} = canvas.getBoundingClientRect();
-    const ds = canvas.dataset;
-    const mouseOffsetX = Number(ds.mouseOffsetX ?? 0);
-    const mouseOffsetY = height - Number(ds.mouseOffsetY ?? 0);
+    const mouseOffsetX = canvas.dataset.mouseOffsetX;
+    const mouseOffsetY = canvas.dataset.mouseOffsetY;
+    if (mouseOffsetX == null || mouseOffsetY == null) {
+        return [.5, .5];
+    }
 
+    const {width, height} = canvas.getBoundingClientRect();
     return [
-        mouseOffsetX / width,
-        mouseOffsetY / height,
+        Number(mouseOffsetX) / width,
+        (height - Number(mouseOffsetY)) / height,
     ];
 }
