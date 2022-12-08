@@ -3,20 +3,32 @@
  * @typedef {{unit: BigInt, xMin: BigInt, w: BigInt, yMin: BigInt, h: BigInt}} Coords
  */
 
-const initUnit = 20000n;
+const initUnit = 20000;
+const initUnitN = BigInt(initUnit);
 
-const initH = 3;
+const initSize = 2.8;
+const initXCenter = -.4;
 
 export function initMathCoords(canvas) {
-    const r = canvas.getBoundingClientRect();
+    const {width: canvasW, height: canvasH} = canvas.getBoundingClientRect();
+    const canvasMinSide = Math.min(canvasW, canvasH);
+    const canvasMaxSide = Math.max(canvasW, canvasH);
 
-    const unit = initUnit;
-    const h = BigInt(initH) * unit;
-    const yMin = -h / 2n;
-    const w = h * BigInt(Math.round(r.width)) / BigInt(Math.round(r.height));
-    const xMin = -w / 2n;
+    const minSide = initSize;
+    const maxSide = minSide * canvasMaxSide / canvasMinSide;
+    const w = canvasW === canvasMinSide ? minSide : maxSide;
+    const h = canvasH === canvasMinSide ? minSide : maxSide;
 
-   setMathCoords(canvas, {unit, xMin, w, yMin, h});
+    const yMin = -h / 2;
+    const xMin = initXCenter - w / 2;
+
+   setMathCoords(canvas, {
+       unit: initUnitN,
+       xMin: BigInt(Math.round(initUnit * xMin)),
+       w: BigInt(Math.round(initUnit * w)),
+       yMin: BigInt(Math.round(initUnit * yMin)),
+       h: BigInt(Math.round(initUnit * h)),
+   });
 }
 
 /**
@@ -37,7 +49,7 @@ export function getMathCoords(canvas) {
  * @param coords {Coords}
  */
 export function setMathCoords(canvas, coords) {
-    if (coords.w < initUnit || coords.h < initUnit) {
+    if (coords.w < initUnitN || coords.h < initUnitN) {
         coords = scaleCoords(coords)
     }
 
@@ -53,10 +65,10 @@ export function setMathCoords(canvas, coords) {
  */
 function scaleCoords(coords) {
     return {
-        unit: coords.unit * initUnit,
-        xMin: coords.xMin * initUnit,
-        w: coords.w * initUnit,
-        yMin: coords.yMin * initUnit,
-        h: coords.h * initUnit,
+        unit: coords.unit * initUnitN,
+        xMin: coords.xMin * initUnitN,
+        w: coords.w * initUnitN,
+        yMin: coords.yMin * initUnitN,
+        h: coords.h * initUnitN,
     };
 }
