@@ -82,7 +82,7 @@ async function render0(canvas) {
             });
             tasksDone++;
             if (tasksDone === tasksNum) {
-                loaderWr.style.display = 'none';
+                loaderWr.style.removeProperty('display');
                 loaderWr.style.setProperty('--progress', '0%');
             } else {
                 loaderWr.style.setProperty('--progress', `${tasksDone / tasksNum * 100}%`);
@@ -127,7 +127,7 @@ async function renderOnWorker(worker, coords, canvasW, canvasH, zoom) {
     });
 }
 
-const minCanvasH = 12;
+const minCanvasH = 8;
 
 /**
  * @param yMin {BigInt}

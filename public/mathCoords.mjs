@@ -7,7 +7,7 @@ const initUnit = 20000;
 const initUnitN = BigInt(initUnit);
 
 const initSize = 2.8;
-const initXCenter = -.4;
+const initXCenter = -.45;
 
 export function initMathCoords(canvas) {
     const {width: canvasW, height: canvasH} = canvas.getBoundingClientRect();
