@@ -11,7 +11,7 @@ export function trackMove(canvas) {
     let dragStartClientX = undefined;
     let dragStartClientY = undefined;
 
-    window.addEventListener('mousedown', function(e) {
+    window.addEventListener('pointerdown', function(e) {
         e.preventDefault();
         dragStartClientX = e.clientX;
         dragStartClientY = e.clientY;
@@ -21,7 +21,7 @@ export function trackMove(canvas) {
         window.document.body.style.cursor = 'grab';
     });
 
-    window.addEventListener('mousemove', function(e) {
+    window.addEventListener('pointermove', function(e) {
         if (dragStartXMin == null || dragStartYMin == null || dragStartClientX == null || dragStartClientY == null || e.clientX == null || e.clientY == null) {
             return;
         }
@@ -40,7 +40,7 @@ export function trackMove(canvas) {
         void render(canvas);
     });
 
-    window.addEventListener('mouseup', function(e) {
+    window.addEventListener('pointerup', function(e) {
         dragStartXMin = undefined;
         dragStartYMin = undefined;
         dragStartClientX = undefined;
