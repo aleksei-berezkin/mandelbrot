@@ -1,6 +1,7 @@
 import { getMathCoords, setMathCoords } from './mathCoords.mjs';
 import { mulBigIntByFraction } from './mulBigIntByFraction.mjs';
 import { render } from './render.mjs';
+import { isGesture } from './isGesture.mjs';
 
 /**
  * @param canvas {HTMLCanvasElement}
@@ -12,6 +13,8 @@ export function trackMove(canvas) {
     let dragStartClientY = undefined;
 
     window.addEventListener('pointerdown', function(e) {
+        if (isGesture(e)) return;
+
         e.preventDefault();
         dragStartClientX = e.clientX;
         dragStartClientY = e.clientY;
@@ -22,6 +25,8 @@ export function trackMove(canvas) {
     });
 
     window.addEventListener('pointermove', function(e) {
+        if (isGesture(e)) return;
+
         if (dragStartXMin == null || dragStartYMin == null || dragStartClientX == null || dragStartClientY == null || e.clientX == null || e.clientY == null) {
             return;
         }
@@ -41,6 +46,8 @@ export function trackMove(canvas) {
     });
 
     window.addEventListener('pointerup', function(e) {
+        if (isGesture(e)) return;
+
         dragStartXMin = undefined;
         dragStartYMin = undefined;
         dragStartClientX = undefined;
