@@ -11,7 +11,7 @@ export function trackWheel(canvas) {
 
         const coords = getMathCoords(canvas);
         const originFraction = getMouseLocationFraction(canvas);
-        const zoomFactor = Math.pow(1.001, e.deltaY);
+        const zoomFactor = Math.pow(1.001, -e.deltaY);
 
         const newCoords = zoomCoords(coords, originFraction, zoomFactor);
         setMathCoords(canvas, newCoords);

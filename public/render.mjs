@@ -20,7 +20,7 @@ export async function render(canvas) {
     } while (pending);
 }
 
-const workers = Array.from({length: 16}).map(() => new Worker('renderWorker.js'));
+const workers = Array.from({length: 12}).map(() => new Worker('renderWorker.js'));
 
 /**
  * @param canvas {HTMLCanvasElement}

@@ -100,8 +100,8 @@ export function zoomCoords(coords, originFraction, zoomFactor) {
     // zoom preserving origin:
     // newXMin + newW * originFraction.x = origin.x
     // newYMin + newH * originFraction.y = origin.y
-    const newW = mulBigIntByFraction(coords.w, zoomFactor);
-    const newH = mulBigIntByFraction(coords.h, zoomFactor);
+    const newW = mulBigIntByFraction(coords.w, 1 / zoomFactor);
+    const newH = mulBigIntByFraction(coords.h, 1 / zoomFactor);
     const newXMin = origin.x - mulBigIntByFraction(newW, originFraction.x);
     const newYMin = origin.y - mulBigIntByFraction(newH, originFraction.y);
 

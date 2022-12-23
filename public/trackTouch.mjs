@@ -30,7 +30,7 @@ export function trackTouch(canvas) {
         };
         const moveDeltaFr = {
             x: (newCenter.x - prevCenter.x) / width,
-            y: 1 - (newCenter.y - prevCenter.y) / height,
+            y: (prevCenter.y - newCenter.y) / height,
         };
         const prevPinchSize = getPinchSize(prevTouches);
         const newPinchSize = getPinchSize(e.touches);
@@ -60,7 +60,7 @@ export function trackTouch(canvas) {
  * @return {{x: number, y: number}}
  */
 function getCenter(touches) {
-    if (touches.length < 2) {
+    if (touches.length < 1) {
         return {x: .5, y: .5};
     }
     return [...touches].reduce(
