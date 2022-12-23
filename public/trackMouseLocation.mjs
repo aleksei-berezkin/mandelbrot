@@ -6,18 +6,18 @@ export function trackMouseLocation(canvas) {
 }
 
 /**
- * @return {[number, number]} [0, 0] is bottom-left, [1, 1] is top-right
+ * @return {{x: number, y: number}} {0, 0} is bottom-left, {1, 1} is top-right
  */
 export function getMouseLocationFraction(canvas) {
     const mouseOffsetX = canvas.dataset.mouseOffsetX;
     const mouseOffsetY = canvas.dataset.mouseOffsetY;
     if (mouseOffsetX == null || mouseOffsetY == null) {
-        return [.5, .5];
+        return {x: .5, y: .5};
     }
 
     const {width, height} = canvas.getBoundingClientRect();
-    return [
-        Number(mouseOffsetX) / width,
-        (height - Number(mouseOffsetY)) / height,
-    ];
+    return {
+        x: Number(mouseOffsetX) / width,
+        y: (height - Number(mouseOffsetY)) / height,
+    };
 }

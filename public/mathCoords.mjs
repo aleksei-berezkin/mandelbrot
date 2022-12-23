@@ -2,6 +2,7 @@
  * 'unit' means '1'
  * @typedef {{unit: BigInt, xMin: BigInt, w: BigInt, yMin: BigInt, h: BigInt}} Coords
  */
+import { mulBigIntByFraction } from './mulBigIntByFraction.mjs';
 
 const initUnit = 20000;
 const initUnitN = BigInt(initUnit);
@@ -71,4 +72,36 @@ function scaleCoords(coords) {
         yMin: coords.yMin * initUnitN,
         h: coords.h * initUnitN,
     };
+}
+
+/**
+ * @param coords {Coords}
+ * @param deltaFraction {{x: number, y: number}}
+ * @return {Coords}
+ */
+export function moveCoords(coords, deltaFraction) {
+    const xMin = coords.xMin - mulBigIntByFraction(coords.w, deltaFraction.x);
+    const yMin = coords.yMin + mulBigIntByFraction(coords.h, deltaFraction.y);
+    return {...coords, xMin, yMin};
+}
+
+/**
+ * @param coords {Coords}
+ * @param originFraction {{x: number, y: number}}
+ * @param zoomFactor {number}
+ * @return {Coords}
+ */
+export function zoomCoords(coords, originFraction, zoomFactor) {
+    const x = coords.xMin + mulBigIntByFraction(coords.w, originFraction.x);
+    const y = coords.yMin + mulBigIntByFraction(coords.h, originFraction.y);
+
+    // zoom preserving point under mouse:
+    // newXMin + newW * frX = x
+    // newYMin + newH * frY = y
+    const newW = mulBigIntByFraction(coords.w, zoomFactor);
+    const newH = mulBigIntByFraction(coords.h, zoomFactor);
+    const newXMin = x - mulBigIntByFraction(newW, originFraction.x);
+    const newYMin = y - mulBigIntByFraction(newH, originFraction.y);
+
+    return {unit: coords.unit, xMin: newXMin, w: newW, yMin: newYMin, h: newH};
 }
