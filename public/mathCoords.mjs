@@ -92,16 +92,18 @@ export function moveCoords(coords, deltaFraction) {
  * @return {Coords}
  */
 export function zoomCoords(coords, originFraction, zoomFactor) {
-    const x = coords.xMin + mulBigIntByFraction(coords.w, originFraction.x);
-    const y = coords.yMin + mulBigIntByFraction(coords.h, originFraction.y);
+    const origin = {
+        x: coords.xMin + mulBigIntByFraction(coords.w, originFraction.x),
+        y: coords.yMin + mulBigIntByFraction(coords.h, originFraction.y),
+    };
 
-    // zoom preserving point under mouse:
-    // newXMin + newW * frX = x
-    // newYMin + newH * frY = y
+    // zoom preserving origin:
+    // newXMin + newW * originFraction.x = origin.x
+    // newYMin + newH * originFraction.y = origin.y
     const newW = mulBigIntByFraction(coords.w, zoomFactor);
     const newH = mulBigIntByFraction(coords.h, zoomFactor);
-    const newXMin = x - mulBigIntByFraction(newW, originFraction.x);
-    const newYMin = y - mulBigIntByFraction(newH, originFraction.y);
+    const newXMin = origin.x - mulBigIntByFraction(newW, originFraction.x);
+    const newYMin = origin.y - mulBigIntByFraction(newH, originFraction.y);
 
     return {unit: coords.unit, xMin: newXMin, w: newW, yMin: newYMin, h: newH};
 }
