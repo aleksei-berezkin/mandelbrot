@@ -1,6 +1,5 @@
 import { getMathCoords, moveCoords, setMathCoords } from './mathCoords.mjs';
 import { render } from './render.mjs';
-import { isGesture } from './isGesture.mjs';
 
 /**
  * @param canvas {HTMLCanvasElement}
@@ -12,8 +11,6 @@ export function trackMouse(canvas) {
     let prevClientPoint = undefined;
 
     window.addEventListener('mousedown', function(e) {
-        if (isGesture(e)) return;
-
         e.preventDefault();
 
         prevClientPoint = {x: e.clientX, y :e.clientY};
@@ -22,8 +19,6 @@ export function trackMouse(canvas) {
     });
 
     window.addEventListener('mousemove', function(e) {
-        if (isGesture(e)) return;
-
         if (prevClientPoint == null || e.clientX == null || e.clientY == null) {
             return;
         }
@@ -43,8 +38,6 @@ export function trackMouse(canvas) {
     });
 
     window.addEventListener('mouseup', function(e) {
-        if (isGesture(e)) return;
-
         prevClientPoint = undefined;
 
         window.document.body.style.removeProperty('cursor');
