@@ -76,18 +76,18 @@ function scaleCoords(coords) {
 
 /**
  * @param coords {Coords}
- * @param deltaFraction {{x: number, y: number}}
+ * @param deltaFraction {{x: number, y: number}} {0, 0} is bottom-left
  * @return {Coords}
  */
 export function moveCoords(coords, deltaFraction) {
     const xMin = coords.xMin - mulBigIntByFraction(coords.w, deltaFraction.x);
-    const yMin = coords.yMin + mulBigIntByFraction(coords.h, deltaFraction.y);
+    const yMin = coords.yMin - mulBigIntByFraction(coords.h, deltaFraction.y);
     return {...coords, xMin, yMin};
 }
 
 /**
  * @param coords {Coords}
- * @param originFraction {{x: number, y: number}}
+ * @param originFraction {{x: number, y: number}} {0, 0} is bottom-left
  * @param zoomFactor {number}
  * @return {Coords}
  */

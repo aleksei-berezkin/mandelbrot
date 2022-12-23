@@ -31,7 +31,7 @@ export function trackMouse(canvas) {
         const {width, height} = canvas.getBoundingClientRect();
         const deltaFr = {
             x: (e.clientX - prevClientPoint.x) / width,
-            y: (e.clientY - prevClientPoint.y) / height,
+            y: (1 - (e.clientY - prevClientPoint.y)) / height,
         };
 
         const coords = getMathCoords(canvas);
