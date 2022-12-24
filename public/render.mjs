@@ -2,6 +2,7 @@ import { getMathCoords } from './mathCoords.mjs';
 import { isBigNum } from './isBigNum.mjs';
 import { bigIntToBigNum } from './bigIntToBigNum.mjs';
 import { mulBigIntByFraction } from './mulBigIntByFraction.mjs';
+import { renderResults } from './renderResults.mjs';
 
 let pending = 0;
 
@@ -100,21 +101,12 @@ async function render0(canvas) {
     });
 
 
-    const ctx = canvas.getContext('2d', {willReadFrequently: true});
     const resultsArr = await Promise.all(workerPromises);
     if (canvas.width !== canvasW || canvas.height !== canvasH) {
         return;
     }
 
-    for (const results of resultsArr) {
-        for (const result of results) {
-            ctx.putImageData(
-                new ImageData(result.rgbaArray, canvas.width, result.canvasH),
-                0,
-                canvas.height - result.canvasYMin - result.canvasH,
-            );
-        }
-    }
+    renderResults(canvas, coords, resultsArr.flatMap(results => results));
 }
 
 /**
