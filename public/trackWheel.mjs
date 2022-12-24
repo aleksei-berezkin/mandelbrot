@@ -16,7 +16,7 @@ export function trackWheel(canvas) {
         const newCoords = zoomCoords(coords, originFraction, zoomFactor);
         setMathCoords(canvas, newCoords);
 
-        setTimeout(() => render(canvas), 100);
+        void render(canvas);
 
     }, {passive: false});
 }

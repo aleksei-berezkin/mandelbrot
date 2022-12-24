@@ -8,16 +8,24 @@ let pending = 0;
 const baseIterations = 45;
 
 
-export async function render(canvas) {
-    if (++pending > 1) {
+export async function render(canvas, immediately = false) {
+    if (pending++ > 0) {
         return;
     }
 
-    do {
-        const acquired = pending;
-        await render0(canvas);
-        pending = Math.max(pending - acquired, 0);
-    } while (pending);
+    const renderCb = async function() {
+        do {
+            const acquired = pending;
+            await render0(canvas);
+            pending = Math.max(pending - acquired, 0);
+        } while (pending);
+    }
+
+    if (immediately) {
+        void renderCb();
+    } else {
+        setTimeout(renderCb, 200);
+    }
 }
 
 const workers = Array.from({length: 12}).map(() => new Worker('renderWorker.js'));

@@ -43,7 +43,7 @@ export function trackTouch(canvas) {
 
         prevTouches = e.touches;
 
-        setTimeout(() => render(canvas), 100);
+        void render(canvas);
 
     }, {passive: false});
 

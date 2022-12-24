@@ -17,7 +17,7 @@ export function trackCanvasSizeAndRender(canvas) {
         } else {
             resizeMathCoords(canvas, oldWidth, oldHeight);
         }
-        void render(canvas);
+        void render(canvas, true);
     }
     window.addEventListener('resize', setCanvasSize);
     setCanvasSize();
