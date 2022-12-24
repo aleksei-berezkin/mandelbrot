@@ -100,7 +100,7 @@ async function render0(canvas) {
     });
 
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', {willReadFrequently: true});
     const resultsArr = await Promise.all(workerPromises);
     if (canvas.width !== canvasW || canvas.height !== canvasH) {
         return;
