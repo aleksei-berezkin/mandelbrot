@@ -1,5 +1,6 @@
 import { getMathCoords, moveCoords, setMathCoords, zoomCoords } from './mathCoords.mjs';
 import { render } from './render.mjs';
+import { prerender } from './prerender.mjs';
 
 /**
  * @param canvas {HTMLCanvasElement}
@@ -42,6 +43,8 @@ export function trackTouch(canvas) {
         setMathCoords(canvas, zoomedCoords);
 
         prevTouches = e.touches;
+
+        prerender(canvas, moveDeltaFr);
 
         void render(canvas);
 

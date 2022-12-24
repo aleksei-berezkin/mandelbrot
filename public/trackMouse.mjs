@@ -1,6 +1,6 @@
 import { getMathCoords, moveCoords, setMathCoords } from './mathCoords.mjs';
 import { render } from './render.mjs';
-import { prerenderMove } from './prerender.mjs';
+import { prerender } from './prerender.mjs';
 
 /**
  * @param canvas {HTMLCanvasElement}
@@ -35,7 +35,7 @@ export function trackMouse(canvas) {
         setMathCoords(canvas, newCoords);
         prevClientPoint = {x: e.clientX, y: e.clientY};
 
-        prerenderMove(canvas, deltaFr);
+        prerender(canvas, deltaFr);
         void render(canvas);
     });
 
