@@ -25,7 +25,7 @@ export async function render(canvas, hiddenCanvas, immediately = false) {
     if (immediately) {
         void renderCb();
     } else {
-        setTimeout(renderCb, 200);
+        setTimeout(renderCb, 300);
     }
 }
 
