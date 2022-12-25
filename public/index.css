@@ -19,6 +19,7 @@ html, body {
     display: none;
     height: 100px;
     left: 50%;
+    pointer-events: none;
     position: absolute;
     top: 50%;
     transform: translate3d(-50%, -50%, 0);
