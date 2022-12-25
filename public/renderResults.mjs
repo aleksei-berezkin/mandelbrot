@@ -9,12 +9,11 @@ const scalerN = BigInt(scaler);
  * @param results {[{rgbaArray: Uint8ClampedArray, canvasYMin: number, canvasH: number}]}
  */
 export function renderResults(canvas, renderCoords, results) {
-    const currentCoords = getMathCoords(canvas);
     const {width, height} = canvas;
-    // TODO make to the same unit
+    const [currentCoords, _renderCoords] = toSameUnit(getMathCoords(canvas), renderCoords);
     const deltaFr = {
-        x: Number((renderCoords.xMin - currentCoords.xMin) * scalerN / renderCoords.w) / scaler,
-        y: Number((currentCoords.yMin - renderCoords.yMin) * scalerN / renderCoords.h) / scaler,
+        x: Number((_renderCoords.xMin - currentCoords.xMin) * scalerN / _renderCoords.w) / scaler,
+        y: Number((currentCoords.yMin - _renderCoords.yMin) * scalerN / _renderCoords.h) / scaler,
     };
 
     const deltaPx = {
@@ -30,4 +29,22 @@ export function renderResults(canvas, renderCoords, results) {
             deltaPx.y + canvas.height - result.canvasYMin - result.canvasH,
         );
     }
+}
+
+/**
+ * @param coords {Coords}
+ * @return {Coords[]}
+ */
+function toSameUnit(...coords) {
+    const maxUnit = coords.map(c => c.unit).reduce((u, v) => u > v ? u : v);
+    return coords.map(c => {
+        const factor = maxUnit / c.unit;
+        return {
+            unit: maxUnit,
+            xMin: c.xMin * factor,
+            w: c.w * factor,
+            yMin: c.yMin * factor,
+            h: c.h * factor,
+        };
+    });
 }
