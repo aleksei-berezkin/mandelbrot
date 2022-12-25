@@ -103,7 +103,7 @@ async function render0(canvas, hiddenCanvas) {
         return;
     }
 
-    renderResults(canvas, hiddenCanvas, coords, resultsArr.flatMap(results => results));
+    renderResults(canvas, hiddenCanvas, coords, resultsArr.flatMap(results => results), false);
 }
 
 /**

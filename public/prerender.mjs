@@ -13,5 +13,5 @@ export function prerender(canvas, hiddenCanvas, coords) {
         rgbaArray: imageData.data,
         canvasYMin: 0,
         canvasH: height,
-    }]);
+    }], true);
 }
