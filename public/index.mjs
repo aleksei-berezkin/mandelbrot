@@ -6,10 +6,11 @@ import { trackMouse } from './trackMouse.mjs';
 import { trackTouch } from './trackTouch.mjs';
 
 const canvas = document.getElementById('main-canvas');
+const hiddenCanvas = document.getElementById('hidden-canvas');
 
 initMathCoords(canvas);
 trackMouseLocation(canvas);
-trackCanvasSizeAndRender(canvas);
-trackWheel(canvas)
-trackMouse(canvas);
-trackTouch(canvas);
+trackCanvasSizeAndRender(canvas, hiddenCanvas);
+trackWheel(canvas, hiddenCanvas)
+trackMouse(canvas, hiddenCanvas);
+trackTouch(canvas, hiddenCanvas);

@@ -9,7 +9,7 @@ let pending = 0;
 const baseIterations = 45;
 
 
-export async function render(canvas, immediately = false) {
+export async function render(canvas, hiddenCanvas, immediately = false) {
     if (pending++ > 0) {
         return;
     }
@@ -17,7 +17,7 @@ export async function render(canvas, immediately = false) {
     const renderCb = async function() {
         do {
             const acquired = pending;
-            await render0(canvas);
+            await render0(canvas, hiddenCanvas);
             pending = Math.max(pending - acquired, 0);
         } while (pending);
     }
@@ -31,10 +31,7 @@ export async function render(canvas, immediately = false) {
 
 const workers = Array.from({length: 12}).map(() => new Worker('renderWorker.js'));
 
-/**
- * @param canvas {HTMLCanvasElement}
- */
-async function render0(canvas) {
+async function render0(canvas, hiddenCanvas) {
     const coords = getMathCoords(canvas);
 
     let hNum = Number(coords.h) / Number(coords.unit);
@@ -106,7 +103,7 @@ async function render0(canvas) {
         return;
     }
 
-    renderResults(canvas, coords, resultsArr.flatMap(results => results));
+    renderResults(canvas, hiddenCanvas, coords, resultsArr.flatMap(results => results));
 }
 
 /**

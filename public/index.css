@@ -8,6 +8,13 @@ html, body {
     touch-action: none;
 }
 
+#hidden-canvas {
+    left: 0;
+    position: fixed;
+    transform: translateY(-150%);
+    top: 0;
+}
+
 #main-loader-wr {
     display: none;
     height: 100px;

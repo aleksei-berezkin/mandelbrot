@@ -5,10 +5,11 @@ const auxMulN = BigInt(auxMul);
 
 /**
  * @param canvas {HTMLCanvasElement}
+ * @param hiddenCanvas {HTMLCanvasElement}
  * @param renderCoords {Coords}
  * @param results {[{rgbaArray: Uint8ClampedArray, canvasYMin: number, canvasH: number}]}
  */
-export function renderResults(canvas, renderCoords, results) {
+export function renderResults(canvas, hiddenCanvas, renderCoords, results) {
     const {width, height} = canvas;
     const [c1, c0] = toSameUnit(getMathCoords(canvas), renderCoords);
     const topLeftDeltaFr = {
@@ -21,9 +22,10 @@ export function renderResults(canvas, renderCoords, results) {
         y: Math.round(topLeftDeltaFr.y * height),
     };
 
-    const ctx = canvas.getContext('2d', {willReadFrequently: true});
+    const hiddenCtx = hiddenCanvas.getContext('2d', {willReadFrequently: true});
+    hiddenCtx.clearRect(0, 0, canvas.width, canvas.height);
     for (const result of results) {
-        ctx.putImageData(
+        hiddenCtx.putImageData(
             new ImageData(result.rgbaArray, canvas.width, result.canvasH),
             deltaPx.x,
             deltaPx.y + canvas.height - result.canvasYMin - result.canvasH,
@@ -31,9 +33,9 @@ export function renderResults(canvas, renderCoords, results) {
     }
 
     const scale = Number(c0.w * auxMulN / c1.w) / auxMul;
-    if (scale !== 1) {
-        ctx.drawImage(canvas, 0, 0, width * scale, height * scale)
-    }
+    const ctx = canvas.getContext('2d', {willReadFrequently: true})
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(hiddenCanvas, 0, 0, width * scale, height * scale)
 }
 
 /**

@@ -5,19 +5,21 @@ import {mulBigIntByFraction} from "./mulBigIntByFraction.mjs";
 let initial = true;
 const ddp = window.devicePixelRatio ?? 1;
 
-export function trackCanvasSizeAndRender(canvas) {
+export function trackCanvasSizeAndRender(canvas, hiddenCanvas) {
     function setCanvasSize() {
         const oldWidth = canvas.width;
         const oldHeight = canvas.height;
         const rect = canvas.getBoundingClientRect();
         canvas.width = rect.width * ddp;
         canvas.height = rect.height * ddp;
+        hiddenCanvas.width = canvas.width;
+        hiddenCanvas.height = canvas.height;
         if (initial) {
             initial = false;
         } else {
             resizeMathCoords(canvas, oldWidth, oldHeight);
         }
-        void render(canvas, true);
+        void render(canvas, hiddenCanvas, true);
     }
     window.addEventListener('resize', setCanvasSize);
     setCanvasSize();
