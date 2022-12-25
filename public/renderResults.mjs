@@ -1,6 +1,6 @@
 import { getMathCoords } from './mathCoords.mjs';
 
-const auxMul = 1_000_000;
+const auxMul = 10_000_000;
 const auxMulN = BigInt(auxMul);
 
 /**
