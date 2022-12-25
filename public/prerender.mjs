@@ -1,10 +1,16 @@
+import { renderResults } from './renderResults.mjs';
+
 /**
  * @param canvas {HTMLCanvasElement}
- * @param deltaFraction {{x: number, y: number}}
+ * @param coords {Coords}
  */
-export function prerender(canvas, deltaFraction) {
+export function prerender(canvas, coords) {
     const ctx = canvas.getContext('2d', {willReadFrequently: true});
     const {width, height} = canvas;
     const imageData = ctx.getImageData(0, 0, width, height);
-    ctx.putImageData(imageData, deltaFraction.x * width, -deltaFraction.y * height);
+    renderResults(canvas, coords, [{
+        rgbaArray: imageData.data,
+        canvasYMin: 0,
+        canvasH: height,
+    }]);
 }

@@ -35,7 +35,7 @@ export function trackMouse(canvas) {
         setMathCoords(canvas, newCoords);
         prevClientPoint = {x: e.clientX, y: e.clientY};
 
-        prerender(canvas, deltaFr);
+        prerender(canvas, coords);
         void render(canvas);
     });
 

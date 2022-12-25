@@ -44,7 +44,7 @@ export function trackTouch(canvas) {
 
         prevTouches = e.touches;
 
-        prerender(canvas, moveDeltaFr);
+        prerender(canvas, coords);
 
         void render(canvas);
 
