@@ -1,6 +1,7 @@
 import { getMathCoords, setMathCoords, zoomCoords } from './mathCoords.mjs';
 import { getMouseLocationFraction } from './trackMouseLocation.mjs';
 import { render } from './render.mjs';
+import { prerender } from './prerender.mjs';
 
 /**
  * @param canvas {HTMLCanvasElement}
@@ -16,6 +17,7 @@ export function trackWheel(canvas) {
         const newCoords = zoomCoords(coords, originFraction, zoomFactor);
         setMathCoords(canvas, newCoords);
 
+        prerender(canvas, coords);
         void render(canvas);
 
     }, {passive: false});

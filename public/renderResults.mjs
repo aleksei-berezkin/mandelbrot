@@ -1,7 +1,7 @@
 import { getMathCoords } from './mathCoords.mjs';
 
-const scaler = 1_000_000;
-const scalerN = BigInt(scaler);
+const auxMul = 1_000_000;
+const auxMulN = BigInt(auxMul);
 
 /**
  * @param canvas {HTMLCanvasElement}
@@ -10,16 +10,16 @@ const scalerN = BigInt(scaler);
  */
 export function renderResults(canvas, renderCoords, results) {
     const {width, height} = canvas;
-    const [currentCoords, _renderCoords] = toSameUnit(getMathCoords(canvas), renderCoords);
-    const deltaFr = {
-        x: Number((_renderCoords.xMin - currentCoords.xMin) * scalerN / _renderCoords.w) / scaler,
-        y: Number((currentCoords.yMin - _renderCoords.yMin) * scalerN / _renderCoords.h) / scaler,
+    const [c1, c0] = toSameUnit(getMathCoords(canvas), renderCoords);
+    const topLeftDeltaFr = {
+        x: Number((c1.xMin - c0.xMin) * auxMulN / c0.w) / auxMul,
+        y: Number((c1.yMin + c1.h - (c0.yMin + c0.h)) * auxMulN / c0.h) / auxMul,
     };
 
     const deltaPx = {
-        x: Math.round(deltaFr.x * width),
-        y: Math.round(deltaFr.y * height),
-    }
+        x: Math.round(-topLeftDeltaFr.x * width),
+        y: Math.round(topLeftDeltaFr.y * height),
+    };
 
     const ctx = canvas.getContext('2d', {willReadFrequently: true});
     for (const result of results) {
@@ -28,6 +28,11 @@ export function renderResults(canvas, renderCoords, results) {
             deltaPx.x,
             deltaPx.y + canvas.height - result.canvasYMin - result.canvasH,
         );
+    }
+
+    const scale = Number(c0.w * auxMulN / c1.w) / auxMul;
+    if (scale !== 1) {
+        ctx.drawImage(canvas, 0, 0, width * scale, height * scale)
     }
 }
 
