@@ -6,7 +6,7 @@ import { renderResults } from './renderResults.mjs';
 
 let pending = 0;
 
-const baseIterations = 45;
+const baseIterations = 150;
 
 
 export async function render(canvas, hiddenCanvas, immediately = false) {
@@ -17,7 +17,7 @@ export async function render(canvas, hiddenCanvas, immediately = false) {
     const renderCb = async function() {
         do {
             const acquired = pending;
-            await render0(canvas, hiddenCanvas);
+            await render0(canvas, hiddenCanvas, acquired);
             pending = Math.max(pending - acquired, 0);
         } while (pending);
     }
@@ -31,7 +31,9 @@ export async function render(canvas, hiddenCanvas, immediately = false) {
 
 const workers = Array.from({length: 12}).map(() => new Worker('renderWorker.js'));
 
-async function render0(canvas, hiddenCanvas) {
+const maxCancellableProgress = .65;
+
+async function render0(canvas, hiddenCanvas, acquired) {
     const coords = getMathCoords(canvas);
 
     let hNum = Number(coords.h) / Number(coords.unit);
@@ -67,6 +69,10 @@ async function render0(canvas, hiddenCanvas) {
     const workerPromises = workers.map(async worker => {
         const results = [];
         while (parts.length) {
+            if (pending > acquired && tasksDone / tasksNum <= maxCancellableProgress) {
+                break;
+            }
+
             const part = parts.splice(0, 1)[0]
             const rgbaArray = await renderOnWorker(
                 worker,
@@ -99,6 +105,10 @@ async function render0(canvas, hiddenCanvas) {
 
 
     const resultsArr = await Promise.all(workerPromises);
+    if (tasksDone < tasksNum) {
+        return;
+    }
+
     if (canvas.width !== canvasW || canvas.height !== canvasH) {
         return;
     }
