@@ -1,7 +1,7 @@
-import { getMathCoords } from './mathCoords.mjs';
+import { getMathCoords, mathCoordsToQuery } from './mathCoords.mjs';
 import { isBigNum } from './isBigNum.mjs';
 import { bigIntToBigNum } from './bigIntToBigNum.mjs';
-import { mulBigIntByFraction } from './mulBigIntByFraction.mjs';
+import { mulBigIntByNum } from './bigIntArithHelper.mjs';
 import { renderResults } from './renderResults.mjs';
 
 let pending = 0;
@@ -33,8 +33,16 @@ const workers = Array.from({length: 12}).map(() => new Worker('renderWorker.js')
 
 const maxCancellableProgress = .65;
 
+let initial = true;
+
 async function render0(canvas, hiddenCanvas, acquired) {
     const coords = getMathCoords(canvas);
+
+    if (initial && window.location.search === '') {
+        initial = false
+    } else {
+        history.replaceState(null, null, "?" + mathCoordsToQuery(coords));
+    }
 
     let hNum = Number(coords.h) / Number(coords.unit);
     const zoom = 3 / hNum;
@@ -155,7 +163,7 @@ function* splitWork(yMin, h, canvasH, nApprox) {
     let canvasYRemaining = canvasH;
 
     while (yRemaining) {
-        const currentYPart = min(yRemaining, mulBigIntByFraction(yPart, (Math.random() + .5)));
+        const currentYPart = min(yRemaining, mulBigIntByNum(yPart, (Math.random() + .5)));
         const currentCanvasHPart = Number(BigInt(canvasH) * (yDone + currentYPart) / h) - canvasYDone;
 
         yield {

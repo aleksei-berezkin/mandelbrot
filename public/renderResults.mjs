@@ -1,4 +1,5 @@
 import { getMathCoords } from './mathCoords.mjs';
+import { divToNum } from './bigIntArithHelper.mjs';
 
 const auxMul = 10_000_000;
 const auxMulN = BigInt(auxMul);
@@ -14,8 +15,8 @@ export function renderResults(canvas, hiddenCanvas, renderCoords, results, isPre
     const {width, height} = canvas;
     const [c1, c0] = toSameUnit(getMathCoords(canvas), renderCoords);
     const topLeftDeltaFr = {
-        x: Number((c1.xMin - c0.xMin) * auxMulN / c0.w) / auxMul,
-        y: Number((c1.yMin + c1.h - (c0.yMin + c0.h)) * auxMulN / c0.h) / auxMul,
+        x: divToNum(c1.xMin - c0.xMin, c0.w),
+        y: divToNum(c1.yMin + c1.h - (c0.yMin + c0.h), c0.h),
     };
 
     const deltaPx = {

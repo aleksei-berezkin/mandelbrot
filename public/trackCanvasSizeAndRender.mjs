@@ -1,6 +1,6 @@
 import { render } from './render.mjs';
-import {getMathCoords, setMathCoords} from "./mathCoords.mjs";
-import {mulBigIntByFraction} from "./mulBigIntByFraction.mjs";
+import { getMathCoords, setMathCoords } from './mathCoords.mjs';
+import { mulBigIntByNum } from './bigIntArithHelper.mjs';
 
 let initial = true;
 const ddp = window.devicePixelRatio ?? 1;
@@ -36,8 +36,8 @@ function resizeMathCoords(canvas, oldWidth, oldHeight) {
     // 1) Center of the figure and 2) visible scale must remain
     // w / oldWidth == newW / newWidth
     // h / oldHeight == newH / newHeight
-    const newW = mulBigIntByFraction(w, canvas.width / oldWidth);
-    const newH = mulBigIntByFraction(h, canvas.height / oldHeight);
+    const newW = mulBigIntByNum(w, canvas.width / oldWidth);
+    const newH = mulBigIntByNum(h, canvas.height / oldHeight);
     const newXMin = xMin + (w - newW) / 2n;
     const newYMin = yMin + (h - newH) / 2n;
 
