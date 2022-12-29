@@ -62,6 +62,8 @@ async function doRender(coords, canvasW, canvasH, maxIterations) {
         wasmBigNum = _wasmBigNum;
     }
 
+    new Uint16Array(wasmExports.memory.buffer).fill(0);
+
     if (_wasmBigNum) {
         const fracPrecision = precision - 1;
         const u32Buf = new Uint32Array(wasmExports.memory.buffer);

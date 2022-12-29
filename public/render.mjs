@@ -6,7 +6,7 @@ import { renderResults } from './renderResults.mjs';
 
 let pending = 0;
 
-const baseIterations = 150;
+const baseIterations = 2000;
 
 
 export async function render(canvas, hiddenCanvas, immediately = false) {
