@@ -27,43 +27,39 @@ export function renderMandelbrot(_xMin: f64, _w: f64, _yMin: f64, _h: f64, _canv
   renderRect(0, 0, _canvasW, _canvasH);
 }
 
-const maxSizeToOptimize: u32 = 128;
-const minSizeToOptimize: u32 = 6;
+const minSizeToOptimize: u32 = 8;
 
 function renderRect(pX0: u32, pY0: u32, pX1: u32, pY1: u32): void {
   const pXMid: u32 = (pX0 + pX1) / 2;
   const pYMid: u32 = (pY0 + pY1) / 2;
 
-  if (pX1 - pX0 > maxSizeToOptimize) {
-    renderRect(pX0, pY0, pXMid, pY1);
-    renderRect(pXMid, pY0, pX1, pY1);
-    return;
-  }
-
-  if (pY1 - pY0 > maxSizeToOptimize) {
-    renderRect(pX0, pY0, pX1, pYMid);
-    renderRect(pX0, pYMid, pX1, pY1);
-    return;
-  }
-
   const p0 = renderPoint(pX0, pY0);
-  if (p0 === renderPoint(pX0, pY1 - 1)
+  if (
+      // TODO depending on size, take more points
+      // Corners
+      p0 === renderPoint(pX0, pY1 - 1)
       && p0 === renderPoint(pX1 - 1, pY0)
       && p0 === renderPoint(pX1 - 1, pY1 - 1)
 
-      && p0 === renderPoint((pX0 + pXMid) / 2, pY0)
-      && p0 === renderPoint(pXMid, pY0)
-      && p0 === renderPoint((pXMid + pX1) / 2, pY0)
-
-      && p0 === renderPoint(pX0, (pY0 + pYMid) / 2)
+      // Sides in the middle
       && p0 === renderPoint(pX0, pYMid)
+      && p0 === renderPoint(pXMid, pY0)
+      && p0 === renderPoint(pX1 - 1, pYMid)
+      && p0 === renderPoint(pXMid, pY1 - 1)
+
+      // Sides between corner and middle
+      && p0 === renderPoint(pX0, (pY0 + pYMid) / 2)
       && p0 === renderPoint(pX0, (pYMid + pY1) / 2)
 
+      && p0 === renderPoint((pX0 + pXMid) / 2, pY0)
+      && p0 === renderPoint((pXMid + pX1) / 2, pY0)
+
+      && p0 === renderPoint(pX1 - 1, (pY0 + pYMid) / 2)
+      && p0 === renderPoint(pX1 - 1, (pYMid + pY1) / 2)
+
       && p0 === renderPoint((pX0 + pXMid) / 2, pY1 - 1)
-      && p0 === renderPoint(pXMid, pY1 - 1)
       && p0 === renderPoint((pXMid + pX1) / 2, pY1 - 1)
 
-      // TODO x1
       && p0 === renderPoint(pXMid, pYMid)
   ) {
     for (let pY: u32 = pY0; pY < pY1; pY++) {
