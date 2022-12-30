@@ -1,4 +1,4 @@
-import {memset} from 'util/memory';
+import { memset } from 'util/memory';
 
 // Input: shared
 export let canvasW: u32;
@@ -156,13 +156,20 @@ function renderRect(pX0: u32, pY0: u32, pX1: u32, pY1: u32): void {
 }
 
 function renderPoint(pX: u32, pY: u32): u16 {
-  const rowOffset = pY * canvasW;
-  const ptr: u32 = outArrayOffset + 2 * (rowOffset + pX);
-  const alreadyRendered = load<u16>(ptr);
+  const iterPtr = outArrayOffset + 2 * (pY * canvasW + pX);
+  const alreadyRendered = load<u16>(iterPtr);
   if (alreadyRendered !== 0) {
     return alreadyRendered;
   }
 
+  const iterNum = isBigNum
+      ? doRenderPointBigNum(pX, pY)
+      : doRenderPointDouble(pX, pY);
+  store<u16>(iterPtr, iterNum);
+  return iterNum;
+}
+
+function doRenderPointDouble(pX: u32, pY: u32): u16 {
   // canvas has (0, 0) at the left-top, so flip Y
   const x0: f64 = xMin + wStepFraction * pX
   const y0: f64 = yMax - hStepFraction * pY;
@@ -183,14 +190,70 @@ function renderPoint(pX: u32, pY: u32): u16 {
     y = yNext
   }
 
-  store<u16>(ptr, i);
+  return i;
+}
+
+function doRenderPointBigNum(pX: u32, pY: u32): u16 {
+  // x0 = xMin + wStepFraction * pX
+  mulByUint(wStepFractionPtr, pX, t0Ptr, fracPrecision);
+  add(xMinPtr, t0Ptr, x0Ptr, fracPrecision);
+
+  // canvas has (0, 0) at the left-top, so flip Y
+  // y0 = yMax - hStepFraction * pY
+  mulByUint(hStepFractionPtr, pY, t0Ptr, fracPrecision);
+  negate(t0Ptr);
+  add(yMaxPtr, t0Ptr, y0Ptr, fracPrecision);
+
+  // x0 = 0; y0 = 0
+  setZero(xPtr, fracPrecision);
+  setZero(yPtr, fracPrecision);
+
+  let i: u16 = 0;
+  for ( ; i < maxIterations; i++) {
+    // t0 = xSqr = x * x;
+    // t1 = ySqr = y * y;
+    mul(xPtr, xPtr, t0Ptr, t2Ptr, fracPrecision);
+    if (gtEq4Pos(t0Ptr)) {
+      break;
+    }
+    mul(yPtr, yPtr, t1Ptr, t2Ptr, fracPrecision);
+    // t2 = xSqr(t0) + ySqr(t1)
+    add(t0Ptr, t1Ptr, t2Ptr, fracPrecision);
+    if (gtEq4Pos(t2Ptr)) {
+      break;
+    }
+
+    // xNext = (xSqr(t0) - ySqr(t1))(t2) + x0;
+    negate(t1Ptr);
+    add(t0Ptr, t1Ptr, t2Ptr, fracPrecision);
+    add(t2Ptr, x0Ptr, xNextPtr, fracPrecision);
+
+    // yNext = (2.0 * (x * y)(t0))(t1) + y0;
+    mul(xPtr, yPtr, t0Ptr, t2Ptr, fracPrecision);
+    twoTimes(t0Ptr, t1Ptr, fracPrecision);
+    add(t1Ptr, y0Ptr, yNextPtr, fracPrecision);
+
+    // Swap x and xNext
+    let t: u32 = xPtr;
+    xPtr = xNextPtr;
+    xNextPtr = t;
+
+    t = yPtr;
+    yPtr = yNextPtr;
+    yNextPtr = t;
+  }
 
   return i;
 }
 
-
-
-// BigNum arithmetic
+/*
+ * Arbitrary-precision fixed-point numbers. Stored as u32 components, most significant component first.
+ * The most significant component is an integer part, and it always has one component. Fractional part size
+ * (fracPrecision) varies, minimum is 1.
+ *
+ * Integer part stores also 2 flags: overflow (0x8000_0000) and negative (0x4000_0000).
+ * So the greatest (by abs) number is 0x3fff_ffff.0xffff_ffff... (= 1_073_741_823.99999...).
+ */
 
 
 export function add(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32): void {
