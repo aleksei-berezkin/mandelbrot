@@ -92,7 +92,7 @@ export function renderMandelbrot(): void {
   renderRect(0, 0, canvasW, canvasH);
 }
 
-const minSizeToOptimize: u32 = 8;
+const minSizeToSplit: u32 = 6;
 
 function renderRect(pX0: u32, pY0: u32, pX1: u32, pY1: u32): void {
   const pXMid: u32 = (pX0 + pX1) / 2;
@@ -112,37 +112,23 @@ function renderRect(pX0: u32, pY0: u32, pX1: u32, pY1: u32): void {
       && p0 === renderPoint(pX1 - 1, pYMid)
       && p0 === renderPoint(pXMid, pY1 - 1)
 
-      // Sides between corner and middle
-      && p0 === renderPoint(pX0, (pY0 + pYMid) / 2)
-      && p0 === renderPoint(pX0, (pYMid + pY1) / 2)
-
-      && p0 === renderPoint((pX0 + pXMid) / 2, pY0)
-      && p0 === renderPoint((pXMid + pX1) / 2, pY0)
-
-      && p0 === renderPoint(pX1 - 1, (pY0 + pYMid) / 2)
-      && p0 === renderPoint(pX1 - 1, (pYMid + pY1) / 2)
-
-      && p0 === renderPoint((pX0 + pXMid) / 2, pY1 - 1)
-      && p0 === renderPoint((pXMid + pX1) / 2, pY1 - 1)
-
       && p0 === renderPoint(pXMid, pYMid)
   ) {
     for (let pY: u32 = pY0; pY < pY1; pY++) {
-      const rowOffset = pY * canvasW;
       for (let pX: u32 = pX0; pX < pX1; pX++) {
-        store<u16>(outArrayOffset + 2 * (rowOffset + pX), p0);
+        store<u16>(outArrayOffset + 2 * (pY * canvasW + pX), p0);
       }
     }
     return;
   }
 
-  if (pX1 - pX0 >= minSizeToOptimize) {
+  if (pX1 - pX0 >= minSizeToSplit) {
     renderRect(pX0, pY0, pXMid, pY1);
     renderRect(pXMid, pY0, pX1, pY1);
     return;
   }
 
-  if (pY1 - pY0 >= minSizeToOptimize) {
+  if (pY1 - pY0 >= minSizeToSplit) {
     renderRect(pX0, pY0, pX1, pYMid);
     renderRect(pX0, pYMid, pX1, pY1);
     return;
@@ -174,8 +160,8 @@ function doRenderPointDouble(pX: u32, pY: u32): u16 {
   const x0: f64 = xMin + wStepFraction * pX
   const y0: f64 = yMax - hStepFraction * pY;
 
-  let x = 0 as f64
-  let y = 0 as f64
+  let x = 0 as f64;
+  let y = 0 as f64;
 
   let i: u16 = 0;
   for ( ; i < maxIterations; i++) {

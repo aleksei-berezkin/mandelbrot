@@ -29,7 +29,7 @@ export async function render(canvas, hiddenCanvas, immediately = false) {
     }
 }
 
-const workers = Array.from({length: 12}).map(() => new Worker('renderWorker.js'));
+const workers = Array.from({length: 10}).map(() => new Worker('renderWorker.js'));
 
 const maxCancellableProgress = .65;
 
@@ -64,7 +64,7 @@ async function render0(canvas, hiddenCanvas, acquired) {
         coords.yMin,
         coords.h,
         canvasH,
-        workers.length * (bigNum ? 48 : 8),
+        workers.length * 8,
     )];
 
     const tasksNum = parts.length;
