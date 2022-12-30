@@ -25,7 +25,18 @@ self.onmessage = messageHandler
 
 
 /**
- * @type {{memory: Memory, renderMandelbrot: Function}}
+ * @type {{
+ * memory: Memory,
+ * renderMandelbrot: Function,
+ * isBigNum: WebAssembly.Global,
+ * canvasW: WebAssembly.Global,
+ * canvasH: WebAssembly.Global,
+ * xMin: WebAssembly.Global,
+ * w: WebAssembly.Global,
+ * yMin: WebAssembly.Global,
+ * h: WebAssembly.Global,
+ * maxIterations: WebAssembly.Global
+ * }}
  */
 let wasmExports;
 
@@ -80,16 +91,18 @@ async function doRender(coords, canvasW, canvasH, maxIterations) {
             fracPrecision,
         );
     } else {
+        wasmExports.isBigNum.value = _wasmBigNum;
+        wasmExports.maxIterations.value = maxIterations;
+        wasmExports.canvasW.value = canvasW;
+        wasmExports.canvasH.value = canvasH;
+
         const unit = Number(coords.unit);
-        wasmExports.renderMandelbrot(
-            Number(coords.xMin) / unit,
-            Number(coords.w) / unit,
-            Number(coords.yMin) / unit,
-            Number(coords.h) / unit,
-            canvasW,
-            canvasH,
-            maxIterations,
-        );
+        wasmExports.xMin.value = Number(coords.xMin) / unit;
+        wasmExports.w.value = Number(coords.w) / unit;
+        wasmExports.yMin.value = Number(coords.yMin) / unit;
+        wasmExports.h.value = Number(coords.h) / unit;
+
+        wasmExports.renderMandelbrot();
     }
 
     const iterArray = new Uint16Array(wasmExports.memory.buffer, _wasmBigNum ? 16 * 4 * precision : 0);
@@ -99,7 +112,7 @@ async function doRender(coords, canvasW, canvasH, maxIterations) {
 /**
  * @param requiredMemBytes {number}
  * @param bigNum {boolean}
- * @return {Promise<{memory: Memory, renderMandelbrot: Function}>}
+ * @return {Promise<*>}
  */
 async function instantiate(requiredMemBytes, bigNum) {
     const requiredPages = ((requiredMemBytes & ~0xffff) >>> 16) + ((requiredMemBytes & 0xffff) ? 1 : 0);
