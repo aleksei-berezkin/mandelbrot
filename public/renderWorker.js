@@ -108,7 +108,7 @@ async function instantiate(requiredMemBytes) {
     );
 
     const instObj = await WebAssembly.instantiateStreaming(
-        fetch('asmDouble/release.wasm'),
+        fetch('wasm/release.wasm'),
         {
             env: {memory}
         },

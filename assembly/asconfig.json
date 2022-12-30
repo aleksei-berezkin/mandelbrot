@@ -1,29 +1,14 @@
 {
   "targets": {
-    "double:debug": {
-      "outFile": "../public/asmDouble/debug.wasm",
-      "textFile": "../public/asmDouble/debug.wat",
+    "debug": {
+      "outFile": "../public/wasm/debug.wasm",
+      "textFile": "../public/wasm/debug.wat",
       "sourceMap": true,
       "debug": true
     },
-    "double:release": {
-      "outFile": "../public/asmDouble/release.wasm",
-      "textFile": "../public/asmDouble/release.wat",
-      "sourceMap": true,
-      "optimizeLevel": 3,
-      "shrinkLevel": 0,
-      "converge": false,
-      "noAssert": false
-    },
-    "bigNum:debug": {
-      "outFile": "../public/asmBigNum/debug.wasm",
-      "textFile": "../public/asmBigNum/debug.wat",
-      "sourceMap": true,
-      "debug": true
-    },
-    "bigNum:release": {
-      "outFile": "../public/asmBigNum/release.wasm",
-      "textFile": "../public/asmBigNum/release.wat",
+    "release": {
+      "outFile": "../public/wasm/release.wasm",
+      "textFile": "../public/wasm/release.wat",
       "sourceMap": true,
       "optimizeLevel": 3,
       "shrinkLevel": 0,

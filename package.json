@@ -6,9 +6,9 @@
   "scripts": {
     "postinstall": "cd assembly ; npm i ; cd ..",
     "clean": "rm -rf public/asmDouble ; rm -rf public/asmBigNum",
-    "build": "cd assembly ; npm run asbuild:double:release ; npm run asbuild:bigNum:release ; cd ..",
+    "build": "cd assembly ; npm run asbuild:release ; cd ..",
     "build:full": "cd assembly ; npm run asbuild ; cd ..",
-    "build:test": "cd assembly ; npm run asbuild:bigNum:debug ; cd ..",
+    "build:test": "cd assembly ; npm run asbuild:debug ; cd ..",
     "start": "npx serve public"
   },
   "repository": {

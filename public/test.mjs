@@ -340,7 +340,7 @@ async function instantiate() {
     );
 
     const instObj = await WebAssembly.instantiateStreaming(
-        fetch('asmBigNum/debug.wasm'),
+        fetch('wasm/debug.wasm'),
         {
             env: {memory}
         },
