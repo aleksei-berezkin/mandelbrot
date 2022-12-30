@@ -31,19 +31,15 @@ self.onmessage = messageHandler
  * isBigNum: WebAssembly.Global,
  * canvasW: WebAssembly.Global,
  * canvasH: WebAssembly.Global,
+ * maxIterations: WebAssembly.Global,
  * xMin: WebAssembly.Global,
  * w: WebAssembly.Global,
  * yMin: WebAssembly.Global,
  * h: WebAssembly.Global,
- * maxIterations: WebAssembly.Global
+ * fracPrecision: WebAssembly.Global,
  * }}
  */
 let wasmExports;
-
-/**
- * @type {boolean}
- */
-let wasmBigNum;
 
 /**
  * @param coords {Coords}
@@ -55,77 +51,64 @@ let wasmBigNum;
 async function doRender(coords, canvasW, canvasH, maxIterations) {
     const outByteSize = 2 * canvasW * canvasH;
 
-    const _wasmBigNum = (await isBigNumPromise)(coords.w, coords.unit);
+    const isBigNum = (await isBigNumPromise)(coords.w, coords.unit);
     const bigIntToBigNum = await bigIntToBigNumPromise;
-    const wBigNum = _wasmBigNum
+    const wBigNum = isBigNum
         ? bigIntToBigNum(coords.w, coords.unit)
         : undefined;
     const precision = wBigNum?.length;
 
-    const requiredMemoryBytes = _wasmBigNum
+    const requiredMemoryBytes = isBigNum
         ? 16 * 4 * precision + outByteSize
         : outByteSize;
 
-    if (!wasmExports
-        || wasmBigNum !== _wasmBigNum
-        || wasmExports.memory.buffer.byteLength < requiredMemoryBytes) {
-        wasmExports = await instantiate(requiredMemoryBytes, _wasmBigNum);
-        wasmBigNum = _wasmBigNum;
+    if (!wasmExports || wasmExports.memory.buffer.byteLength < requiredMemoryBytes) {
+        wasmExports = await instantiate(requiredMemoryBytes);
     }
 
-    new Uint16Array(wasmExports.memory.buffer).fill(0);
+    const u32Buf = new Uint32Array(wasmExports.memory.buffer);
+    u32Buf.fill(0);
 
-    if (_wasmBigNum) {
+    wasmExports.isBigNum.value = isBigNum;
+    wasmExports.canvasW.value = canvasW;
+    wasmExports.canvasH.value = canvasH;
+    wasmExports.maxIterations.value = maxIterations;
+
+    if (isBigNum) {
         const fracPrecision = precision - 1;
-        const u32Buf = new Uint32Array(wasmExports.memory.buffer);
+        wasmExports.fracPrecision.value = fracPrecision;
 
         writeBigNum(0, bigIntToBigNum(coords.xMin, coords.unit, fracPrecision), u32Buf);
         writeBigNum(precision, wBigNum, u32Buf);
         writeBigNum(2 * precision, bigIntToBigNum(coords.yMin, coords.unit, fracPrecision), u32Buf)
         writeBigNum(3 * precision, bigIntToBigNum(coords.h, coords.unit, fracPrecision), u32Buf)
-
-        wasmExports.renderMandelbrot(
-            canvasW,
-            canvasH,
-            maxIterations,
-            fracPrecision,
-        );
     } else {
-        wasmExports.isBigNum.value = _wasmBigNum;
-        wasmExports.maxIterations.value = maxIterations;
-        wasmExports.canvasW.value = canvasW;
-        wasmExports.canvasH.value = canvasH;
-
         const unit = Number(coords.unit);
         wasmExports.xMin.value = Number(coords.xMin) / unit;
         wasmExports.w.value = Number(coords.w) / unit;
         wasmExports.yMin.value = Number(coords.yMin) / unit;
         wasmExports.h.value = Number(coords.h) / unit;
 
-        wasmExports.renderMandelbrot();
     }
 
-    const iterArray = new Uint16Array(wasmExports.memory.buffer, _wasmBigNum ? 16 * 4 * precision : 0);
+    wasmExports.renderMandelbrot();
+
+    const iterArray = new Uint16Array(wasmExports.memory.buffer, isBigNum ? 16 * 4 * precision : 0);
     return mapToRgba(iterArray, canvasW, canvasH, maxIterations);
 }
 
 /**
  * @param requiredMemBytes {number}
- * @param bigNum {boolean}
  * @return {Promise<*>}
  */
-async function instantiate(requiredMemBytes, bigNum) {
+async function instantiate(requiredMemBytes) {
     const requiredPages = ((requiredMemBytes & ~0xffff) >>> 16) + ((requiredMemBytes & 0xffff) ? 1 : 0);
     const memory = new WebAssembly.Memory(
         {initial: requiredPages}
     );
 
     const instObj = await WebAssembly.instantiateStreaming(
-        fetch(
-            bigNum
-                ? 'asmBigNum/release.wasm'
-                : 'asmDouble/release.wasm'
-        ),
+        fetch('asmDouble/release.wasm'),
         {
             env: {memory}
         },
