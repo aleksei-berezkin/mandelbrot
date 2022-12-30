@@ -64,7 +64,7 @@ async function render0(canvas, hiddenCanvas, acquired) {
         coords.yMin,
         coords.h,
         canvasH,
-        workers.length * 8,
+        workers.length * 2,
     )];
 
     const tasksNum = parts.length;
