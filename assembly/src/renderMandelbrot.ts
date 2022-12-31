@@ -13,6 +13,7 @@ export let yMin: f64;
 export let h: f64;
 
 // Input: only BigNum
+export let precision: u32;
 export let fracPrecision: u32;
 
 // Internal: shared
@@ -25,9 +26,6 @@ let wStepFraction: f64;
 let hStepFraction: f64;
 
 // Internal: only BigNum
-const intPrecision: u32 = 1;
-let precision: u32;
-
 let xMinPtr: u32;
 let wPtr: u32;
 let yMinPtr: u32;
@@ -56,7 +54,10 @@ export function renderMandelbrot(): void {
     hStepFraction = h * (1.0 / (canvasH as f64));
     outArrayOffset = 0;
   } else {
-    precision = intPrecision + fracPrecision;
+    if (precision - fracPrecision !== 1) {
+      // Must be 1
+      return;
+    }
 
     xMinPtr = 0;
     wPtr = 4 * precision;
@@ -282,7 +283,7 @@ export function add(aPtr: u32, bPtr: u32, cPtr: u32): void {
  */
 export function addPositive(aPtr: u32, bPtr: u32, cPtr: u32): void {
   let cOut: u64 = 0;
-  for (let i: i32 = intPrecision + fracPrecision - 1; i >= 0; i--) {
+  for (let i: i32 = precision - 1; i >= 0; i--) {
     const a_i: u64 = load<u32>(aPtr + 4 * i) as u64;
     const b_i: u64 = load<u32>(bPtr + 4 * i) as u64;
     const c_i = a_i + b_i + cOut;
@@ -301,7 +302,7 @@ export function addPositive(aPtr: u32, bPtr: u32, cPtr: u32): void {
  */
 function subPositive(aPtr: u32, bPtr: u32, cPtr: u32): void {
   let cOut: u64 = 0;
-  for (let i: i32 = intPrecision + fracPrecision - 1; i >= 0; i--) {
+  for (let i: i32 = precision - 1; i >= 0; i--) {
     const a_i = load<u32>(aPtr + 4 * i) as u64;
     const b_i = load<u32>(bPtr + 4 * i) as u64 + cOut;
     let c_i: u64;
@@ -423,7 +424,7 @@ export function mulByUint(aPtr: u32, b: u32, cPtr: u32): void {
 
   const aIsNeg = takeNegative(aPtr);
   let cOut: u64 = 0;
-  for (let i: i32 = intPrecision + fracPrecision - 1; i >= 0; i--) {
+  for (let i: i32 = precision - 1; i >= 0; i--) {
     const a = load<u32>(aPtr + 4 * i) as u64;
     const c: u64 = a * b + cOut;
     // noinspection ShiftOutOfRangeJS

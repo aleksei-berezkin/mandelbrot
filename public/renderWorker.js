@@ -36,6 +36,7 @@ self.onmessage = messageHandler
  * w: WebAssembly.Global,
  * yMin: WebAssembly.Global,
  * h: WebAssembly.Global,
+ * precision: WebAssembly.Global,
  * fracPrecision: WebAssembly.Global,
  * }}
  */
@@ -76,6 +77,7 @@ async function doRender(coords, canvasW, canvasH, maxIterations) {
 
     if (isBigNum) {
         const fracPrecision = precision - 1;
+        wasmExports.precision.value = precision;
         wasmExports.fracPrecision.value = fracPrecision;
 
         writeBigNum(0, bigIntToBigNum(coords.xMin, coords.unit, fracPrecision), u32Buf);
