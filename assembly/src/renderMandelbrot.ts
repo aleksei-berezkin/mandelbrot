@@ -79,14 +79,14 @@ export function renderMandelbrot(): void {
 
     outArrayOffset = 16 * 4 * precision;
 
-    add(yMinPtr, hPtr, yMaxPtr, fracPrecision);
+    add(yMinPtr, hPtr, yMaxPtr);
 
     // wStepFraction = w * (1.0 / canvasW)(t0)
-    fromDouble(1.0 / (canvasW as f64), t0Ptr, fracPrecision);
-    mul(wPtr, t0Ptr, wStepFractionPtr, t2Ptr, fracPrecision);
+    fromDouble(1.0 / (canvasW as f64), t0Ptr);
+    mul(wPtr, t0Ptr, wStepFractionPtr, t2Ptr);
 
-    fromDouble(1.0 / (canvasH as f64), t0Ptr, fracPrecision);
-    mul(hPtr, t0Ptr, hStepFractionPtr, t2Ptr, fracPrecision);
+    fromDouble(1.0 / (canvasH as f64), t0Ptr);
+    mul(hPtr, t0Ptr, hStepFractionPtr, t2Ptr);
   }
 
   renderRect(0, 0, canvasW, canvasH);
@@ -181,43 +181,43 @@ function doRenderPointDouble(pX: u32, pY: u32): u16 {
 
 function doRenderPointBigNum(pX: u32, pY: u32): u16 {
   // x0 = xMin + wStepFraction * pX
-  mulByUint(wStepFractionPtr, pX, t0Ptr, fracPrecision);
-  add(xMinPtr, t0Ptr, x0Ptr, fracPrecision);
+  mulByUint(wStepFractionPtr, pX, t0Ptr);
+  add(xMinPtr, t0Ptr, x0Ptr);
 
   // canvas has (0, 0) at the left-top, so flip Y
   // y0 = yMax - hStepFraction * pY
-  mulByUint(hStepFractionPtr, pY, t0Ptr, fracPrecision);
+  mulByUint(hStepFractionPtr, pY, t0Ptr);
   negate(t0Ptr);
-  add(yMaxPtr, t0Ptr, y0Ptr, fracPrecision);
+  add(yMaxPtr, t0Ptr, y0Ptr);
 
   // x0 = 0; y0 = 0
-  setZero(xPtr, fracPrecision);
-  setZero(yPtr, fracPrecision);
+  setZero(xPtr);
+  setZero(yPtr);
 
   let i: u16 = 0;
   for ( ; i < maxIterations; i++) {
     // t0 = xSqr = x * x;
     // t1 = ySqr = y * y;
-    mul(xPtr, xPtr, t0Ptr, t2Ptr, fracPrecision);
+    mul(xPtr, xPtr, t0Ptr, t2Ptr);
     if (gtEq4Pos(t0Ptr)) {
       break;
     }
-    mul(yPtr, yPtr, t1Ptr, t2Ptr, fracPrecision);
+    mul(yPtr, yPtr, t1Ptr, t2Ptr);
     // t2 = xSqr(t0) + ySqr(t1)
-    add(t0Ptr, t1Ptr, t2Ptr, fracPrecision);
+    add(t0Ptr, t1Ptr, t2Ptr);
     if (gtEq4Pos(t2Ptr)) {
       break;
     }
 
     // xNext = (xSqr(t0) - ySqr(t1))(t2) + x0;
     negate(t1Ptr);
-    add(t0Ptr, t1Ptr, t2Ptr, fracPrecision);
-    add(t2Ptr, x0Ptr, xNextPtr, fracPrecision);
+    add(t0Ptr, t1Ptr, t2Ptr);
+    add(t2Ptr, x0Ptr, xNextPtr);
 
     // yNext = (2.0 * (x * y)(t0))(t1) + y0;
-    mul(xPtr, yPtr, t0Ptr, t2Ptr, fracPrecision);
-    twoTimes(t0Ptr, t1Ptr, fracPrecision);
-    add(t1Ptr, y0Ptr, yNextPtr, fracPrecision);
+    mul(xPtr, yPtr, t0Ptr, t2Ptr);
+    twoTimes(t0Ptr, t1Ptr);
+    add(t1Ptr, y0Ptr, yNextPtr);
 
     // Swap x and xNext
     let t: u32 = xPtr;
@@ -242,7 +242,7 @@ function doRenderPointBigNum(pX: u32, pY: u32): u16 {
  */
 
 
-export function add(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32): void {
+export function add(aPtr: u32, bPtr: u32, cPtr: u32): void {
   if (isOverflow(aPtr) || isOverflow(bPtr)) {
     setOverflow(cPtr);
     return;
@@ -252,24 +252,24 @@ export function add(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32): void {
   const bIsNeg = takeNegative(bPtr);
 
   if (aIsNeg === bIsNeg) {
-    addPositive(aPtr, bPtr, cPtr, fracPrecision);
+    addPositive(aPtr, bPtr, cPtr);
     if (aIsNeg) {
       setNegative(cPtr);
     }
   } else {
-    const cmp = cmpPositive(aPtr, bPtr, fracPrecision);
+    const cmp = cmpPositive(aPtr, bPtr);
     if (cmp === 1) {
-      subPositive(aPtr, bPtr, cPtr, fracPrecision);
+      subPositive(aPtr, bPtr, cPtr);
       if (aIsNeg) {
         setNegative(cPtr);
       }
     } else if (cmp === -1) {
-      subPositive(bPtr, aPtr, cPtr, fracPrecision);
+      subPositive(bPtr, aPtr, cPtr);
       if (bIsNeg) {
         setNegative(cPtr);
       }
     } else {
-      setZero(cPtr, fracPrecision);
+      setZero(cPtr);
     }
   }
 
@@ -280,7 +280,7 @@ export function add(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32): void {
 /**
  * Both operands must be non-overflown positive; a must be not less than b.
  */
-export function addPositive(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32): void {
+export function addPositive(aPtr: u32, bPtr: u32, cPtr: u32): void {
   let cOut: u64 = 0;
   for (let i: i32 = intPrecision + fracPrecision - 1; i >= 0; i--) {
     const a_i: u64 = load<u32>(aPtr + 4 * i) as u64;
@@ -299,7 +299,7 @@ export function addPositive(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32)
 /**
  * Both operands must be non-overflown positive; a must be not less than b.
  */
-function subPositive(aPtr: u32, bPtr: u32, cPtr: u32, fracPrecision: u32): void {
+function subPositive(aPtr: u32, bPtr: u32, cPtr: u32): void {
   let cOut: u64 = 0;
   for (let i: i32 = intPrecision + fracPrecision - 1; i >= 0; i--) {
     const a_i = load<u32>(aPtr + 4 * i) as u64;
@@ -326,8 +326,7 @@ function gtEq4Pos(aPtr: u32): boolean {
 /**
  * Both operands must be non-overflown positive.
  */
-export function cmpPositive(aPtr: u32, bPtr: u32, fracPrecision: u32): i32 {
-  const precision = intPrecision + fracPrecision;
+export function cmpPositive(aPtr: u32, bPtr: u32): i32 {
   for (let i: u32 = 0; i < precision; i++) {
     const a_i = load<u32>(aPtr + 4 * i);
     const b_i = load<u32>(bPtr + 4 * i);
@@ -340,7 +339,7 @@ export function cmpPositive(aPtr: u32, bPtr: u32, fracPrecision: u32): i32 {
   return 0;
 }
 
-export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32, fracPrecision: u32): void {
+export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32): void {
   if (isOverflow(aPtr) || isOverflow(bPtr)) {
     setOverflow(cPtr);
     return;
@@ -349,7 +348,6 @@ export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32, fracPrecision: u
   const aIsNeg = takeNegative(aPtr);
   const bIsNeg = aPtr === bPtr ? aIsNeg : takeNegative(bPtr);
 
-  const precision = intPrecision + fracPrecision;
   const maxIx = precision - 1;
 
   memset(cPtr, 0, 4 * precision);
@@ -410,7 +408,7 @@ export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32, fracPrecision: u
   }
 }
 
-export function mulByUint(aPtr: u32, b: u32, cPtr: u32, fracPrecision: u32): void {
+export function mulByUint(aPtr: u32, b: u32, cPtr: u32): void {
   if (isOverflow(aPtr)) {
     setOverflow(cPtr);
     return;
@@ -437,7 +435,7 @@ export function mulByUint(aPtr: u32, b: u32, cPtr: u32, fracPrecision: u32): voi
   }
 }
 
-export function twoTimes(aPtr: u32, cPtr: u32, fracPrecision: u32): void {
+export function twoTimes(aPtr: u32, cPtr: u32): void {
   if (isOverflow(aPtr)) {
     setOverflow(cPtr);
     return;
@@ -445,7 +443,6 @@ export function twoTimes(aPtr: u32, cPtr: u32, fracPrecision: u32): void {
 
   const isNeg = takeNegative(aPtr);
 
-  const precision = intPrecision + fracPrecision;
   let cOut: u64 = 0;
   for (let i: i32 = precision - 1; i >= 0; i--) {
     const a: u64 = load<u32>(aPtr + 4 * i) as u64;
@@ -465,14 +462,13 @@ export function twoTimes(aPtr: u32, cPtr: u32, fracPrecision: u32): void {
   }
 }
 
-export function fromDouble(a: f64, cPtr: u32, fracPrecision: u32): void {
+export function fromDouble(a: f64, cPtr: u32): void {
   let aPos: f64 = a < 0 ? -a : a;
   if (aPos >= 0x4000_0000) {
     setOverflow(cPtr);
     return;
   }
 
-  const precision: u32 = intPrecision + fracPrecision;
   for (let i: u32 = 0; i < precision; i++) {
     const item: u32 = (aPos as u32);
     aPos = (aPos - item) * 0x1_0000_0000;
@@ -504,8 +500,7 @@ function takeNegative(ptr: u32): boolean {
   return false;
 }
 
-function setZero(ptr: u32, fracPrecision: u32): void {
-  const precision = intPrecision + fracPrecision;
+function setZero(ptr: u32): void {
   for (let i: u32 = 0; i < precision; i++) {
     store<u32>(ptr + 4 * i, 0);
   }
