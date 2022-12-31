@@ -348,6 +348,13 @@ export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32): void {
   const aIsNeg = takeNegative(aPtr);
   const bIsNeg = aPtr === bPtr ? aIsNeg : takeNegative(bPtr);
 
+  const swapArgs = aPtr !== bPtr && countZeroItems(bPtr) > countZeroItems(aPtr);
+  if (swapArgs) {
+    const t: u32 = aPtr;
+    aPtr = bPtr;
+    bPtr = t;
+  }
+
   const maxIx = precision - 1;
 
   memset(cPtr, 0, 4 * precision);
@@ -395,8 +402,8 @@ export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32): void {
     }
   }
 
-  if (aIsNeg) setNegative(aPtr);
-  if (bIsNeg && aPtr !== bPtr) setNegative(bPtr);
+  if (aIsNeg) setNegative(swapArgs ? bPtr : aPtr);
+  if (bIsNeg && aPtr !== bPtr) setNegative(swapArgs ? aPtr : bPtr);
 
   if (cOut !== 0 || isOverflow(cPtr) || isNegative(cPtr)) {
     setOverflow(cPtr);
@@ -504,6 +511,16 @@ function setZero(ptr: u32): void {
   for (let i: u32 = 0; i < precision; i++) {
     store<u32>(ptr + 4 * i, 0);
   }
+}
+
+function countZeroItems(ptr: u32): u32 {
+  let zeros: u32 = 0;
+  for (let i: u32 = 0; i < precision; i++) {
+    if (load<u32>(ptr + 4 * i) === 0) {
+      zeros++;
+    }
+  }
+  return zeros;
 }
 
 function setOverflow(ptr: u32): void {
