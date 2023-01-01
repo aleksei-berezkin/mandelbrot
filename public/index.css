@@ -41,15 +41,29 @@ html, body {
 }
 
 .main-loader > .circle-bg {
-    stroke: #fff6;
+    --stroke-d: #fff6;
+    --stroke-l: #fff9;
+    animation: 1.8s ease-in-out infinite circle-glow;
+    stroke: var(--stroke-d);
 }
 
 .main-loader > .circle-fg {
+    --stroke-d: #fffa;
+    --stroke-l: #ffff;
+    animation: 1.8s ease-in-out infinite circle-glow;
     transform: rotate(-90deg);
     transform-origin: center;
-    stroke: #fffa;
+    stroke: var(--stroke-d);
     stroke-dasharray: calc(.46 * 2 * var(--pi) * var(--progress)) 1000%;
     transition: stroke-dasharray 250ms;
+}
+
+@keyframes circle-glow {
+    0% { stroke: var(--stroke-d) }
+    27% { stroke: var(--stroke-d) }
+    40% { stroke: var(--stroke-l) }
+    53% { stroke: var(--stroke-d) }
+    100% { stroke: var(--stroke-d) }
 }
 
 #main-canvas {
