@@ -49,7 +49,7 @@ html, body {
     transform-origin: center;
     stroke: #fffa;
     stroke-dasharray: calc(.46 * 2 * var(--pi) * var(--progress)) 1000%;
-    transition: stroke-dasharray 100ms;
+    transition: stroke-dasharray 250ms;
 }
 
 #main-canvas {

@@ -4,38 +4,33 @@ import { bigIntToBigNum } from './bigIntToBigNum.mjs';
 import { mulBigIntByNum } from './bigIntArithHelper.mjs';
 import { renderResults } from './renderResults.mjs';
 
-let pending = 0;
-
-const baseIterations = 2000;
+let currentTaskId = 0;
 
 
 export async function render(canvas, hiddenCanvas, immediately = false) {
-    if (pending++ > 0) {
-        return;
-    }
-
+    const taskId = ++currentTaskId;
     const renderCb = async function() {
-        do {
-            const acquired = pending;
-            await render0(canvas, hiddenCanvas, acquired);
-            pending = Math.max(pending - acquired, 0);
-        } while (pending);
+        await render0(canvas, hiddenCanvas, taskId);
     }
 
     if (immediately) {
         void renderCb();
     } else {
-        setTimeout(renderCb, 300);
+        setTimeout(renderCb, 250);
     }
 }
 
-const workers = Array.from({length: 10}).map(() => new Worker('renderWorker.js'));
+const baseIterations = 2000;
 
-const maxCancellableProgress = .65;
+const workers = Array.from({length: 10}).map(() => new Worker('renderWorker.js'));
 
 let initial = true;
 
-async function render0(canvas, hiddenCanvas, acquired) {
+async function render0(canvas, hiddenCanvas, taskId) {
+    if (taskId !== currentTaskId) {
+        return;
+    }
+
     const coords = getMathCoords(canvas);
 
     if (initial && window.location.search === '') {
@@ -77,7 +72,7 @@ async function render0(canvas, hiddenCanvas, acquired) {
     const workerPromises = workers.map(async worker => {
         const results = [];
         while (parts.length) {
-            if (pending > acquired && tasksDone / tasksNum <= maxCancellableProgress) {
+            if (taskId !== currentTaskId) {
                 break;
             }
 
@@ -95,6 +90,11 @@ async function render0(canvas, hiddenCanvas, acquired) {
                 part.canvasH,
                 maxIterations,
             );
+
+            if (taskId !== currentTaskId) {
+                break;
+            }
+
             results.push({
                 rgbaArray,
                 canvasYMin: part.canvasYMin,
