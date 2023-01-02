@@ -238,17 +238,12 @@ function doRenderPointBigNum(pX: u32, pY: u32): u16 {
  * The most significant component is an integer part, and it always has one component. Fractional part size
  * (fracPrecision) varies, minimum is 1.
  *
- * Integer part stores also 2 flags: overflow (0x8000_0000) and negative (0x4000_0000).
- * So the greatest (by abs) number is 0x3fff_ffff.0xffff_ffff... (= 1_073_741_823.99999...).
+ * Integer part stores also negative flag (0x8000_0000). Overflow is not checked anywhere.
+ * So the greatest (by abs) number is 0x7fff_ffff.0xffff_ffff... (= 2_147_483_647.99999...).
  */
 
 
 export function add(aPtr: u32, bPtr: u32, cPtr: u32): void {
-  if (isOverflow(aPtr) || isOverflow(bPtr)) {
-    setOverflow(cPtr);
-    return;
-  }
-
   const aIsNeg = takeNegative(aPtr);
   const bIsNeg = takeNegative(bPtr);
 
@@ -290,10 +285,6 @@ export function addPositive(aPtr: u32, bPtr: u32, cPtr: u32): void {
     store<u32>(cPtr + 4 * i, c_i as u32);
     // noinspection ShiftOutOfRangeJS
     cOut = c_i >>> 32;
-  }
-
-  if (cOut !== 0 || isNegative(cPtr)) {
-    setOverflow(cPtr);
   }
 }
 
@@ -341,11 +332,6 @@ export function cmpPositive(aPtr: u32, bPtr: u32): i32 {
 }
 
 export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32): void {
-  if (isOverflow(aPtr) || isOverflow(bPtr)) {
-    setOverflow(cPtr);
-    return;
-  }
-
   const aIsNeg = takeNegative(aPtr);
   const bIsNeg = aPtr === bPtr ? aIsNeg : takeNegative(bPtr);
 
@@ -405,23 +391,10 @@ export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32): void {
 
   if (aIsNeg) setNegative(swapArgs ? bPtr : aPtr);
   if (bIsNeg && aPtr !== bPtr) setNegative(swapArgs ? aPtr : bPtr);
-
-  if (cOut !== 0 || isOverflow(cPtr) || isNegative(cPtr)) {
-    setOverflow(cPtr);
-    return;
-  }
-
-  if (aIsNeg !== bIsNeg) {
-    setNegative(cPtr);
-  }
+  if (aIsNeg !== bIsNeg)setNegative(cPtr);
 }
 
 export function mulByUint(aPtr: u32, b: u32, cPtr: u32): void {
-  if (isOverflow(aPtr)) {
-    setOverflow(cPtr);
-    return;
-  }
-
   const aIsNeg = takeNegative(aPtr);
   let cOut: u64 = 0;
   for (let i: i32 = precision - 1; i >= 0; i--) {
@@ -433,10 +406,6 @@ export function mulByUint(aPtr: u32, b: u32, cPtr: u32): void {
     cOut = c >>> 32
   }
 
-  if (cOut !== 0 || isNegative(cPtr)) {
-    setOverflow(cPtr);
-  }
-
   if (aIsNeg) {
     setNegative(aPtr);
     setNegative(cPtr);
@@ -444,11 +413,6 @@ export function mulByUint(aPtr: u32, b: u32, cPtr: u32): void {
 }
 
 export function twoTimes(aPtr: u32, cPtr: u32): void {
-  if (isOverflow(aPtr)) {
-    setOverflow(cPtr);
-    return;
-  }
-
   const isNeg = takeNegative(aPtr);
 
   let cOut: u64 = 0;
@@ -460,10 +424,6 @@ export function twoTimes(aPtr: u32, cPtr: u32): void {
     cOut = c >>> 32;
   }
 
-  if (cOut !== 0 || isNegative(cPtr)) {
-    setOverflow(cPtr);
-  }
-
   if (isNeg) {
     setNegative(aPtr);
     setNegative(cPtr);
@@ -472,37 +432,28 @@ export function twoTimes(aPtr: u32, cPtr: u32): void {
 
 export function fromDouble(a: f64, cPtr: u32): void {
   let aPos: f64 = a < 0 ? -a : a;
-  if (aPos >= 0x4000_0000) {
-    setOverflow(cPtr);
-    return;
-  }
-
   for (let i: u32 = 0; i < precision; i++) {
     const item: u32 = (aPos as u32);
     aPos = (aPos - item) * 0x1_0000_0000;
     store<u32>(cPtr + 4 * i, item);
   }
-
   if (a < 0) setNegative(cPtr);
 }
 
-function isOverflow(ptr: u32): boolean {
-  return (load<u32>(ptr) & 0x8000_0000) !== 0;
-}
-
-function isNegative(ptr: u32): boolean {
-  return (load<u32>(ptr) & 0x4000_0000) !== 0;
+function setNegative(ptr: u32): void {
+  const a = load<u32>(ptr);
+  store<u32>(ptr, a | 0x8000_0000);
 }
 
 export function negate(ptr: u32): void {
   const a = load<u32>(ptr);
-  store<u32>(ptr, a ^ 0x4000_0000);
+  store<u32>(ptr, a ^ 0x8000_0000);
 }
 
 function takeNegative(ptr: u32): boolean {
   const a = load<u32>(ptr);
-  if ((a & 0x4000_0000) !== 0) {
-    store<u32>(ptr, a & (~0x4000_0000));
+  if ((a & 0x8000_0000) !== 0) {
+    store<u32>(ptr, a & (~0x8000_0000));
     return true;
   }
   return false;
@@ -522,13 +473,4 @@ function countZeroItems(ptr: u32): u32 {
     }
   }
   return zeros;
-}
-
-function setOverflow(ptr: u32): void {
-  store<u32>(ptr, 0x8000_0000);
-}
-
-function setNegative(ptr: u32): void {
-  const a = load<u32>(ptr);
-  store<u32>(ptr, a | 0x4000_0000);
 }

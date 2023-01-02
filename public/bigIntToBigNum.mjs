@@ -5,10 +5,6 @@
  */
 export function bigIntToBigNum(a, unit, fracPrecision) {
     let aPos = (a < 0 ? -a : a);
-    if (aPos / unit >= 0x4000_0000n) {
-        return  [0x8000_0000, 0];
-    }
-
     const bigNum = [];
     let significantBits = 0;
     for (let i = 0; i < (fracPrecision ? 1 + fracPrecision : 20); i++) {
@@ -30,7 +26,8 @@ export function bigIntToBigNum(a, unit, fracPrecision) {
     }
 
     if (a < 0n) {
-        bigNum[0] |= 0x4000_0000;
+        // Bitwise ops coerce to u32 that's why + not |
+        bigNum[0] += 0x8000_0000;
     }
 
     return bigNum;
