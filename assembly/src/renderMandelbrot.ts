@@ -354,11 +354,11 @@ export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32): void {
       continue;
     }
 
-    for (let j: i32 = maxIx; j >= 0; j--) {
+    // Max pIx === i + j === precision (product is +1 width)
+    // <=>
+    // max j === precision - i
+    for (let j: i32 = precision - i; j >= 0; j--) {
       let pIx = i + j;
-      if (pIx > (precision as i32)) {
-        continue;
-      }
       const b: u64 = load<u32>(bPtr + (j << 2));
       if (b === 0 && cOut === 0) {
         continue;
