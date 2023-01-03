@@ -174,6 +174,63 @@ test('bigIntToBigNum', () => {
     }
 });
 
+test('bigIntToBigNum 2', () => {
+    // FIXME
+    const unit = 8_000_000_000_000n;
+    const yMin0 = -1537236428030n;
+    const h0 = 6704822n;
+    const yMin1 = -1537229723208n;
+    // const yMin0 = 1537229723208n;
+    // const h0 = 6704822n;
+    // const yMin1 = 1537236428030n;
+
+    assertEquals(yMin1, yMin0 + h0);
+
+    const yMin0BigInt = bigIntToBigNum(yMin0, unit, 1);
+    const h0BigInt = bigIntToBigNum(h0, unit, 1);
+    const yMin1BigInt = bigIntToBigNum(yMin1, unit, 1);
+
+    assertEquals(yMin1BigInt[0], yMin0BigInt[0]);
+    assertEquals(yMin1BigInt[1], yMin0BigInt[1] + h0BigInt[1]);
+});
+
+/*
+canvasH
+:
+1291
+canvasYMin
+:
+0
+h
+:
+6704822n
+yMin
+:
+-1537236428030n
+[[Prototype]]
+:
+Object
+
+Object
+canvasH
+:
+661
+canvasYMin
+:
+1291
+h
+:
+3426294n
+yMin
+:
+-1537229723208n
+[[Prototype]]
+:
+Object
+
+unit=8e12
+
+ */
 test('bigIntToBigNum very large and very small', () => {
     for (let i = 0; i < 10000; i++) {
         let p = BigInt(Math.round(Math.random() * 0x100) * randomSign());
