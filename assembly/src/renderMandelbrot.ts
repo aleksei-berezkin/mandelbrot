@@ -1,3 +1,5 @@
+// noinspection DuplicatedCode, ShiftOutOfRangeJS, JSUnusedGlobalSymbols
+
 import { memset } from 'util/memory';
 
 // Input: shared
@@ -46,7 +48,6 @@ let xNextPtr: u32;
 let yNextPtr: u32;
 
 
-// noinspection JSUnusedGlobalSymbols
 export function renderMandelbrot(): void {
   if (!isBigNum) {
     yMax = yMin + h;
@@ -200,19 +201,15 @@ function doRenderPointBigNum(pX: u32, pY: u32): u16 {
     // t0 = xSqr = x * x;
     // t1 = ySqr = y * y;
     mul(xPtr, xPtr, t0Ptr, t2Ptr);
-    if (gtEq4Pos(t0Ptr)) {
-      break;
-    }
     mul(yPtr, yPtr, t1Ptr, t2Ptr);
     // t2 = xSqr(t0) + ySqr(t1)
-    add(t0Ptr, t1Ptr, t2Ptr);
-    if (gtEq4Pos(t2Ptr)) {
+    const sumIntPart: u32 = addPositive(t0Ptr, t1Ptr, 0);
+    if (sumIntPart >= 4) {
       break;
     }
 
     // xNext = (xSqr(t0) - ySqr(t1))(t2) + x0;
-    negate(t1Ptr);
-    add(t0Ptr, t1Ptr, t2Ptr);
+    subPositive(t0Ptr, t1Ptr, t2Ptr);
     add(t2Ptr, x0Ptr, xNextPtr);
 
     // yNext = (2.0 * (x * y)(t0))(t1) + y0;
@@ -252,21 +249,10 @@ export function add(aPtr: u32, bPtr: u32, cPtr: u32): void {
     if (aIsNeg) {
       setNegative(cPtr);
     }
+  } else if (aIsNeg) {
+    subPositive(bPtr, aPtr, cPtr);
   } else {
-    const cmp = cmpPositive(aPtr, bPtr);
-    if (cmp === 1) {
-      subPositive(aPtr, bPtr, cPtr);
-      if (aIsNeg) {
-        setNegative(cPtr);
-      }
-    } else if (cmp === -1) {
-      subPositive(bPtr, aPtr, cPtr);
-      if (bIsNeg) {
-        setNegative(cPtr);
-      }
-    } else {
-      setZero(cPtr);
-    }
+    subPositive(aPtr, bPtr, cPtr);
   }
 
   if (aIsNeg) setNegative(aPtr);
@@ -274,24 +260,44 @@ export function add(aPtr: u32, bPtr: u32, cPtr: u32): void {
 }
 
 /**
- * Both operands must be non-overflown positive; a must be not less than b.
+ * Both operands must be positive.
+ * @param aPtr
+ * @param bPtr
+ * @param cPtr If 0, doesn't store result
+ * @return Highest element
  */
-export function addPositive(aPtr: u32, bPtr: u32, cPtr: u32): void {
+export function addPositive(aPtr: u32, bPtr: u32, cPtr: u32): u32 {
   let cOut: u64 = 0;
+  let c_i: u64 = 0;
   for (let i: i32 = precision - 1; i >= 0; i--) {
     const a_i: u64 = load<u32>(aPtr + 4 * i) as u64;
     const b_i: u64 = load<u32>(bPtr + 4 * i) as u64;
-    const c_i = a_i + b_i + cOut;
-    store<u32>(cPtr + 4 * i, c_i as u32);
-    // noinspection ShiftOutOfRangeJS
+    c_i = a_i + b_i + cOut;
+    if (cPtr !== 0) store<u32>(cPtr + 4 * i, c_i as u32);
     cOut = c_i >>> 32;
+  }
+  return c_i as u32;
+}
+
+/**
+ * Both operands must be positive
+ */
+function subPositive(aPtr: u32, bPtr: u32, cPtr: u32): void {
+  const cmp = cmpPositive(aPtr, bPtr);
+  if (cmp === 1) {
+    subPositiveAgtB(aPtr, bPtr, cPtr);
+  } else if (cmp === -1) {
+    subPositiveAgtB(bPtr, aPtr, cPtr);
+    setNegative(cPtr);
+  } else {
+    setZero(cPtr);
   }
 }
 
 /**
- * Both operands must be non-overflown positive; a must be not less than b.
+ * Both operands must be positive; a must be not less than b.
  */
-function subPositive(aPtr: u32, bPtr: u32, cPtr: u32): void {
+function subPositiveAgtB(aPtr: u32, bPtr: u32, cPtr: u32): void {
   let cOut: u64 = 0;
   for (let i: i32 = precision - 1; i >= 0; i--) {
     const a_i = load<u32>(aPtr + 4 * i) as u64;
@@ -309,13 +315,6 @@ function subPositive(aPtr: u32, bPtr: u32, cPtr: u32): void {
 }
 
 /**
- * @param aPtr Positive
- */
-function gtEq4Pos(aPtr: u32): boolean {
-  return load<u32>(aPtr) >= 4;
-}
-
-/**
  * Both operands must be non-overflown positive.
  */
 export function cmpPositive(aPtr: u32, bPtr: u32): i32 {
@@ -330,8 +329,226 @@ export function cmpPositive(aPtr: u32, bPtr: u32): i32 {
   }
   return 0;
 }
-
 export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32): void {
+  if (precision === 2) {
+    mul2(aPtr, bPtr, cPtr);
+  } else if (precision === 3) {
+    mul3(aPtr, bPtr, cPtr);
+  } else if (precision === 4) {
+    mul4(aPtr, bPtr, cPtr);
+  } else {
+    mulGeneral(aPtr, bPtr, cPtr, tPtr);
+  }
+}
+
+
+export function mul2(aPtr: u32, bPtr: u32, cPtr: u32): void {
+  let a0 = load<u32>(aPtr) as u64;
+  let a1 = load<u32>(aPtr + 4) as u64;
+  let b0 = load<u32>(bPtr) as u64;
+  let b1 = load<u32>(bPtr + 4) as u64;
+
+  const aIsNeg = (a0 & 0x8000_0000) !== 0;
+  const bIsNeg = (b0 & 0x8000_0000) !== 0;
+  if (aIsNeg) a0 &= ~0x8000_0000;
+  if (bIsNeg) b0 &= ~0x8000_0000;
+
+  let curr: u64 = 0;
+  let next: u64 = 0;
+
+  let m: u64;
+
+  // c2
+  m = a1 * b1;
+  curr += m;
+
+  curr = curr >>> 32;
+
+  // c1
+  m = a0 * b1;
+  curr += m;
+  if (curr < m) next += 0x1_0000_0000;
+
+  m = a1 * b0;
+  curr += m;
+  if (curr < m) next += 0x1_0000_0000;
+
+  store<u32>(cPtr + 4, curr as u32);
+  curr = curr >>> 32 | next;
+
+  // c0
+  m = a0 * b0;
+  curr += m;
+
+  if (aIsNeg !== bIsNeg) curr |= 0x8000_0000;
+
+  store<u32>(cPtr, curr as u32);
+}
+
+export function mul3(aPtr: u32, bPtr: u32, cPtr: u32): void {
+  let a0 = load<u32>(aPtr) as u64;
+  let a1 = load<u32>(aPtr + 4) as u64;
+  let a2 = load<u32>(aPtr + 8) as u64;
+  const same = aPtr === bPtr;
+  let b0 = same ? a0 : load<u32>(bPtr) as u64;
+  let b1 = same ? a1 : load<u32>(bPtr + 4) as u64;
+  let b2 = same ? a2 : load<u32>(bPtr + 8) as u64;
+
+  const aIsNeg = (a0 & 0x8000_0000) !== 0;
+  const bIsNeg = (b0 & 0x8000_0000) !== 0;
+  if (aIsNeg) a0 &= ~0x8000_0000;
+  if (bIsNeg) b0 &= ~0x8000_0000;
+
+  let curr: u64 = 0;
+  let next: u64 = 0;
+
+  let m: u64;
+
+  // c3
+  m = a1 * b2;
+  curr += m;
+
+  m = a2 * b1;
+  curr += m;
+  if (curr < m) next += 0x1_0000_0000;
+
+  curr = curr >>> 32 | next;
+  next = 0;
+
+  // c2
+  m = a0 * b2;
+  curr += m;
+  if (curr < m) next += 0x1_0000_0000;
+
+  m = a1 * b1;
+  curr += m;
+  if (curr < m) next += 0x1_0000_0000;
+
+  m = a2 * b0;
+  curr += m;
+  if (curr < m) next += 0x1_0000_0000;
+
+  store<u32>(cPtr + 8, curr as u32);
+  curr = curr >>> 32 | next;
+  next = 0;
+
+  // c1
+  m = a0 * b1;
+  curr += m;
+  if (curr < m) next += 0x1_0000_0000;
+
+  m = a1 * b0;
+  curr += m;
+  if (curr < m) next += 0x1_0000_0000;
+
+  store<u32>(cPtr + 4, curr as u32);
+  curr = curr >>> 32 | next;
+
+  // c0
+  m = a0 * b0;
+  curr += m;
+
+  if (aIsNeg !== bIsNeg) curr |= 0x8000_0000;
+
+  store<u32>(cPtr, curr as u32);
+}
+
+export function mul4(aPtr: u32, bPtr: u32, cPtr: u32): void {
+  let a0 = load<u32>(aPtr) as u64;
+  let a1 = load<u32>(aPtr + 4) as u64;
+  let a2 = load<u32>(aPtr + 8) as u64;
+  let a3 = load<u32>(aPtr + 12) as u64;
+  const same = aPtr === bPtr;
+  let b0 = same ? a0 : load<u32>(bPtr) as u64;
+  let b1 = same ? a1 : load<u32>(bPtr + 4) as u64;
+  let b2 = same ? a2 : load<u32>(bPtr + 8) as u64;
+  let b3 = same ? a3 : load<u32>(bPtr + 12) as u64;
+
+  const aIsNeg = (a0 & 0x8000_0000) !== 0;
+  const bIsNeg = (b0 & 0x8000_0000) !== 0;
+  if (aIsNeg) a0 &= ~0x8000_0000;
+  if (bIsNeg) b0 &= ~0x8000_0000;
+
+  let curr: u64 = 0;
+  let next: u64 = 0;
+
+  let m: u64;
+
+  // c4
+  m = a1 * b3;
+  curr += m;
+
+  m = a2 * b2;
+  curr += m;
+  if (curr < m) next += 0x1_0000_0000;
+
+  m = a3 * b1;
+  curr += m;
+  if (curr < m) next += 0x1_0000_0000;
+
+  curr = curr >>> 32 | next;
+  next = 0;
+
+  // c3
+  m = a0 * b3;
+  curr += m;
+  if (curr < m) next += 0x1_0000_0000;
+
+  m = a1 * b2;
+  curr += m;
+  if (curr < m) next += 0x1_0000_0000;
+
+  m = a2 * b1;
+  curr += m;
+  if (curr < m) next += 0x1_0000_0000;
+
+  m = a3 * b0;
+  curr += m;
+  if (curr < m) next += 0x1_0000_0000;
+
+  store<u32>(cPtr + 12, curr as u32);
+  curr = curr >>> 32 | next;
+  next = 0;
+
+  // c2
+  m = a0 * b2;
+  curr += m;
+  if (curr < m) next += 0x1_0000_0000;
+
+  m = a1 * b1;
+  curr += m;
+  if (curr < m) next += 0x1_0000_0000;
+
+  m = a2 * b0;
+  curr += m;
+  if (curr < m) next += 0x1_0000_0000;
+
+  store<u32>(cPtr + 8, curr as u32);
+  curr = curr >>> 32 | next;
+  next = 0;
+
+  // c1
+  m = a0 * b1;
+  curr += m;
+  if (curr < m) next += 0x1_0000_0000;
+
+  m = a1 * b0;
+  curr += m;
+  if (curr < m) next += 0x1_0000_0000;
+
+  store<u32>(cPtr + 4, curr as u32);
+  curr = curr >>> 32 | next;
+
+  // c0
+  m = a0 * b0;
+  curr += m;
+
+  if (aIsNeg !== bIsNeg) curr |= 0x8000_0000;
+
+  store<u32>(cPtr, curr as u32);
+}
+
+export function mulGeneral(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32): void {
   const aIsNeg = takeNegative(aPtr);
   const bIsNeg = aPtr === bPtr ? aIsNeg : takeNegative(bPtr);
 
@@ -371,7 +588,6 @@ export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32): void {
       let p: u64 = load<u32>(_pPtr);
       p += a * b + cOut;
       store<u32>(_pPtr, p as u32);
-      // noinspection ShiftOutOfRangeJS
       cOut = p >>> 32;
     }
 
@@ -380,7 +596,6 @@ export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32): void {
       let p: u64 = load<u32>(_cPtr);
       p += cOut;
       store<u32>(_cPtr, p as u32);
-      // noinspection ShiftOutOfRangeJS
       cOut = p >>> 32;
     }
 
@@ -391,7 +606,7 @@ export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32): void {
 
   if (aIsNeg) setNegative(swapArgs ? bPtr : aPtr);
   if (bIsNeg && aPtr !== bPtr) setNegative(swapArgs ? aPtr : bPtr);
-  if (aIsNeg !== bIsNeg)setNegative(cPtr);
+  if (aIsNeg !== bIsNeg) setNegative(cPtr);
 }
 
 export function mulByUint(aPtr: u32, b: u32, cPtr: u32): void {
@@ -400,9 +615,7 @@ export function mulByUint(aPtr: u32, b: u32, cPtr: u32): void {
   for (let i: i32 = precision - 1; i >= 0; i--) {
     const a = load<u32>(aPtr + 4 * i) as u64;
     const c: u64 = a * b + cOut;
-    // noinspection ShiftOutOfRangeJS
     store<u32>(cPtr + 4 * i, c as u32);
-    // noinspection ShiftOutOfRangeJS
     cOut = c >>> 32
   }
 
@@ -413,20 +626,13 @@ export function mulByUint(aPtr: u32, b: u32, cPtr: u32): void {
 }
 
 export function twoTimes(aPtr: u32, cPtr: u32): void {
-  const isNeg = takeNegative(aPtr);
-
   let cOut: u64 = 0;
   for (let i: i32 = precision - 1; i >= 0; i--) {
     const a: u64 = load<u32>(aPtr + 4 * i) as u64;
-    const c: u64 = (a << 1) | cOut;
+    const sign = (i === 0 && (a & 0x8000_0000) !== 0 ? 0x8000_0000 : 0);
+    const c: u64 = (a << 1) | cOut | sign;
     store<u32>(cPtr + 4 * i, c as u32);
-    // noinspection ShiftOutOfRangeJS
     cOut = c >>> 32;
-  }
-
-  if (isNeg) {
-    setNegative(aPtr);
-    setNegative(cPtr);
   }
 }
 

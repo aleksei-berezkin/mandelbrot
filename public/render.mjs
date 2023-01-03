@@ -31,6 +31,7 @@ async function render0(canvas, hiddenCanvas, taskId) {
         return;
     }
 
+    const startMs = Date.now();
     const coords = getMathCoords(canvas);
 
     if (initial && window.location.search === '') {
@@ -122,6 +123,7 @@ async function render0(canvas, hiddenCanvas, taskId) {
     }
 
     renderResults(canvas, hiddenCanvas, coords, resultsArr.flatMap(results => results), false);
+    document.getElementById('done-in').innerText = `Done in ${Date.now() - startMs} ms`
 }
 
 /**
