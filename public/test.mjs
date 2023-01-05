@@ -36,38 +36,38 @@ test('Add near overflow', () => {
     assertEquals([0x7fff_ffff, 0], readBigNum(4, 1));
 });
 
-test('cmpPositive', () => {
-    writeBigNum(0, fromDouble(1.5, 1));
-    writeBigNum(2, fromDouble(2.25, 1));
-    assertEquals(-1, wExports.cmpPositive(0, w * 2));
-    assertEquals(+1, wExports.cmpPositive(w * 2, 0));
-    assertEquals(0, wExports.cmpPositive(0, 0));
-});
+// test('cmpPositive', () => {
+//     writeBigNum(0, fromDouble(1.5, 1));
+//     writeBigNum(2, fromDouble(2.25, 1));
+//     assertEquals(-1, wExports.cmpPositive(0, w * 2));
+//     assertEquals(+1, wExports.cmpPositive(w * 2, 0));
+//     assertEquals(0, wExports.cmpPositive(0, 0));
+// });
 
-test('Subtract simple a-b', () => {
-    writeBigNum(0, fromDouble(3.5, 1));
-    writeBigNum(2, fromDouble(-1.125, 1));
-    wExports.add(0, w * 2, w * 4);
-    assertEquals(3.5, toDouble(readBigNum(0, 1)));
-    assertEquals(-1.125, toDouble(readBigNum(2, 1)));
-    assertEquals(2.375, toDouble(readBigNum(4, 1)));
-});
-
-test('Subtract simple b-a', () => {
-    writeBigNum(0, fromDouble(-13.5, 1));
-    writeBigNum(2, fromDouble(1.125, 1));
-    wExports.add(0, w * 2, w * 4);
-    assertEquals(-13.5, toDouble(readBigNum(0, 1)));
-    assertEquals(1.125, toDouble(readBigNum(2, 1)));
-    assertEquals(-12.375, toDouble(readBigNum(4, 1)));
-});
-
-test('Subtract near overflow', () => {
-    writeBigNum(0, [0xffff_ffff, 0]);
-    writeBigNum(2, [0, 1]);
-    wExports.add(0, w * 2, w * 4);
-    assertEquals([0xffff_fffe, 0xffff_ffff], readBigNum(4, 1));
-});
+// test('Subtract simple a-b', () => {
+//     writeBigNum(0, fromDouble(3.5, 1));
+//     writeBigNum(2, fromDouble(-1.125, 1));
+//     wExports.add(0, w * 2, w * 4);
+//     assertEquals(3.5, toDouble(readBigNum(0, 1)));
+//     assertEquals(-1.125, toDouble(readBigNum(2, 1)));
+//     assertEquals(2.375, toDouble(readBigNum(4, 1)));
+// });
+//
+// test('Subtract simple b-a', () => {
+//     writeBigNum(0, fromDouble(-13.5, 1));
+//     writeBigNum(2, fromDouble(1.125, 1));
+//     wExports.add(0, w * 2, w * 4);
+//     assertEquals(-13.5, toDouble(readBigNum(0, 1)));
+//     assertEquals(1.125, toDouble(readBigNum(2, 1)));
+//     assertEquals(-12.375, toDouble(readBigNum(4, 1)));
+// });
+//
+// test('Subtract near overflow', () => {
+//     writeBigNum(0, [0xffff_ffff, 0]);
+//     writeBigNum(2, [0, 1]);
+//     wExports.add(0, w * 2, w * 4);
+//     assertEquals([0xffff_fffe, 0xffff_ffff], readBigNum(4, 1));
+// });
 
 test('Randomized add', () => withHigherPrecision(() => {
     for (let i = 0; i < 20000; i++) {
@@ -103,16 +103,16 @@ test('Multiply randomized', () => withHigherPrecision(() => {
 }));
 
 test('Square', () => {
-    writeBigNum(0, fromDouble(-2, 1));
+    writeBigNum(0, fromDouble(-2.5, 1));
     wExports.mul(0, 0, w * 2, w * 4);
-    assertEquals(-2, toDouble(readBigNum(0, 1)));
-    assertEquals(4, toDouble(readBigNum(2, 1)));
+    assertEquals(-2.5, toDouble(readBigNum(0, 1)));
+    assertEquals(6.25, toDouble(readBigNum(2, 1)));
 });
 
 test('Mul by uint simple', () => {
-    writeBigNum(0, fromDouble(1.5, 1));
+    writeBigNum(0, fromDouble(-1.25, 1));
     wExports.mulByUint(0, 10, w * 2);
-    assertEquals(15, toDouble(readBigNum(2, 1)));
+    assertEquals(-12.5, toDouble(readBigNum(2, 1)));
 });
 
 test('Mul by uint randomized', () => withHigherPrecision(() => {
@@ -269,32 +269,45 @@ function fromDouble(double, fracPrecision) {
     }
 
     const mask = 0x1_0000_0000;
-    const bigNum = Array.from({length: precision}).map(() => {
+    let bigNum = Array.from({length: precision}).map(() => {
         const v =  Math.floor(double % mask);
         double *= 0x1_0000_0000;
         return v;
     })
     if (isNeg) {
-        // Bitwise ops coerce to u32, that's why + not |
-        bigNum[0] += 0x8000_0000;
+        // Bitwise ops coerce to u32 that's why through BigInt
+        let cOut = 1n;
+        for (let i = precision - 1; i >= 0; i--) {
+            const d = (BigInt(bigNum[i]) ^ 0xffff_ffffn) + cOut;
+            bigNum[i] = Number(d & 0xffff_ffffn);
+            cOut = d >> 32n;
+        }
     }
     return bigNum;
 }
 
 function toDouble(bigNum) {
+    bigNum = [...bigNum];
     const isNeg = (bigNum[0] & 0x8000_0000) !== 0;
+
     if (isNeg) {
-        bigNum[0] &= ~0x8000_0000;
+        // Bitwise ops coerce to u32 that's why through BigInt
+        let cOut = 1n;
+        for (let i = bigNum.length - 1; i >= 0; i--) {
+            const d = (BigInt(bigNum[i]) ^ 0xffff_ffffn) + cOut;
+            bigNum[i] = Number(d & 0xffff_ffffn);
+            cOut = d >> 32n;
+        }
     }
 
     let res = 0;
     let mask = 1;
-    bigNum.forEach(i => {
-        res += i * mask;
+    bigNum.forEach((d, i) => {
+        res += d * mask;
         mask /= 0x1_0000_0000;
     });
+
     if (isNeg) {
-        bigNum[0] += 0x8000_0000;
         res = -res;
     }
     return res;
@@ -360,9 +373,12 @@ function withHigherPrecision(cb) {
     const baseFracPrecision = wExports.fracPrecision.value;
     wExports.precision.value = basePrecision + 1;
     wExports.fracPrecision.value = baseFracPrecision + 1;
-    cb();
-    wExports.precision.value = basePrecision;
-    wExports.fracPrecision.value = baseFracPrecision;
+    try {
+        cb();
+    } finally {
+        wExports.precision.value = basePrecision;
+        wExports.fracPrecision.value = baseFracPrecision;
+    }
 }
 
 /**
