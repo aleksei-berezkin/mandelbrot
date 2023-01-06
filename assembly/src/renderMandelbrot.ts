@@ -1,7 +1,5 @@
 // noinspection DuplicatedCode, ShiftOutOfRangeJS, JSUnusedGlobalSymbols
 
-import { memset } from 'util/memory';
-
 // Input: shared
 export let canvasW: u32;
 export let canvasH: u32;
@@ -234,39 +232,10 @@ function doRenderPointBigNum(pX: u32, pY: u32): u16 {
 /*
  * Arbitrary-precision fixed-point numbers. Stored as u32 components, most significant component first.
  * The most significant component is an integer part, and it always has one component. Fractional part size
- * (fracPrecision) varies, minimum is 1.
- *
- * Integer part stores also negative flag (0x8000_0000). Overflow is not checked anywhere.
- * So the greatest (by abs) number is 0x7fff_ffff.0xffff_ffff... (= 2_147_483_647.99999...).
+ * (fracPrecision) varies, minimum is 1. Negatives are 2's complement
  */
 
 
-// export function add(aPtr: u32, bPtr: u32, cPtr: u32): void {
-//   const aIsNeg = takeNegative(aPtr);
-//   const bIsNeg = takeNegative(bPtr);
-//
-//   if (aIsNeg === bIsNeg) {
-//     addPositive(aPtr, bPtr, cPtr);
-//     if (aIsNeg) {
-//       setNegative(cPtr);
-//     }
-//   } else if (aIsNeg) {
-//     subPositive(bPtr, aPtr, cPtr);
-//   } else {
-//     subPositive(aPtr, bPtr, cPtr);
-//   }
-//
-//   if (aIsNeg) setNegative(aPtr);
-//   if (bIsNeg) setNegative(bPtr);
-// }
-
-// /**
-//  * Both operands must be positive.
-//  * @param aPtr
-//  * @param bPtr
-//  * @param cPtr If 0, doesn't store result
-//  * @return Highest element
-//  */
 export function add(aPtr: u32, bPtr: u32, cPtr: u32): u32 {
   let cOut: u64 = 0;
   let c_i: u64 = 0;
@@ -280,56 +249,6 @@ export function add(aPtr: u32, bPtr: u32, cPtr: u32): u32 {
   return c_i as u32;
 }
 
-// /**
-//  * Both operands must be positive
-//  */
-// function subPositive(aPtr: u32, bPtr: u32, cPtr: u32): void {
-//   const cmp = cmpPositive(aPtr, bPtr);
-//   if (cmp === 1) {
-//     subPositiveAgtB(aPtr, bPtr, cPtr);
-//   } else if (cmp === -1) {
-//     subPositiveAgtB(bPtr, aPtr, cPtr);
-//     setNegative(cPtr);
-//   } else {
-//     setZero(cPtr);
-//   }
-// }
-
-// /**
-//  * Both operands must be positive; a must be not less than b.
-//  */
-// function subPositiveAgtB(aPtr: u32, bPtr: u32, cPtr: u32): void {
-//   let cOut: u64 = 0;
-//   for (let i: i32 = precision - 1; i >= 0; i--) {
-//     const a_i = load<u32>(aPtr + 4 * i) as u64;
-//     const b_i = load<u32>(bPtr + 4 * i) as u64 + cOut;
-//     let c_i: u64;
-//     if (a_i >= b_i) {
-//       c_i = a_i - b_i;
-//       cOut = 0;
-//     } else {
-//       c_i = (a_i | 0x1_0000_0000) - b_i;
-//       cOut = 1;
-//     }
-//     store<u32>(cPtr + 4 * i, c_i as u32);
-//   }
-// }
-
-// /**
-//  * Both operands must be non-overflown positive.
-//  */
-// export function cmpPositive(aPtr: u32, bPtr: u32): i32 {
-//   for (let i: u32 = 0; i < precision; i++) {
-//     const a_i = load<u32>(aPtr + 4 * i);
-//     const b_i = load<u32>(bPtr + 4 * i);
-//     if (a_i > b_i) {
-//       return 1;
-//     } else if (a_i < b_i) {
-//       return -1;
-//     }
-//   }
-//   return 0;
-// }
 export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32): void {
   if (precision === 2) {
     mul2(aPtr, bPtr, cPtr);
@@ -338,19 +257,43 @@ export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32): void {
   } else if (precision === 4) {
     mul4(aPtr, bPtr, cPtr);
   } else {
-    // mulGeneral(aPtr, bPtr, cPtr, tPtr);
+    mulGeneral(aPtr, bPtr, cPtr, tPtr);
   }
 }
 
 
 export function mul2(aPtr: u32, bPtr: u32, cPtr: u32): void {
-  const aIsNeg = takeNegative(aPtr);
-  const bIsNeg = aPtr === bPtr ? aIsNeg : takeNegative(bPtr);
+  let cOut: u64;
 
   let a0 = load<u32>(aPtr) as u64;
   let a1 = load<u32>(aPtr + 4) as u64;
-  let b0 = load<u32>(bPtr) as u64;
-  let b1 = load<u32>(bPtr + 4) as u64;
+  const aIsNeg = (a0 & 0x8000_0000) !== 0;
+  if (aIsNeg) {
+    cOut = 1;
+    a1 = (a1 ^ 0xffff_ffff) + cOut;
+    cOut = a1 >>> 32;
+    a1 = a1 & 0xffff_ffff;
+
+    a0 = (a0 ^ 0xffff_ffff) + cOut;
+    a0 = a0 & 0xffff_ffff;
+  }
+
+  const same = aPtr === bPtr;
+  let b0 = same ? a0 : load<u32>(bPtr) as u64;
+  let b1 = same ? a1 : load<u32>(bPtr + 4) as u64;
+  const bIsNeg = same ? aIsNeg : (b0 & 0x8000_0000) !== 0;
+  if (bIsNeg && !same) {
+    cOut = 1;
+    b1 = (b1 ^ 0xffff_ffff) + cOut;
+    cOut = b1 >>> 32;
+    b1 = b1 & 0xffff_ffff;
+
+    b0 = (b0 ^ 0xffff_ffff) + cOut;
+    b0 = b0 & 0xffff_ffff;
+  }
+
+  const cIsNeg = aIsNeg !== bIsNeg;
+  cOut = 1;
 
   let curr: u64 = 0;
   let next: u64 = 0;
@@ -372,7 +315,13 @@ export function mul2(aPtr: u32, bPtr: u32, cPtr: u32): void {
   curr += m;
   if (curr < m) next += 0x1_0000_0000;
 
-  store<u32>(cPtr + 4, curr as u32);
+  if (cIsNeg) {
+    m = ((curr & 0xffff_ffff) ^ 0xffff_ffff) + cOut;
+    cOut = m >>> 32;
+  } else {
+    m = curr;
+  }
+  store<u32>(cPtr + 4, m as u32);
   curr = curr >>> 32 | next;
 
   // c0
@@ -380,26 +329,59 @@ export function mul2(aPtr: u32, bPtr: u32, cPtr: u32): void {
   curr += m;
 
 
-  store<u32>(cPtr, curr as u32);
-
-  if (aIsNeg) negate(aPtr);
-  if (aPtr !== bPtr && bIsNeg) negate(bPtr);
-  if (aIsNeg !== bIsNeg) negate(cPtr);
+  if (cIsNeg) {
+    m = ((curr & 0xffff_ffff) ^ 0xffff_ffff) + cOut;
+  } else {
+    m = curr;
+  }
+  store<u32>(cPtr, m as u32);
 }
 
 export function mul3(aPtr: u32, bPtr: u32, cPtr: u32): void {
+  let cOut: u64;
+
   let a0 = load<u32>(aPtr) as u64;
   let a1 = load<u32>(aPtr + 4) as u64;
   let a2 = load<u32>(aPtr + 8) as u64;
+  const aIsNeg = a0 & 0x8000_0000;
+  if (aIsNeg) {
+    cOut = 1;
+
+    a2 = (a2 ^ 0xffff_ffff) + cOut;
+    cOut = a2 >>> 32;
+    a2 = a2 & 0xffff_ffff;
+
+    a1 = (a1 ^ 0xffff_ffff) + cOut;
+    cOut = a1 >>> 32;
+    a1 = a1 & 0xffff_ffff;
+
+    a0 = (a0 ^ 0xffff_ffff) + cOut;
+    a0 = a0 & 0xffff_ffff;
+  }
+
   const same = aPtr === bPtr;
   let b0 = same ? a0 : load<u32>(bPtr) as u64;
   let b1 = same ? a1 : load<u32>(bPtr + 4) as u64;
   let b2 = same ? a2 : load<u32>(bPtr + 8) as u64;
 
-  const aIsNeg = (a0 & 0x8000_0000) !== 0;
-  const bIsNeg = (b0 & 0x8000_0000) !== 0;
-  if (aIsNeg) a0 &= ~0x8000_0000;
-  if (bIsNeg) b0 &= ~0x8000_0000;
+  const bIsNeg = same ? aIsNeg : (b0 & 0x8000_0000);
+  if (bIsNeg && !same) {
+    cOut = 1;
+
+    b2 = (b2 ^ 0xffff_ffff) + cOut;
+    cOut = b2 >>> 32;
+    b2 = b2 & 0xffff_ffff;
+
+    b1 = (b1 ^ 0xffff_ffff) + cOut;
+    cOut = b1 >>> 32;
+    b1 = b1 & 0xffff_ffff;
+
+    b0 = (b0 ^ 0xffff_ffff) + cOut;
+    b0 = b0 & 0xffff_ffff;
+  }
+
+  const cIsNeg = aIsNeg !== bIsNeg;
+  cOut = 1;
 
   let curr: u64 = 0;
   let next: u64 = 0;
@@ -430,7 +412,13 @@ export function mul3(aPtr: u32, bPtr: u32, cPtr: u32): void {
   curr += m;
   if (curr < m) next += 0x1_0000_0000;
 
-  store<u32>(cPtr + 8, curr as u32);
+  if (cIsNeg) {
+    m = ((curr & 0xffff_ffff) ^ 0xffff_ffff) + cOut;
+    cOut = m >>> 32;
+  } else {
+    m = curr;
+  }
+  store<u32>(cPtr + 8, m as u32);
   curr = curr >>> 32 | next;
   next = 0;
 
@@ -443,7 +431,13 @@ export function mul3(aPtr: u32, bPtr: u32, cPtr: u32): void {
   curr += m;
   if (curr < m) next += 0x1_0000_0000;
 
-  store<u32>(cPtr + 4, curr as u32);
+  if (cIsNeg) {
+    m = ((curr & 0xffff_ffff) ^ 0xffff_ffff) + cOut;
+    cOut = m >>> 32;
+  } else {
+    m = curr;
+  }
+  store<u32>(cPtr + 4, m as u32);
   curr = curr >>> 32 | next;
 
   // c0
@@ -452,10 +446,16 @@ export function mul3(aPtr: u32, bPtr: u32, cPtr: u32): void {
 
   if (aIsNeg !== bIsNeg) curr |= 0x8000_0000;
 
-  store<u32>(cPtr, curr as u32);
+  if (cIsNeg) {
+    m = ((curr & 0xffff_ffff) ^ 0xffff_ffff) + cOut;
+  } else {
+    m = curr;
+  }
+  store<u32>(cPtr, m as u32);
 }
 
 export function mul4(aPtr: u32, bPtr: u32, cPtr: u32): void {
+  // TODO not 2's complement
   let a0 = load<u32>(aPtr) as u64;
   let a1 = load<u32>(aPtr + 4) as u64;
   let a2 = load<u32>(aPtr + 8) as u64;
@@ -550,66 +550,67 @@ export function mul4(aPtr: u32, bPtr: u32, cPtr: u32): void {
   store<u32>(cPtr, curr as u32);
 }
 
-// export function mulGeneral(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32): void {
-//   const aIsNeg = takeNegative(aPtr);
-//   const bIsNeg = aPtr === bPtr ? aIsNeg : takeNegative(bPtr);
-//
-//   const swapArgs = aPtr !== bPtr && countZeroItems(bPtr) > countZeroItems(aPtr);
-//   if (swapArgs) {
-//     const t: u32 = aPtr;
-//     aPtr = bPtr;
-//     bPtr = t;
-//   }
-//
-//   const maxIx = precision - 1;
-//
-//   memset(cPtr, 0, 4 * precision);
-//   memset(tPtr, 0, 4);
-//
-//   let cOut: u64 = 0;
-//   for (let i: i32 = maxIx; i >= 0; i--) {
-//     const a: u64 = load<u32>(aPtr + (i << 2));
-//     if (a === 0) {
-//       continue;
-//     }
-//
-//     // Max pIx === i + j === precision (product is +1 width)
-//     // <=>
-//     // max j === precision - i
-//     for (let j: i32 = precision - i; j >= 0; j--) {
-//       let pIx = i + j;
-//       const b: u64 = load<u32>(bPtr + (j << 2));
-//       if (b === 0 && cOut === 0) {
-//         continue;
-//       }
-//
-//       const pPtr = pIx < (precision as i32) ? cPtr : tPtr;
-//       pIx %= precision;
-//
-//       const _pPtr = pPtr + (pIx << 2);
-//       let p: u64 = load<u32>(_pPtr);
-//       p += a * b + cOut;
-//       store<u32>(_pPtr, p as u32);
-//       cOut = p >>> 32;
-//     }
-//
-//     for (let j: i32 = i - 1; j >= 0 && cOut !== 0; j--) {
-//       const _cPtr = cPtr + (j << 2);
-//       let p: u64 = load<u32>(_cPtr);
-//       p += cOut;
-//       store<u32>(_cPtr, p as u32);
-//       cOut = p >>> 32;
-//     }
-//
-//     if (cOut !== 0) {
-//       break;
-//     }
-//   }
-//
-//   if (aIsNeg) setNegative(swapArgs ? bPtr : aPtr);
-//   if (bIsNeg && aPtr !== bPtr) setNegative(swapArgs ? aPtr : bPtr);
-//   if (aIsNeg !== bIsNeg) setNegative(cPtr);
-// }
+export function mulGeneral(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32): void {
+  // TODO not 2's complement
+  const aIsNeg = takeNegative(aPtr);
+  const bIsNeg = aPtr === bPtr ? aIsNeg : takeNegative(bPtr);
+
+  // const swapArgs = aPtr !== bPtr && countZeroItems(bPtr) > countZeroItems(aPtr);
+  // if (swapArgs) {
+  //   const t: u32 = aPtr;
+  //   aPtr = bPtr;
+  //   bPtr = t;
+  // }
+
+  const maxIx = precision - 1;
+
+  // memset(cPtr, 0, 4 * precision);
+  // memset(tPtr, 0, 4);
+
+  let cOut: u64 = 0;
+  for (let i: i32 = maxIx; i >= 0; i--) {
+    const a: u64 = load<u32>(aPtr + (i << 2));
+    if (a === 0) {
+      continue;
+    }
+
+    // Max pIx === i + j === precision (product is +1 width)
+    // <=>
+    // max j === precision - i
+    for (let j: i32 = precision - i; j >= 0; j--) {
+      let pIx = i + j;
+      const b: u64 = load<u32>(bPtr + (j << 2));
+      if (b === 0 && cOut === 0) {
+        continue;
+      }
+
+      const pPtr = pIx < (precision as i32) ? cPtr : tPtr;
+      pIx %= precision;
+
+      const _pPtr = pPtr + (pIx << 2);
+      let p: u64 = load<u32>(_pPtr);
+      p += a * b + cOut;
+      store<u32>(_pPtr, p as u32);
+      cOut = p >>> 32;
+    }
+
+    for (let j: i32 = i - 1; j >= 0 && cOut !== 0; j--) {
+      const _cPtr = cPtr + (j << 2);
+      let p: u64 = load<u32>(_cPtr);
+      p += cOut;
+      store<u32>(_cPtr, p as u32);
+      cOut = p >>> 32;
+    }
+
+    if (cOut !== 0) {
+      break;
+    }
+  }
+
+  // if (aIsNeg) setNegative(swapArgs ? bPtr : aPtr);
+  // if (bIsNeg && aPtr !== bPtr) setNegative(swapArgs ? aPtr : bPtr);
+  // if (aIsNeg !== bIsNeg) setNegative(cPtr);
+}
 
 export function mulByUint(aPtr: u32, b: u32, cPtr: u32): void {
   const aIsNeg = takeNegative(aPtr);
@@ -647,11 +648,6 @@ export function fromDouble(a: f64, cPtr: u32): void {
   if (a < 0) negate(cPtr);
 }
 
-// function setNegative(ptr: u32): void {
-//   const a = load<u32>(ptr);
-//   store<u32>(ptr, a | 0x8000_0000);
-// }
-
 export function negate(ptr: u32): void {
   let cOut: u64 = 1;
   for (let i: i32 = precision - 1; i >= 0; i--) {
@@ -676,13 +672,3 @@ function setZero(ptr: u32): void {
     store<u32>(ptr + 4 * i, 0);
   }
 }
-
-// function countZeroItems(ptr: u32): u32 {
-//   let zeros: u32 = 0;
-//   for (let i: u32 = 0; i < precision; i++) {
-//     if (load<u32>(ptr + 4 * i) === 0) {
-//       zeros++;
-//     }
-//   }
-//   return zeros;
-// }
