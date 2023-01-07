@@ -4,5 +4,5 @@
  */
 export function isBigNum(w, unit) {
     const wNum = Number(w) / Number(unit);
-    return true;//wNum < 1e-12
+    return wNum < 1e-12
 }
