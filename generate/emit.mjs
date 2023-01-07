@@ -1,4 +1,4 @@
-let indent = 1;
+let indent = 0;
 
 export function emit(...strings) {
     for (const s of strings) {
