@@ -1,67 +1,56 @@
 import { emit } from './emit.mjs';
-
 const minPrecision = 2;
 const maxPrecision = 10;
 
-emit(
-    'export function mul(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32): void {',
-    'switch (precision) {'
-);
-rangeFromTo(minPrecision, maxPrecision).forEach(precision => {
-    emit(
-        `case ${precision}:`,
-        `mul${precision}(aPtr, bPtr, cPtr);`,
-        'break;'
-    )
-});
-emit(
-    'default:',
-    'mulGeneral(aPtr, bPtr, cPtr, tPtr);',
-    'break;'
-);
-emit('}', '}', '');
+const precision = 3;
 
-rangeFromTo(minPrecision, maxPrecision).forEach(precision => emitMul(precision));
+// declarations
+emit(
+    'function doRenderPointBigNum(pX: u32, pY: u32): u16 {',
+);
 
-function emitMul(precision) {
-    emit(
-        `function mul${precision}(aPtr: u32, bPtr: u32, cPtr: u32): void {`,
-        'let cOut: u64;',
-        '',
-    );
+['a', 'b'].forEach(op =>
+    rangeFromTo(0, precision - 1).forEach(i => emit(`let ${op}${i}: u64;`))
+);
+
+emit(
+    'let m: u64;',
+    'let cOut: u64;',
+    'let curr: u64 = 0;',
+    'let next: u64 = 0;',
+    'let isNeg: boolean;',
+    '',
+)
+
+emitMul('x', 'x', 'z', precision);
+
+emit('}');
+
+function emitMul(a, b, c, precision) {
+    emit(`// Mul ${c} = ${a} * ${b}`);
+    const same = a === b;
     // Load a
-    rangeFromTo(0, precision - 1).forEach(i => emit(
-        `let a${i} = ${getLoadStr('a', i)};`
-    ));
-    emit(
-        `const aIsNeg = a0 & 0x8000_0000;`,
-        `if (aIsNeg) {`,
-    );
+    rangeFromTo(0, precision - 1).forEach(i => emit(`a${i} = ${a}${i};`));
+    emit(`if ((a0 & 0x8000_0000) !== 0) {`);
     emitDecode2sComplement('a', precision);
-    emit(
-        '}',
-        '',
-        'const same = aPtr === bPtr;',
-    );
-    // Load b
-    rangeFromTo(0, precision - 1).forEach(i => emit(
-        `let b${i} = same ? a${i} : ${getLoadStr('b', i)};`
-    ));
-    emit(
-        'const bIsNeg = same ? aIsNeg : (b0 & 0x8000_0000);',
-        'if (!same && bIsNeg) {',
-    );
-    emitDecode2sComplement('b', precision);
     emit('}');
-    emit(
-        'const cIsNeg = aIsNeg !== bIsNeg;',
-        '',
-        'cOut = 1;',
-        'let curr: u64 = 0;',
-        'let next: u64 = 0;',
-        'let m: u64;',
-        '',
-    );
+    if (!same) {
+        // Load b
+        rangeFromTo(0, precision - 1).forEach(i => emit(`let b${i} = ${b}${i};`));
+        emit(`if ((b0 & 0x8000_0000) !== 0) {`);
+        emitDecode2sComplement('b', precision);
+        emit('}');
+        emit(`isNeg = (${a}0 & 0x8000_0000) !== (${b}0 & 0x8000_0000);`);
+
+        emit(
+            '',
+            'cOut = 1;',
+        );
+    }
+
+    emit('');
+
+    // Do mul
     rangeFromTo(precision, 0).forEach(cIx => {
         emit(`// c${cIx}`);
         const fromAIx = cIx === precision ? 1 : 0;
@@ -70,7 +59,7 @@ function emitMul(precision) {
             const bIx = cIx - aIx;
             const skipCheckOverflow = cIx === precision && aIx === 1 || cIx === 0;
             emit(
-                `m = a${aIx} * b${bIx};`,
+                `m = a${aIx} * ${same ? 'a' : 'b'}${bIx};`,
                 `curr += m;`,
                 skipCheckOverflow ? null : `if (curr < m) next += 0x1_0000_0000;`,
                 '',
@@ -78,16 +67,19 @@ function emitMul(precision) {
         });
 
         if (cIx !== precision) {
-            const offsetStr = cIx ? ` + ${4 * cIx}` : '';
-            emit(
-                'if (cIsNeg) {',
-                '  m = ((curr & 0xffff_ffff) ^ 0xffff_ffff) + cOut;',
-                '  cOut = m >>> 32;',
-                '} else {',
-                '  m = curr;',
-                '}',
-                `store<u32>(cPtr${offsetStr}, m as u32);`,
-            );
+            if (!same) {
+                emit(
+                    'if (isNeg) {',
+                    '  m = ((curr & 0xffff_ffff) ^ 0xffff_ffff) + cOut;',
+                    '  cOut = m >>> 32;',
+                    '} else {',
+                    '  m = curr;',
+                    '}',
+                    `${c}${cIx} = m & 0xffff_ffff;`,
+                );
+            } else {
+                emit(`${c}${cIx} = curr & 0xffff_ffff`);
+            }
         }
 
         if (cIx !== 0) {
@@ -98,12 +90,6 @@ function emitMul(precision) {
             emit('');
         }
     });
-    emit('}');
-}
-
-function getLoadStr(op, i) {
-    const offsetStr = i ? ` + ${4 * i}` : '';
-    return `load<u32>(${op}Ptr${offsetStr}) as u64`
 }
 
 function emitDecode2sComplement(op, precision) {
