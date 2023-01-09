@@ -9,7 +9,7 @@ emit(
     'function doRenderPointBigNum(pX: u32, pY: u32): u16 {',
 );
 
-['a', 'b'].forEach(op =>
+['a', 'b', 'x', 'y', 'x0_', 'y0_', 't0_', 't1_'].forEach(op =>
     rangeFromTo(0, precision - 1).forEach(i => emit(`let ${op}${i}: u64;`))
 );
 
@@ -22,10 +22,56 @@ emit(
     '',
 )
 
+/*
+  // x0 = xMin + wStepFraction * pX
+  mulByUintPositive(wStepFractionPtr, pX, t0Ptr);
+  add(xMinPtr, t0Ptr, x0Ptr);
+
+  // canvas has (0, 0) at the left-top, so flip Y
+  // y0 = yMax - hStepFraction * pY
+  mulByUintPositive(hStepFractionPtr, pY, t0Ptr);
+  negate(t0Ptr);
+  add(yMaxPtr, t0Ptr, y0Ptr);
+
+ */
 emitMulByUintPositive('wStepFraction', 'pX', 'x0_', precision);
-emitMul('x', 'x', 'z', precision);
-emitAdd('x0_', 'tmp0_', 'x0_', precision);
-emitTwoTimes('t1_', 't1_', precision);
+emitAdd('xMin', 'x0_', 'x0_', precision);
+
+emitMulByUintPositive('hStepFraction', 'pY', 'y0_', precision);
+emitNegate('y0_', precision);
+emitAdd('yMax', 'y0_', 'y0_', precision);
+
+['x', 'y'].forEach(op => rangeFromTo(precision - 1, 0).forEach(
+    i => emit(`${op}${i} = 0;`)
+));
+emit('');
+
+emit('let i: u32 = 0;');
+emit('for ( ; i < maxIterations; i++) {');
+
+// xSqr -> t0, ySqr -> t1
+emitMul('x', 'x', 't0_', precision);
+emitMul('y', 'y', 't1_', precision);
+emitAdd('t0_', 't1_', 'a', precision);
+emit('if (a0 >= 4) {');
+emit('break;');
+emit('}', '');
+
+// t1 <- xNext = (xSqr - ySqr) + x0
+emitNegate('t1_', precision);
+emitAdd('t0_', 't1_', 't1_', precision);
+emitAdd('t1_', 'x0_', 't1_', precision);
+
+// y = x * y * 2 + y0
+emitMul('x', 'y', 't0_', precision);
+emitTwoTimes('t0_', 't0_', precision);
+emitAdd('t0_', 'y0_', 'y', precision)
+
+rangeFromTo(0, precision - 1).forEach(i => emit(`x${i} = t1_${i};`));
+
+emit('}', '');
+
+emit('return i;');
 
 emit('}');
 
@@ -43,7 +89,7 @@ function emitMul(a, b, c, precision) {
     emit('}');
     if (!same) {
         // Load b
-        rangeFromTo(0, precision - 1).forEach(i => emit(`let b${i} = ${b}${i};`));
+        rangeFromTo(0, precision - 1).forEach(i => emit(`b${i} = ${b}${i};`));
         emit(`if ((b0 & 0x8000_0000) !== 0) {`);
         emitNegate('b', precision);
         emit('}');
@@ -59,7 +105,7 @@ function emitMul(a, b, c, precision) {
 
     // Do mul
     rangeFromTo(precision, 0).forEach(cIx => {
-        emit(`// c${cIx}`);
+        emit(`// ${c}${cIx}`);
         const fromAIx = cIx === precision ? 1 : 0;
         const toAIx = Math.min(precision - 1, cIx);
         rangeFromTo(fromAIx, toAIx).map(aIx => {
@@ -101,7 +147,10 @@ function emitMul(a, b, c, precision) {
 }
 
 function emitNegate(a, precision) {
-    emit('cOut = 1;');
+    emit(
+        `// negate ${a}`,
+        'cOut = 1;',
+    );
     rangeFromTo(precision - 1, 0).forEach(i => {
         emit(`${a}${i} = (${a}${i} ^ 0xffff_ffff) + cOut;`);
         if (i) {
@@ -109,6 +158,7 @@ function emitNegate(a, precision) {
         }
         emit(`${a}${i} &= 0xffff_ffff;`);
     });
+    emit('');
 }
 
 function emitMulByUintPositive(a, b, c, precision) {
@@ -118,9 +168,9 @@ function emitMulByUintPositive(a, b, c, precision) {
     );
     rangeFromTo(precision - 1, 0).forEach(i => {
         emit(
-            `${c}${i} = ${a}${i} * (${b} as u64) + cOut;`,
-            i !== 0 ? `cOut = ${c}${i} >>> 32` : null,
-            `${c}${i} &= 0xffff_ffff`,
+            `${c}${i} = ${a}${i} * ${b} + cOut;`,
+            i !== 0 ? `cOut = ${c}${i} >>> 32;` : null,
+            `${c}${i} &= 0xffff_ffff;`,
         );
     });
     emit('');

@@ -7,7 +7,7 @@ export function emit(...strings) {
         console.info(indentSpaces + s);
         indent += countChars(s, '{');
         if (s.includes('case ') || s === 'default:') indent++;
-        if (s === 'break;') indent--;
+        // if (s === 'break;') indent--;
     });
 }
 
