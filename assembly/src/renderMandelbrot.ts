@@ -181,12 +181,12 @@ function doRenderPointDouble(pX: u32, pY: u32): u16 {
 
 function doRenderPointBigNum(pX: u32, pY: u32): u16 {
   // x0 = xMin + wStepFraction * pX
-  mulByUint(wStepFractionPtr, pX, t0Ptr);
+  mulByUintPositive(wStepFractionPtr, pX, t0Ptr);
   add(xMinPtr, t0Ptr, x0Ptr);
 
   // canvas has (0, 0) at the left-top, so flip Y
   // y0 = yMax - hStepFraction * pY
-  mulByUint(hStepFractionPtr, pY, t0Ptr);
+  mulByUintPositive(hStepFractionPtr, pY, t0Ptr);
   negate(t0Ptr);
   add(yMaxPtr, t0Ptr, y0Ptr);
 
@@ -2592,19 +2592,16 @@ export function mulGeneral(aPtr: u32, bPtr: u32, cPtr: u32, tPtr: u32): void {
   // if (aIsNeg !== bIsNeg) setNegative(cPtr);
 }
 
-export function mulByUint(aPtr: u32, b: u32, cPtr: u32): void {
-  const aIsNeg = takeNegative(aPtr);
+/**
+ * Both ops positive
+ */
+export function mulByUintPositive(aPtr: u32, b: u32, cPtr: u32): void {
   let cOut: u64 = 0;
   for (let i: i32 = precision - 1; i >= 0; i--) {
     const a = load<u32>(aPtr + 4 * i) as u64;
     const c: u64 = a * b + cOut;
     store<u32>(cPtr + 4 * i, c as u32);
     cOut = c >>> 32
-  }
-
-  if (aIsNeg) {
-    negate(aPtr);
-    negate(cPtr);
   }
 }
 
@@ -2639,8 +2636,7 @@ export function negate(ptr: u32): void {
 }
 
 function takeNegative(ptr: u32): boolean {
-  const a = load<u32>(ptr);
-  if ((a & 0x8000_0000) !== 0) {
+  if ((load<u32>(ptr) & 0x8000_0000) !== 0) {
     negate(ptr);
     return true;
   }

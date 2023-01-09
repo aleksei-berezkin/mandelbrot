@@ -22,23 +22,30 @@ emit(
     '',
 )
 
+emitMulByUintPositive('wStepFraction', 'pX', 'x0_', precision);
 emitMul('x', 'x', 'z', precision);
+emitAdd('x0_', 'tmp0_', 'x0_', precision);
+emitTwoTimes('t1_', 't1_', precision);
 
 emit('}');
 
 function emitMul(a, b, c, precision) {
+    if (a === c || b === c) {
+        throw new Error(`${a}, ${b}, ${c}`);
+    }
+
     emit(`// Mul ${c} = ${a} * ${b}`);
     const same = a === b;
     // Load a
     rangeFromTo(0, precision - 1).forEach(i => emit(`a${i} = ${a}${i};`));
     emit(`if ((a0 & 0x8000_0000) !== 0) {`);
-    emitDecode2sComplement('a', precision);
+    emitNegate('a', precision);
     emit('}');
     if (!same) {
         // Load b
         rangeFromTo(0, precision - 1).forEach(i => emit(`let b${i} = ${b}${i};`));
         emit(`if ((b0 & 0x8000_0000) !== 0) {`);
-        emitDecode2sComplement('b', precision);
+        emitNegate('b', precision);
         emit('}');
         emit(`isNeg = (${a}0 & 0x8000_0000) !== (${b}0 & 0x8000_0000);`);
 
@@ -90,17 +97,60 @@ function emitMul(a, b, c, precision) {
             emit('');
         }
     });
+    emit('');
 }
 
-function emitDecode2sComplement(op, precision) {
+function emitNegate(a, precision) {
     emit('cOut = 1;');
     rangeFromTo(precision - 1, 0).forEach(i => {
-        emit(`${op}${i} = (${op}${i} ^ 0xffff_ffff) + cOut;`);
+        emit(`${a}${i} = (${a}${i} ^ 0xffff_ffff) + cOut;`);
         if (i) {
-            emit(`cOut = ${op}${i} >>> 32;`);
+            emit(`cOut = ${a}${i} >>> 32;`);
         }
-        emit(`${op}${i} &= 0xffff_ffff;`);
+        emit(`${a}${i} &= 0xffff_ffff;`);
     });
+}
+
+function emitMulByUintPositive(a, b, c, precision) {
+    emit(
+        `// Mul positive by uint ${c} = ${a} * ${b}`,
+        'cOut = 0;',
+    );
+    rangeFromTo(precision - 1, 0).forEach(i => {
+        emit(
+            `${c}${i} = ${a}${i} * (${b} as u64) + cOut;`,
+            i !== 0 ? `cOut = ${c}${i} >>> 32` : null,
+            `${c}${i} &= 0xffff_ffff`,
+        );
+    });
+    emit('');
+}
+
+function emitAdd(a, b, c, precision) {
+    emit(
+        `// add ${c} = ${a} + ${b}`,
+        'cOut = 0;',
+    );
+    rangeFromTo(precision - 1, 0).forEach(i => emit(
+        `${c}${i} = ${a}${i} + ${b}${i} + cOut;`,
+        i !== 0 ? `cOut = ${c}${i} >>> 32;` : null,
+        `${c}${i} &= 0xffff_ffff;`,
+    ));
+    emit('');
+}
+
+
+function emitTwoTimes(a, c, precision) {
+    emit(
+        `// 2 times: ${c} = 2 * ${a}`,
+        'cOut = 0;',
+    );
+    rangeFromTo(precision - 1, 0).forEach(i => emit(
+        `${c}${i} = (${a}${i} << 1) | cOut;`,
+        i !== 0 ? `cOut = ${c}${i} >>> 32;` : null,
+        `${c}${i} &= 0xffff_ffff;`,
+    ));
+    emit('');
 }
 
 /**
