@@ -45,6 +45,17 @@ let yPtr: u32;
 let xNextPtr: u32;
 let yNextPtr: u32;
 
+let xMin0: u64;
+let xMin1: u64;
+let yMax0: u64;
+let yMax1: u64;
+
+let wStepFraction0: u64;
+let wStepFraction1: u64;
+let hStepFraction0: u64;
+let hStepFraction1: u64;
+
+
 
 export function renderMandelbrot(): void {
   if (!isBigNum) {
@@ -87,6 +98,16 @@ export function renderMandelbrot(): void {
 
     fromDouble(1.0 / (canvasH as f64), t0Ptr);
     mul(hPtr, t0Ptr, hStepFractionPtr, t2Ptr);
+
+    xMin0 = load<u32>(xMinPtr) as u64;
+    xMin1 = load<u32>(xMinPtr + 4) as u64;
+    yMax0 = load<u32>(yMaxPtr) as u64;
+    yMax1 = load<u32>(yMaxPtr + 4) as u64;
+
+    wStepFraction0 = load<u32>(wStepFractionPtr) as u64;
+    wStepFraction1 = load<u32>(wStepFractionPtr + 4) as u64;
+    hStepFraction0 = load<u32>(hStepFractionPtr) as u64;
+    hStepFraction1 = load<u32>(hStepFractionPtr + 4) as u64;
   }
 
   renderRect(0, 0, canvasW, canvasH);
@@ -176,57 +197,283 @@ function doRenderPointDouble(pX: u32, pY: u32): u16 {
     y = yNext
   }
 
-  return i;
+  return i as u16;
 }
 
 function doRenderPointBigNum(pX: u32, pY: u32): u16 {
-  // x0 = xMin + wStepFraction * pX
-  mulByUintPositive(wStepFractionPtr, pX, t0Ptr);
-  add(xMinPtr, t0Ptr, x0Ptr);
+  let a0: u64;
+  let a1: u64;
+  let b0: u64;
+  let b1: u64;
+  let x0: u64;
+  let x1: u64;
+  let y0: u64;
+  let y1: u64;
+  let x0_0: u64;
+  let x0_1: u64;
+  let y0_0: u64;
+  let y0_1: u64;
+  let t0_0: u64;
+  let t0_1: u64;
+  let t1_0: u64;
+  let t1_1: u64;
+  let m: u64;
+  let cOut: u64;
+  let curr: u64 = 0;
+  let next: u64 = 0;
+  let isNeg: boolean;
 
-  // canvas has (0, 0) at the left-top, so flip Y
-  // y0 = yMax - hStepFraction * pY
-  mulByUintPositive(hStepFractionPtr, pY, t0Ptr);
-  negate(t0Ptr);
-  add(yMaxPtr, t0Ptr, y0Ptr);
+  // Mul positive by uint x0_ = wStepFraction * pX
+  cOut = 0;
+  x0_1 = wStepFraction1 * pX + cOut;
+  cOut = x0_1 >>> 32;
+  x0_1 &= 0xffff_ffff;
+  x0_0 = wStepFraction0 * pX + cOut;
+  x0_0 &= 0xffff_ffff;
 
-  // x0 = 0; y0 = 0
-  setZero(xPtr);
-  setZero(yPtr);
+  // add x0_ = xMin + x0_
+  cOut = 0;
+  x0_1 = xMin1 + x0_1 + cOut;
+  cOut = x0_1 >>> 32;
+  x0_1 &= 0xffff_ffff;
+  x0_0 = xMin0 + x0_0 + cOut;
+  x0_0 &= 0xffff_ffff;
 
-  let i: u16 = 0;
+  // Mul positive by uint y0_ = hStepFraction * pY
+  cOut = 0;
+  y0_1 = hStepFraction1 * pY + cOut;
+  cOut = y0_1 >>> 32;
+  y0_1 &= 0xffff_ffff;
+  y0_0 = hStepFraction0 * pY + cOut;
+  y0_0 &= 0xffff_ffff;
+
+  // negate y0_
+  cOut = 1;
+  y0_1 = (y0_1 ^ 0xffff_ffff) + cOut;
+  cOut = y0_1 >>> 32;
+  y0_1 &= 0xffff_ffff;
+  y0_0 = (y0_0 ^ 0xffff_ffff) + cOut;
+  y0_0 &= 0xffff_ffff;
+
+  // add y0_ = yMax + y0_
+  cOut = 0;
+  y0_1 = yMax1 + y0_1 + cOut;
+  cOut = y0_1 >>> 32;
+  y0_1 &= 0xffff_ffff;
+  y0_0 = yMax0 + y0_0 + cOut;
+  y0_0 &= 0xffff_ffff;
+
+  x1 = 0;
+  x0 = 0;
+  y1 = 0;
+  y0 = 0;
+
+  let i: u32 = 0;
   for ( ; i < maxIterations; i++) {
-    // t0 = xSqr = x * x;
-    // t1 = ySqr = y * y;
-    mul(xPtr, xPtr, t0Ptr, t2Ptr);
-    mul(yPtr, yPtr, t1Ptr, t2Ptr);
-    // t2 = xSqr(t0) + ySqr(t1)
-    const sumIntPart: u32 = add(t0Ptr, t1Ptr, 0);
-    if (sumIntPart >= 4) {
+    // Mul t0_ = x * x
+    a0 = x0;
+    a1 = x1;
+    if ((a0 & 0x8000_0000) !== 0) {
+      // negate a
+      cOut = 1;
+      a1 = (a1 ^ 0xffff_ffff) + cOut;
+      cOut = a1 >>> 32;
+      a1 &= 0xffff_ffff;
+      a0 = (a0 ^ 0xffff_ffff) + cOut;
+      a0 &= 0xffff_ffff;
+
+    }
+
+    // t0_2
+    m = a1 * a1;
+    curr += m;
+
+    curr = curr >>> 32 | next;
+    next = 0;
+
+    // t0_1
+    m = a0 * a1;
+    curr += m;
+    if (curr < m) next += 0x1_0000_0000;
+
+    m = a1 * a0;
+    curr += m;
+    if (curr < m) next += 0x1_0000_0000;
+
+    t0_1 = curr & 0xffff_ffff
+    curr = curr >>> 32 | next;
+    next = 0;
+
+    // t0_0
+    m = a0 * a0;
+    curr += m;
+
+    t0_0 = curr & 0xffff_ffff
+
+    // Mul t1_ = y * y
+    a0 = y0;
+    a1 = y1;
+    if ((a0 & 0x8000_0000) !== 0) {
+      // negate a
+      cOut = 1;
+      a1 = (a1 ^ 0xffff_ffff) + cOut;
+      cOut = a1 >>> 32;
+      a1 &= 0xffff_ffff;
+      a0 = (a0 ^ 0xffff_ffff) + cOut;
+      a0 &= 0xffff_ffff;
+
+    }
+
+    // t1_2
+    m = a1 * a1;
+    curr += m;
+
+    curr = curr >>> 32 | next;
+    next = 0;
+
+    // t1_1
+    m = a0 * a1;
+    curr += m;
+    if (curr < m) next += 0x1_0000_0000;
+
+    m = a1 * a0;
+    curr += m;
+    if (curr < m) next += 0x1_0000_0000;
+
+    t1_1 = curr & 0xffff_ffff
+    curr = curr >>> 32 | next;
+    next = 0;
+
+    // t1_0
+    m = a0 * a0;
+    curr += m;
+
+    t1_0 = curr & 0xffff_ffff
+
+    // add a = t0_ + t1_
+    cOut = 0;
+    a1 = t0_1 + t1_1 + cOut;
+    cOut = a1 >>> 32;
+    a1 &= 0xffff_ffff;
+    a0 = t0_0 + t1_0 + cOut;
+    a0 &= 0xffff_ffff;
+
+    if (a0 >= 4) {
       break;
     }
 
-    // xNext = (xSqr(t0) - ySqr(t1))(t2) + x0;
-    negate(t1Ptr);
-    add(t0Ptr, t1Ptr, t2Ptr);
-    add(t2Ptr, x0Ptr, xNextPtr);
+    // negate t1_
+    cOut = 1;
+    t1_1 = (t1_1 ^ 0xffff_ffff) + cOut;
+    cOut = t1_1 >>> 32;
+    t1_1 &= 0xffff_ffff;
+    t1_0 = (t1_0 ^ 0xffff_ffff) + cOut;
+    t1_0 &= 0xffff_ffff;
 
-    // yNext = (2.0 * (x * y)(t0))(t1) + y0;
-    mul(xPtr, yPtr, t0Ptr, t2Ptr);
-    twoTimes(t0Ptr, t1Ptr);
-    add(t1Ptr, y0Ptr, yNextPtr);
+    // add t1_ = t0_ + t1_
+    cOut = 0;
+    t1_1 = t0_1 + t1_1 + cOut;
+    cOut = t1_1 >>> 32;
+    t1_1 &= 0xffff_ffff;
+    t1_0 = t0_0 + t1_0 + cOut;
+    t1_0 &= 0xffff_ffff;
 
-    // Swap x and xNext
-    let t: u32 = xPtr;
-    xPtr = xNextPtr;
-    xNextPtr = t;
+    // add t1_ = t1_ + x0_
+    cOut = 0;
+    t1_1 = t1_1 + x0_1 + cOut;
+    cOut = t1_1 >>> 32;
+    t1_1 &= 0xffff_ffff;
+    t1_0 = t1_0 + x0_0 + cOut;
+    t1_0 &= 0xffff_ffff;
 
-    t = yPtr;
-    yPtr = yNextPtr;
-    yNextPtr = t;
+    // Mul t0_ = x * y
+    a0 = x0;
+    a1 = x1;
+    if ((a0 & 0x8000_0000) !== 0) {
+      // negate a
+      cOut = 1;
+      a1 = (a1 ^ 0xffff_ffff) + cOut;
+      cOut = a1 >>> 32;
+      a1 &= 0xffff_ffff;
+      a0 = (a0 ^ 0xffff_ffff) + cOut;
+      a0 &= 0xffff_ffff;
+
+    }
+    b0 = y0;
+    b1 = y1;
+    if ((b0 & 0x8000_0000) !== 0) {
+      // negate b
+      cOut = 1;
+      b1 = (b1 ^ 0xffff_ffff) + cOut;
+      cOut = b1 >>> 32;
+      b1 &= 0xffff_ffff;
+      b0 = (b0 ^ 0xffff_ffff) + cOut;
+      b0 &= 0xffff_ffff;
+
+    }
+    isNeg = (x0 & 0x8000_0000) !== (y0 & 0x8000_0000);
+
+    cOut = 1;
+
+    // t0_2
+    m = a1 * b1;
+    curr += m;
+
+    curr = curr >>> 32 | next;
+    next = 0;
+
+    // t0_1
+    m = a0 * b1;
+    curr += m;
+    if (curr < m) next += 0x1_0000_0000;
+
+    m = a1 * b0;
+    curr += m;
+    if (curr < m) next += 0x1_0000_0000;
+
+    if (isNeg) {
+      m = ((curr & 0xffff_ffff) ^ 0xffff_ffff) + cOut;
+      cOut = m >>> 32;
+    } else {
+      m = curr;
+    }
+    t0_1 = m & 0xffff_ffff;
+    curr = curr >>> 32 | next;
+    next = 0;
+
+    // t0_0
+    m = a0 * b0;
+    curr += m;
+
+    if (isNeg) {
+      m = ((curr & 0xffff_ffff) ^ 0xffff_ffff) + cOut;
+      cOut = m >>> 32;
+    } else {
+      m = curr;
+    }
+    t0_0 = m & 0xffff_ffff;
+
+    // 2 times: t0_ = 2 * t0_
+    cOut = 0;
+    t0_1 = (t0_1 << 1) | cOut;
+    cOut = t0_1 >>> 32;
+    t0_1 &= 0xffff_ffff;
+    t0_0 = (t0_0 << 1) | cOut;
+    t0_0 &= 0xffff_ffff;
+
+    // add y = t0_ + y0_
+    cOut = 0;
+    y1 = t0_1 + y0_1 + cOut;
+    cOut = y1 >>> 32;
+    y1 &= 0xffff_ffff;
+    y0 = t0_0 + y0_0 + cOut;
+    y0 &= 0xffff_ffff;
+
+    x0 = t1_0;
+    x1 = t1_1;
   }
 
-  return i;
+  return i as u16;
 }
 
 /*
