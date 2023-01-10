@@ -201,10 +201,6 @@ function doRenderPointDouble(pX: u32, pY: u32): u16 {
 }
 
 function doRenderPointBigNum(pX: u32, pY: u32): u16 {
-  let a0: u64;
-  let a1: u64;
-  let b0: u64;
-  let b1: u64;
   let x0: u64;
   let x1: u64;
   let y0: u64;
@@ -221,6 +217,8 @@ function doRenderPointBigNum(pX: u32, pY: u32): u16 {
   let t0_1: u64;
   let t1_0: u64;
   let t1_1: u64;
+  let t2_0: u64;
+  let t2_1: u64;
   let m: u64;
   let cOut: u64;
   let curr: u64 = 0;
@@ -279,22 +277,19 @@ function doRenderPointBigNum(pX: u32, pY: u32): u16 {
   let i: u32 = 0;
   for ( ; i < maxIterations; i++) {
     // Mul pos t0_ = xPos * xPos
-    a0 = xPos0;
-    a1 = xPos1;
-
     // t0_2
-    m = a1 * a1;
+    m = xPos1 * xPos1;
     curr += m;
 
     curr = curr >>> 32 | next;
     next = 0;
 
     // t0_1
-    m = a0 * a1;
+    m = xPos0 * xPos1;
     curr += m;
     if (curr < m) next += 0x1_0000_0000;
 
-    m = a1 * a0;
+    m = xPos1 * xPos0;
     curr += m;
     if (curr < m) next += 0x1_0000_0000;
 
@@ -303,28 +298,25 @@ function doRenderPointBigNum(pX: u32, pY: u32): u16 {
     next = 0;
 
     // t0_0
-    m = a0 * a0;
+    m = xPos0 * xPos0;
     curr += m;
 
     t0_0 = curr & 0xffff_ffff
 
     // Mul pos t1_ = yPos * yPos
-    a0 = yPos0;
-    a1 = yPos1;
-
     // t1_2
-    m = a1 * a1;
+    m = yPos1 * yPos1;
     curr += m;
 
     curr = curr >>> 32 | next;
     next = 0;
 
     // t1_1
-    m = a0 * a1;
+    m = yPos0 * yPos1;
     curr += m;
     if (curr < m) next += 0x1_0000_0000;
 
-    m = a1 * a0;
+    m = yPos1 * yPos0;
     curr += m;
     if (curr < m) next += 0x1_0000_0000;
 
@@ -333,20 +325,20 @@ function doRenderPointBigNum(pX: u32, pY: u32): u16 {
     next = 0;
 
     // t1_0
-    m = a0 * a0;
+    m = yPos0 * yPos0;
     curr += m;
 
     t1_0 = curr & 0xffff_ffff
 
-    // add a = t0_ + t1_
+    // add t2_ = t0_ + t1_
     cOut = 0;
-    a1 = t0_1 + t1_1 + cOut;
-    cOut = a1 >>> 32;
-    a1 &= 0xffff_ffff;
-    a0 = t0_0 + t1_0 + cOut;
-    a0 &= 0xffff_ffff;
+    t2_1 = t0_1 + t1_1 + cOut;
+    cOut = t2_1 >>> 32;
+    t2_1 &= 0xffff_ffff;
+    t2_0 = t0_0 + t1_0 + cOut;
+    t2_0 &= 0xffff_ffff;
 
-    if (a0 >= 4) {
+    if (t2_0 >= 4) {
       break;
     }
 
@@ -375,24 +367,19 @@ function doRenderPointBigNum(pX: u32, pY: u32): u16 {
     t1_0 &= 0xffff_ffff;
 
     // Mul pos t0_ = xPos * yPos
-    a0 = xPos0;
-    a1 = xPos1;
-    b0 = yPos0;
-    b1 = yPos1;
-
     // t0_2
-    m = a1 * b1;
+    m = xPos1 * yPos1;
     curr += m;
 
     curr = curr >>> 32 | next;
     next = 0;
 
     // t0_1
-    m = a0 * b1;
+    m = xPos0 * yPos1;
     curr += m;
     if (curr < m) next += 0x1_0000_0000;
 
-    m = a1 * b0;
+    m = xPos1 * yPos0;
     curr += m;
     if (curr < m) next += 0x1_0000_0000;
 
@@ -401,7 +388,7 @@ function doRenderPointBigNum(pX: u32, pY: u32): u16 {
     next = 0;
 
     // t0_0
-    m = a0 * b0;
+    m = xPos0 * yPos0;
     curr += m;
 
     t0_0 = curr & 0xffff_ffff

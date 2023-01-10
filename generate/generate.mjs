@@ -27,7 +27,7 @@ function emitDoRenderPointBigNum(precision) {
         'function doRenderPointBigNum(pX: u32, pY: u32): u16 {',
     );
 
-    ['a', 'b', 'x', 'y', 'xPos', 'yPos', 'x0_', 'y0_', 't0_', 't1_'].forEach(op =>
+    ['x', 'y', 'xPos', 'yPos', 'x0_', 'y0_', 't0_', 't1_', 't2_'].forEach(op =>
         rangeFromTo(0, precision - 1).forEach(i => emit(`let ${op}${i}: u64;`))
     );
 
@@ -58,8 +58,8 @@ function emitDoRenderPointBigNum(precision) {
     // xSqr -> t0, ySqr -> t1
     emitMulPos('xPos', 'xPos', 't0_', precision);
     emitMulPos('yPos', 'yPos', 't1_', precision);
-    emitAdd('t0_', 't1_', 'a', precision);
-    emit('if (a0 >= 4) {');
+    emitAdd('t0_', 't1_', 't2_', precision);
+    emit('if (t2_0 >= 4) {');
     emit('break;');
     emit('}', '');
 
@@ -107,16 +107,6 @@ function emitMulPos(a, b, c, precision) {
     }
 
     emit(`// Mul pos ${c} = ${a} * ${b}`);
-    const same = a === b;
-    // Load a
-    rangeFromTo(0, precision - 1).forEach(i => emit(`a${i} = ${a}${i};`));
-    if (!same) {
-        // Load b
-        rangeFromTo(0, precision - 1).forEach(i => emit(`b${i} = ${b}${i};`));
-    }
-
-    emit('');
-
     // Do mul
     rangeFromTo(precision, 0).forEach(cIx => {
         emit(`// ${c}${cIx}`);
@@ -126,7 +116,7 @@ function emitMulPos(a, b, c, precision) {
             const bIx = cIx - aIx;
             const skipCheckOverflow = cIx === precision && aIx === 1 || cIx === 0;
             emit(
-                `m = a${aIx} * ${same ? 'a' : 'b'}${bIx};`,
+                `m = ${a}${aIx} * ${b}${bIx};`,
                 `curr += m;`,
                 skipCheckOverflow ? null : `if (curr < m) next += 0x1_0000_0000;`,
                 '',
