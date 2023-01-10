@@ -209,6 +209,10 @@ function doRenderPointBigNum(pX: u32, pY: u32): u16 {
   let x1: u64;
   let y0: u64;
   let y1: u64;
+  let xPos0: u64;
+  let xPos1: u64;
+  let yPos0: u64;
+  let yPos1: u64;
   let x0_0: u64;
   let x0_1: u64;
   let y0_0: u64;
@@ -267,22 +271,16 @@ function doRenderPointBigNum(pX: u32, pY: u32): u16 {
   x0 = 0;
   y1 = 0;
   y0 = 0;
+  xPos1 = 0;
+  xPos0 = 0;
+  yPos1 = 0;
+  yPos0 = 0;
 
   let i: u32 = 0;
   for ( ; i < maxIterations; i++) {
-    // Mul t0_ = x * x
-    a0 = x0;
-    a1 = x1;
-    if ((a0 & 0x8000_0000) !== 0) {
-      // negate a
-      cOut = 1;
-      a1 = (a1 ^ 0xffff_ffff) + cOut;
-      cOut = a1 >>> 32;
-      a1 &= 0xffff_ffff;
-      a0 = (a0 ^ 0xffff_ffff) + cOut;
-      a0 &= 0xffff_ffff;
-
-    }
+    // Mul pos t0_ = xPos * xPos
+    a0 = xPos0;
+    a1 = xPos1;
 
     // t0_2
     m = a1 * a1;
@@ -310,19 +308,9 @@ function doRenderPointBigNum(pX: u32, pY: u32): u16 {
 
     t0_0 = curr & 0xffff_ffff
 
-    // Mul t1_ = y * y
-    a0 = y0;
-    a1 = y1;
-    if ((a0 & 0x8000_0000) !== 0) {
-      // negate a
-      cOut = 1;
-      a1 = (a1 ^ 0xffff_ffff) + cOut;
-      cOut = a1 >>> 32;
-      a1 &= 0xffff_ffff;
-      a0 = (a0 ^ 0xffff_ffff) + cOut;
-      a0 &= 0xffff_ffff;
-
-    }
+    // Mul pos t1_ = yPos * yPos
+    a0 = yPos0;
+    a1 = yPos1;
 
     // t1_2
     m = a1 * a1;
@@ -386,34 +374,11 @@ function doRenderPointBigNum(pX: u32, pY: u32): u16 {
     t1_0 = t1_0 + x0_0 + cOut;
     t1_0 &= 0xffff_ffff;
 
-    // Mul t0_ = x * y
-    a0 = x0;
-    a1 = x1;
-    if ((a0 & 0x8000_0000) !== 0) {
-      // negate a
-      cOut = 1;
-      a1 = (a1 ^ 0xffff_ffff) + cOut;
-      cOut = a1 >>> 32;
-      a1 &= 0xffff_ffff;
-      a0 = (a0 ^ 0xffff_ffff) + cOut;
-      a0 &= 0xffff_ffff;
-
-    }
-    b0 = y0;
-    b1 = y1;
-    if ((b0 & 0x8000_0000) !== 0) {
-      // negate b
-      cOut = 1;
-      b1 = (b1 ^ 0xffff_ffff) + cOut;
-      cOut = b1 >>> 32;
-      b1 &= 0xffff_ffff;
-      b0 = (b0 ^ 0xffff_ffff) + cOut;
-      b0 &= 0xffff_ffff;
-
-    }
-    isNeg = (x0 & 0x8000_0000) !== (y0 & 0x8000_0000);
-
-    cOut = 1;
+    // Mul pos t0_ = xPos * yPos
+    a0 = xPos0;
+    a1 = xPos1;
+    b0 = yPos0;
+    b1 = yPos1;
 
     // t0_2
     m = a1 * b1;
@@ -431,13 +396,7 @@ function doRenderPointBigNum(pX: u32, pY: u32): u16 {
     curr += m;
     if (curr < m) next += 0x1_0000_0000;
 
-    if (isNeg) {
-      m = ((curr & 0xffff_ffff) ^ 0xffff_ffff) + cOut;
-      cOut = m >>> 32;
-    } else {
-      m = curr;
-    }
-    t0_1 = m & 0xffff_ffff;
+    t0_1 = curr & 0xffff_ffff
     curr = curr >>> 32 | next;
     next = 0;
 
@@ -445,14 +404,18 @@ function doRenderPointBigNum(pX: u32, pY: u32): u16 {
     m = a0 * b0;
     curr += m;
 
-    if (isNeg) {
-      m = ((curr & 0xffff_ffff) ^ 0xffff_ffff) + cOut;
-      cOut = m >>> 32;
-    } else {
-      m = curr;
-    }
-    t0_0 = m & 0xffff_ffff;
+    t0_0 = curr & 0xffff_ffff
 
+    if ((x0 & 0x8000_0000) !== (y0 & 0x8000_0000)) {
+      // negate t0_
+      cOut = 1;
+      t0_1 = (t0_1 ^ 0xffff_ffff) + cOut;
+      cOut = t0_1 >>> 32;
+      t0_1 &= 0xffff_ffff;
+      t0_0 = (t0_0 ^ 0xffff_ffff) + cOut;
+      t0_0 &= 0xffff_ffff;
+
+    }
     // 2 times: t0_ = 2 * t0_
     cOut = 0;
     t0_1 = (t0_1 << 1) | cOut;
@@ -470,7 +433,31 @@ function doRenderPointBigNum(pX: u32, pY: u32): u16 {
     y0 &= 0xffff_ffff;
 
     x0 = t1_0;
+    xPos0 = x0;
+    yPos0 = y0;
     x1 = t1_1;
+    xPos1 = x1;
+    yPos1 = y1;
+    if ((xPos0 & 0x8000_0000) !== 0) {
+      // negate xPos
+      cOut = 1;
+      xPos1 = (xPos1 ^ 0xffff_ffff) + cOut;
+      cOut = xPos1 >>> 32;
+      xPos1 &= 0xffff_ffff;
+      xPos0 = (xPos0 ^ 0xffff_ffff) + cOut;
+      xPos0 &= 0xffff_ffff;
+
+    }
+    if ((yPos0 & 0x8000_0000) !== 0) {
+      // negate yPos
+      cOut = 1;
+      yPos1 = (yPos1 ^ 0xffff_ffff) + cOut;
+      cOut = yPos1 >>> 32;
+      yPos1 &= 0xffff_ffff;
+      yPos0 = (yPos0 ^ 0xffff_ffff) + cOut;
+      yPos0 &= 0xffff_ffff;
+
+    }
   }
 
   return i as u16;

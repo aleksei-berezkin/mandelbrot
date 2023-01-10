@@ -1,104 +1,118 @@
 import { emit } from './emit.mjs';
-const minPrecision = 2;
-const maxPrecision = 10;
 
-const precision = 20;
+emitDoRenderPointBigNum(2);
 
-// declarations
-emit(
-    'function doRenderPointBigNum(pX: u32, pY: u32): u16 {',
-);
+function emitDeclarations(precision) {
+    emitDecl('xMin', precision, true);
+    emitDecl('w', precision, true);
+    emitDecl('yMin', precision, true);
+    emitDecl('h', precision, true);
+    emitDecl('yMax', precision);
+    emitDecl('wStepFraction', precision);
+    emitDecl('hStepFraction', precision);
+}
 
-['a', 'b', 'x', 'y', 'x0_', 'y0_', 't0_', 't1_'].forEach(op =>
-    rangeFromTo(0, precision - 1).forEach(i => emit(`let ${op}${i}: u64;`))
-);
+function emitInitialization(precision) {
+    // add(yMinPtr, hPtr, yMaxPtr);
+    emitAdd('yMin', 'h', 'yMax', precision);
+    // wStepFraction = w * (1.0 / canvasW)(t0)
+    emit('const oneOverCanvasW = 1.0 / canvasW;');
+    emitFromPosDouble('oneOverCanvasW', 'wStepFraction', precision);
 
-emit(
-    'let m: u64;',
-    'let cOut: u64;',
-    'let curr: u64 = 0;',
-    'let next: u64 = 0;',
-    'let isNeg: boolean;',
-    '',
-)
+}
 
-/*
-  // x0 = xMin + wStepFraction * pX
-  mulByUintPositive(wStepFractionPtr, pX, t0Ptr);
-  add(xMinPtr, t0Ptr, x0Ptr);
+function emitDoRenderPointBigNum(precision) {
+    // declarations
+    emit(
+        'function doRenderPointBigNum(pX: u32, pY: u32): u16 {',
+    );
 
-  // canvas has (0, 0) at the left-top, so flip Y
-  // y0 = yMax - hStepFraction * pY
-  mulByUintPositive(hStepFractionPtr, pY, t0Ptr);
-  negate(t0Ptr);
-  add(yMaxPtr, t0Ptr, y0Ptr);
+    ['a', 'b', 'x', 'y', 'xPos', 'yPos', 'x0_', 'y0_', 't0_', 't1_'].forEach(op =>
+        rangeFromTo(0, precision - 1).forEach(i => emit(`let ${op}${i}: u64;`))
+    );
 
- */
-emitMulByUintPositive('wStepFraction', 'pX', 'x0_', precision);
-emitAdd('xMin', 'x0_', 'x0_', precision);
+    emit(
+        'let m: u64;',
+        'let cOut: u64;',
+        'let curr: u64 = 0;',
+        'let next: u64 = 0;',
+        'let isNeg: boolean;',
+        '',
+    )
 
-emitMulByUintPositive('hStepFraction', 'pY', 'y0_', precision);
-emitNegate('y0_', precision);
-emitAdd('yMax', 'y0_', 'y0_', precision);
+    emitMulByUintPositive('wStepFraction', 'pX', 'x0_', precision);
+    emitAdd('xMin', 'x0_', 'x0_', precision);
 
-['x', 'y'].forEach(op => rangeFromTo(precision - 1, 0).forEach(
-    i => emit(`${op}${i} = 0;`)
-));
-emit('');
+    emitMulByUintPositive('hStepFraction', 'pY', 'y0_', precision);
+    emitNegate('y0_', precision);
+    emitAdd('yMax', 'y0_', 'y0_', precision);
 
-emit('let i: u32 = 0;');
-emit('for ( ; i < maxIterations; i++) {');
+    ['x', 'y', 'xPos', 'yPos'].forEach(op => rangeFromTo(precision - 1, 0).forEach(
+        i => emit(`${op}${i} = 0;`)
+    ));
+    emit('');
 
-// xSqr -> t0, ySqr -> t1
-emitMul('x', 'x', 't0_', precision);
-emitMul('y', 'y', 't1_', precision);
-emitAdd('t0_', 't1_', 'a', precision);
-emit('if (a0 >= 4) {');
-emit('break;');
-emit('}', '');
+    emit('let i: u32 = 0;');
+    emit('for ( ; i < maxIterations; i++) {');
 
-// t1 <- xNext = (xSqr - ySqr) + x0
-emitNegate('t1_', precision);
-emitAdd('t0_', 't1_', 't1_', precision);
-emitAdd('t1_', 'x0_', 't1_', precision);
+    // xSqr -> t0, ySqr -> t1
+    emitMulPos('xPos', 'xPos', 't0_', precision);
+    emitMulPos('yPos', 'yPos', 't1_', precision);
+    emitAdd('t0_', 't1_', 'a', precision);
+    emit('if (a0 >= 4) {');
+    emit('break;');
+    emit('}', '');
 
-// y = x * y * 2 + y0
-emitMul('x', 'y', 't0_', precision);
-emitTwoTimes('t0_', 't0_', precision);
-emitAdd('t0_', 'y0_', 'y', precision)
+    // t1 <- xNext = (xSqr - ySqr) + x0
+    emitNegate('t1_', precision);
+    emitAdd('t0_', 't1_', 't1_', precision);
+    emitAdd('t1_', 'x0_', 't1_', precision);
 
-rangeFromTo(0, precision - 1).forEach(i => emit(`x${i} = t1_${i};`));
+    // y = x * y * 2 + y0
+    emitMulPos('xPos', 'yPos', 't0_', precision);
+    emit(`if ((x0 & 0x8000_0000) !== (y0 & 0x8000_0000)) {`);
+    emitNegate('t0_', precision);
+    emit('}');
+    emitTwoTimes('t0_', 't0_', precision);
+    emitAdd('t0_', 'y0_', 'y', precision)
 
-emit('}', '');
+    rangeFromTo(0, precision - 1).forEach(i => emit(
+        `x${i} = t1_${i};`,
+        `xPos${i} = x${i};`,
+        `yPos${i} = y${i};`,
+    ));
+    ['x', 'y'].forEach(op => {
+        emit(`if ((${op}Pos0 & 0x8000_0000) !== 0) {`);
+        emitNegate(`${op}Pos`, precision);
+        emit('}');
+    })
 
-emit('return i;');
+    emit('}', '');
 
-emit('}');
+    emit('return i;');
 
-function emitMul(a, b, c, precision) {
+    emit('}');
+}
+
+export function emitFromPosDouble(a, c, precision) {
+    rangeFromTo(0, precision - 1).forEach(i => emit(
+        `${c}${i} = (${a} as u32);`,
+        i ? `${a} = (${a} - (${a} as u32)) * 0x1_0000_0000;` : null,
+    ));
+}
+
+function emitMulPos(a, b, c, precision) {
     if (a === c || b === c) {
         throw new Error(`${a}, ${b}, ${c}`);
     }
 
-    emit(`// Mul ${c} = ${a} * ${b}`);
+    emit(`// Mul pos ${c} = ${a} * ${b}`);
     const same = a === b;
     // Load a
     rangeFromTo(0, precision - 1).forEach(i => emit(`a${i} = ${a}${i};`));
-    emit(`if ((a0 & 0x8000_0000) !== 0) {`);
-    emitNegate('a', precision);
-    emit('}');
     if (!same) {
         // Load b
         rangeFromTo(0, precision - 1).forEach(i => emit(`b${i} = ${b}${i};`));
-        emit(`if ((b0 & 0x8000_0000) !== 0) {`);
-        emitNegate('b', precision);
-        emit('}');
-        emit(`isNeg = (${a}0 & 0x8000_0000) !== (${b}0 & 0x8000_0000);`);
-
-        emit(
-            '',
-            'cOut = 1;',
-        );
     }
 
     emit('');
@@ -120,19 +134,7 @@ function emitMul(a, b, c, precision) {
         });
 
         if (cIx !== precision) {
-            if (!same) {
-                emit(
-                    'if (isNeg) {',
-                    '  m = ((curr & 0xffff_ffff) ^ 0xffff_ffff) + cOut;',
-                    '  cOut = m >>> 32;',
-                    '} else {',
-                    '  m = curr;',
-                    '}',
-                    `${c}${cIx} = m & 0xffff_ffff;`,
-                );
-            } else {
-                emit(`${c}${cIx} = curr & 0xffff_ffff`);
-            }
+            emit(`${c}${cIx} = curr & 0xffff_ffff`);
         }
 
         if (cIx !== 0) {
@@ -169,7 +171,7 @@ function emitMulByUintPositive(a, b, c, precision) {
     rangeFromTo(precision - 1, 0).forEach(i => {
         emit(
             `${c}${i} = ${a}${i} * ${b} + cOut;`,
-            i !== 0 ? `cOut = ${c}${i} >>> 32;` : null,
+            i ? `cOut = ${c}${i} >>> 32;` : null,
             `${c}${i} &= 0xffff_ffff;`,
         );
     });
@@ -183,7 +185,7 @@ function emitAdd(a, b, c, precision) {
     );
     rangeFromTo(precision - 1, 0).forEach(i => emit(
         `${c}${i} = ${a}${i} + ${b}${i} + cOut;`,
-        i !== 0 ? `cOut = ${c}${i} >>> 32;` : null,
+        i ? `cOut = ${c}${i} >>> 32;` : null,
         `${c}${i} &= 0xffff_ffff;`,
     ));
     emit('');
@@ -197,10 +199,14 @@ function emitTwoTimes(a, c, precision) {
     );
     rangeFromTo(precision - 1, 0).forEach(i => emit(
         `${c}${i} = (${a}${i} << 1) | cOut;`,
-        i !== 0 ? `cOut = ${c}${i} >>> 32;` : null,
+        i ? `cOut = ${c}${i} >>> 32;` : null,
         `${c}${i} &= 0xffff_ffff;`,
     ));
     emit('');
+}
+
+function emitDecl(name, precision, isExport = false) {
+    rangeFromTo(0, precision - 1).forEach(i => emit(`${isExport ? 'export ' : '' }let ${name}${i}: u64;`));
 }
 
 /**
