@@ -2,7 +2,7 @@ import { emit } from './emit.mjs';
 const minPrecision = 2;
 const maxPrecision = 10;
 
-const precision = 3;
+const precision = 20;
 
 // declarations
 emit(
