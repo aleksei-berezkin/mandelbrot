@@ -33,11 +33,13 @@ export function renderMandelbrot(): void {
       return;
     }
 
-    // +++ Generate initialization
+    initializeBigNum();
   }
 
   renderRect(0, 0, canvasW, canvasH);
 }
+
+function initializeBigNum() { /* +++ Generate initialization */ }
 
 const minSizeToSplit: u32 = 6;
 

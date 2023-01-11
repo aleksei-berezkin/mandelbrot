@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { emit, setEmitCb, withIndented } from './emit.mjs';
+import { emit, setEmitCb } from './emit.mjs';
 
 const assemblyPath = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', 'assembly');
 const templatePath = path.resolve(assemblyPath, 'src', 'renderMandelbrot.ts');
@@ -15,7 +15,7 @@ templateLines.forEach(inputLine => {
     if (inputLine.includes('+++ Generate global declarations')) {
         emitGlobalDeclarations(precision);
     } else if (inputLine.includes('+++ Generate initialization')) {
-        withIndented(2, () => emitInitialization(precision));
+        emitInitializeBigNum(precision);
     } else if (inputLine.includes('+++ Generate render')) {
         emitRenderPointBigNum(precision);
     } else {
@@ -32,7 +32,8 @@ function emitGlobalDeclarations(precision) {
     emitDecl(['yMax', 'wStepFraction', 'hStepFraction'], precision);
 }
 
-function emitInitialization(precision) {
+function emitInitializeBigNum(precision) {
+    emit('function initializeBigNum(): void {');
     emitArithVarsDecl();
     emitDecl('t_', precision);
     emit('');
@@ -51,6 +52,7 @@ function emitInitialization(precision) {
     emit('');
     emitFromPosDouble('t', 't_', precision);
     emitMulPos('h', 't_', 'hStepFraction', precision);
+    emit('}');
 }
 
 function emitRenderPointBigNum(precision) {

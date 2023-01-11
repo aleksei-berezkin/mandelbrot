@@ -17,11 +17,6 @@ export function emit(...strings) {
     });
 }
 
-export function withIndented(indentDelta, cb) {
-    indent += indentDelta;
-    cb();
-    indent -= indentDelta;
-}
 function countChars(string, char) {
     return [...string].filter(c => c === char).length;
 }
