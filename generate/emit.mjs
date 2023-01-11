@@ -12,7 +12,7 @@ export function emit(...strings) {
         const indentSpaces = Array.from({length: 2 * indent}).map(() => ' ').join('');
         emitCb(indentSpaces + s);
         indent += countChars(s, '{');
-        if (s.includes('case ') || s === 'default:') indent++;
+        // if (s.includes('case ') || s === 'default:') indent++;
         // if (s === 'break;') indent--;
     });
 }

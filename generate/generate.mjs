@@ -10,14 +10,19 @@ const templateLines = String(fs.readFileSync(templatePath)).split(/\r?\n\r?/);
 const outLines = [];
 setEmitCb(str => outLines.push(str));
 
+const minPrecision = 3;
+const maxPrecision = 8;
+
 templateLines.forEach(inputLine => {
     const precision = 3;
     if (inputLine.includes('+++ Generate global declarations')) {
-        emitGlobalDeclarations(precision);
+        emitGlobalDeclarations(maxPrecision);
     } else if (inputLine.includes('+++ Generate initialization')) {
-        emitInitializeBigNum(precision);
+        emitFunctionWithPrecisionSwitch('initializeBigNum', 'void', '', '');
+        rangeFromTo(minPrecision, maxPrecision).forEach(emitInitializeBigNum);
     } else if (inputLine.includes('+++ Generate render')) {
-        emitRenderPointBigNum(precision);
+        emitFunctionWithPrecisionSwitch('renderPointBigNum', 'u16', 'pX: u32, pY: u32', 'pX, pY');
+        rangeFromTo(minPrecision, maxPrecision).forEach(emitRenderPointBigNum);
     } else {
         outLines.push(inputLine);
     }
@@ -32,8 +37,24 @@ function emitGlobalDeclarations(precision) {
     emitDecl(['yMax', 'wStepFraction', 'hStepFraction'], precision);
 }
 
+function emitFunctionWithPrecisionSwitch(name, type, paramsTyped, params) {
+    emit(
+        `function ${name}(${paramsTyped}): ${type} {`,
+        'switch (precision) {',
+    );
+    const returnStr = type !== 'void' ? 'return ' : '';
+    const breakStr = type === 'void' ? ' break;' : '';
+    rangeFromTo(minPrecision, maxPrecision).forEach(precision =>
+        emit(`case ${precision}: ${returnStr}${name}${precision}(${params});${breakStr}`)
+    );
+    if (type === 'u16') {
+        emit('default: return 1;');
+    }
+    emit('}', '}');
+}
+
 function emitInitializeBigNum(precision) {
-    emit('function initializeBigNum(): void {');
+    emit(`function initializeBigNum${precision}(): void {`);
     emitArithVarsDecl();
     emitDecl('t_', precision);
     emit('');
@@ -58,7 +79,7 @@ function emitInitializeBigNum(precision) {
 function emitRenderPointBigNum(precision) {
     // declarations
     emit(
-        'function renderPointBigNum(pX: u32, pY: u32): u16 {',
+        `function renderPointBigNum${precision}(pX: u32, pY: u32): u16 {`,
     );
 
     emitDecl(['x', 'y', 'xPos', 'yPos', 'x0_', 'y0_', 't0_', 't1_', 't2_'], precision);

@@ -6,7 +6,7 @@
   "scripts": {
     "postinstall": "cd assembly ; npm i ; cd ..",
     "clean": "rm -rf assembly/generated ; rm -rf public/asmDouble ; rm -rf public/asmBigNum",
-    "build": "cd assembly ; npm run asbuild:release ; cd ..",
+    "build": "node generate/generate.mjs ; cd assembly ; npm run asbuild:release ; cd ..",
     "build:full": "cd assembly ; npm run asbuild ; cd ..",
     "build:test": "cd assembly ; npm run asbuild:debug ; cd ..",
     "generate": "node generate/generate.mjs",
