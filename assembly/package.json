@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.ts",
   "scripts": {
-    "asbuild:debug": "asc src/renderMandelbrot.ts --target debug",
-    "asbuild:release": "asc src/renderMandelbrot.ts --target release",
+    "asbuild:debug": "asc generated/renderMandelbrot.ts --target debug",
+    "asbuild:release": "asc generated/renderMandelbrot.ts --target release",
     "asbuild": "npm run asbuild:debug && npm run asbuild:release"
   },
   "devDependencies": {

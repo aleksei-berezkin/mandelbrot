@@ -1,4 +1,5 @@
 /.idea/
+/assembly/generated/
 /**/node_modules/
 /node_modules/
 /public/wasm/

@@ -1,44 +1,67 @@
-import { emit } from './emit.mjs';
+import fs from 'fs';
+import path from 'path';
+import { emit, setEmitCb, withIndented } from './emit.mjs';
 
-emitDoRenderPointBigNum(2);
+const assemblyPath = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', 'assembly');
+const templatePath = path.resolve(assemblyPath, 'src', 'renderMandelbrot.ts');
 
-function emitDeclarations(precision) {
-    emitDecl('xMin', precision, true);
-    emitDecl('w', precision, true);
-    emitDecl('yMin', precision, true);
-    emitDecl('h', precision, true);
-    emitDecl('yMax', precision);
-    emitDecl('wStepFraction', precision);
-    emitDecl('hStepFraction', precision);
+const templateLines = String(fs.readFileSync(templatePath)).split(/\r?\n\r?/);
+
+const outLines = [];
+setEmitCb(str => outLines.push(str));
+
+templateLines.forEach(inputLine => {
+    const precision = 3;
+    if (inputLine.includes('+++ Generate global declarations')) {
+        emitGlobalDeclarations(precision);
+    } else if (inputLine.includes('+++ Generate initialization')) {
+        withIndented(2, () => emitInitialization(precision));
+    } else if (inputLine.includes('+++ Generate render')) {
+        emitRenderPointBigNum(precision);
+    } else {
+        outLines.push(inputLine);
+    }
+});
+
+const outPath = path.resolve(assemblyPath, 'generated', 'renderMandelbrot.ts');
+fs.mkdirSync(path.dirname(outPath), {recursive: true});
+fs.writeFileSync(outPath, Buffer.from(outLines.join('\n')));
+
+function emitGlobalDeclarations(precision) {
+    emitDecl(['xMin', 'w', 'yMin', 'h'], precision, true);
+    emitDecl(['yMax', 'wStepFraction', 'hStepFraction'], precision);
 }
 
 function emitInitialization(precision) {
-    // add(yMinPtr, hPtr, yMaxPtr);
-    emitAdd('yMin', 'h', 'yMax', precision);
-    // wStepFraction = w * (1.0 / canvasW)(t0)
-    emit('const oneOverCanvasW = 1.0 / canvasW;');
-    emitFromPosDouble('oneOverCanvasW', 'wStepFraction', precision);
+    emitArithVarsDecl();
+    emitDecl('t_', precision);
+    emit('');
 
+    // yMax = yMin + h
+    emitAdd('yMin', 'h', 'yMax', precision);
+
+    // wStepFraction = w * (1.0 / canvasW)
+    emit('let t = 1.0 / canvasW;');
+    emit('');
+    emitFromPosDouble('t', 't_', precision);
+    emitMulPos('w', 't_', 'wStepFraction', precision);
+
+    // hStepFraction = h * (1.0 / canvasH)
+    emit('t = 1.0 / canvasH;');
+    emit('');
+    emitFromPosDouble('t', 't_', precision);
+    emitMulPos('h', 't_', 'hStepFraction', precision);
 }
 
-function emitDoRenderPointBigNum(precision) {
+function emitRenderPointBigNum(precision) {
     // declarations
     emit(
-        'function doRenderPointBigNum(pX: u32, pY: u32): u16 {',
+        'function renderPointBigNum(pX: u32, pY: u32): u16 {',
     );
 
-    ['x', 'y', 'xPos', 'yPos', 'x0_', 'y0_', 't0_', 't1_', 't2_'].forEach(op =>
-        rangeFromTo(0, precision - 1).forEach(i => emit(`let ${op}${i}: u64;`))
-    );
+    emitDecl(['x', 'y', 'xPos', 'yPos', 'x0_', 'y0_', 't0_', 't1_', 't2_'], precision);
 
-    emit(
-        'let m: u64;',
-        'let cOut: u64;',
-        'let curr: u64 = 0;',
-        'let next: u64 = 0;',
-        'let isNeg: boolean;',
-        '',
-    )
+    emitArithVarsDecl();
 
     emitMulByUintPositive('wStepFraction', 'pX', 'x0_', precision);
     emitAdd('xMin', 'x0_', 'x0_', precision);
@@ -47,9 +70,7 @@ function emitDoRenderPointBigNum(precision) {
     emitNegate('y0_', precision);
     emitAdd('yMax', 'y0_', 'y0_', precision);
 
-    ['x', 'y', 'xPos', 'yPos'].forEach(op => rangeFromTo(precision - 1, 0).forEach(
-        i => emit(`${op}${i} = 0;`)
-    ));
+    emitSetZero(['x', 'y', 'xPos', 'yPos'], precision);
     emit('');
 
     emit('let i: u32 = 0;');
@@ -89,16 +110,18 @@ function emitDoRenderPointBigNum(precision) {
 
     emit('}', '');
 
-    emit('return i;');
+    emit('return i as u16;');
 
     emit('}');
 }
 
 export function emitFromPosDouble(a, c, precision) {
+    emit(`// double ${a} to BigNum ${c}`)
     rangeFromTo(0, precision - 1).forEach(i => emit(
         `${c}${i} = (${a} as u32);`,
-        i ? `${a} = (${a} - (${a} as u32)) * 0x1_0000_0000;` : null,
+        (precision - 1 - i) ? `${a} = (${a} - (${a} as u32)) * 0x1_0000_0000;` : null,
     ));
+    emit('');
 }
 
 function emitMulPos(a, b, c, precision) {
@@ -124,7 +147,7 @@ function emitMulPos(a, b, c, precision) {
         });
 
         if (cIx !== precision) {
-            emit(`${c}${cIx} = curr & 0xffff_ffff`);
+            emit(`${c}${cIx} = curr & 0xffff_ffff;`);
         }
 
         if (cIx !== 0) {
@@ -195,8 +218,26 @@ function emitTwoTimes(a, c, precision) {
     emit('');
 }
 
-function emitDecl(name, precision, isExport = false) {
-    rangeFromTo(0, precision - 1).forEach(i => emit(`${isExport ? 'export ' : '' }let ${name}${i}: u64;`));
+function emitArithVarsDecl() {
+    emit(
+        'let cOut: u64;',
+        'let m: u64;',
+        'let curr: u64 = 0;',
+        'let next: u64 = 0;',
+        '',
+    );
+}
+
+function emitDecl(names, precision, isExport = false) {
+    (typeof names === 'string' ? [names] : names).forEach(
+        name => rangeFromTo(0, precision - 1).forEach(
+            i => emit(`${isExport ? 'export ' : '' }let ${name}${i}: u64;`)
+        )
+    );
+}
+
+function emitSetZero(names, precision) {
+    names.forEach(name => rangeFromTo(0, precision - 1).forEach(i => emit(`${name}${i} = 0;`)));
 }
 
 /**

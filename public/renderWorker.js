@@ -59,9 +59,7 @@ async function doRender(coords, canvasW, canvasH, maxIterations) {
         : undefined;
     const precision = wBigNum?.length;
 
-    const requiredMemoryBytes = isBigNum
-        ? 16 * 4 * precision + outByteSize
-        : outByteSize;
+    const requiredMemoryBytes = outByteSize;
 
     if (!wasmExports || wasmExports.memory.buffer.byteLength < requiredMemoryBytes) {
         wasmExports = await instantiate(requiredMemoryBytes);
@@ -79,11 +77,16 @@ async function doRender(coords, canvasW, canvasH, maxIterations) {
         const fracPrecision = precision - 1;
         wasmExports.precision.value = precision;
         wasmExports.fracPrecision.value = fracPrecision;
+        const xMinBigNum = bigIntToBigNum(coords.xMin, coords.unit, fracPrecision);
+        const yMinBigNum = bigIntToBigNum(coords.yMin, coords.unit, fracPrecision);
+        const hBigNum = bigIntToBigNum(coords.h, coords.unit, fracPrecision);
 
-        writeBigNum(0, bigIntToBigNum(coords.xMin, coords.unit, fracPrecision), u32Buf);
-        writeBigNum(precision, wBigNum, u32Buf);
-        writeBigNum(2 * precision, bigIntToBigNum(coords.yMin, coords.unit, fracPrecision), u32Buf)
-        writeBigNum(3 * precision, bigIntToBigNum(coords.h, coords.unit, fracPrecision), u32Buf)
+        for (let i = 0; i < precision; i++) {
+            wasmExports[`xMin${i}`].value = BigInt(xMinBigNum[i]);
+            wasmExports[`w${i}`].value = BigInt(wBigNum[i]);
+            wasmExports[`yMin${i}`].value = BigInt(yMinBigNum[i]);
+            wasmExports[`h${i}`].value = BigInt(hBigNum[i]);
+        }
     } else {
         const unit = Number(coords.unit);
         wasmExports.xMin.value = Number(coords.xMin) / unit;
@@ -95,7 +98,7 @@ async function doRender(coords, canvasW, canvasH, maxIterations) {
 
     wasmExports.renderMandelbrot();
 
-    const iterArray = new Uint16Array(wasmExports.memory.buffer, isBigNum ? 16 * 4 * precision : 0);
+    const iterArray = new Uint16Array(wasmExports.memory.buffer);
     return mapToRgba(iterArray, canvasW, canvasH, maxIterations);
 }
 
