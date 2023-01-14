@@ -22,7 +22,8 @@ export async function render(canvas, hiddenCanvas, immediately = false) {
 
 const baseIterations = 2000;
 
-const workers = Array.from({length: 10}).map(() => new Worker('renderWorker.js'));
+const workers = Array.from({length: navigator.hardwareConcurrency ?? 4})
+    .map(() => new Worker('renderWorker.js'));
 
 let initial = true;
 
