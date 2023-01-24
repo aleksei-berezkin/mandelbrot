@@ -41,43 +41,42 @@ export function renderMandelbrot(): void {
 
 function initializeBigNum() { /* +++ Generate initialization */ }
 
-const minSizeToSplit: u32 = 16;
+const minSizeToSplit: u32 = 6;
 
 const NULL_XY: u64 = 0xffff_ffff_ffff_ffff;
 const NOT_RENDERED_COLOR: u32 = 0;
-const NOT_RENDERED_TWO_COLOR: u64 = 0;
 
 
-function renderRect(pX0: u32, pY0: u32, pX1: u32, pY1: u32): void {
-  const contourColor = getContourAndMidPointColor(pX0, pY0, pX1, pY1);
+function renderRect(x0: u32, y0: u32, x1: u32, y1: u32): void {
+  const contourColor = getContourAndMidPointColor(x0, y0, x1, y1);
   if (contourColor !== NOT_RENDERED_COLOR) {
-    for (let pY: u32 = pY0; pY < pY1; pY++) {
-      for (let pX: u32 = pX0; pX < pX1; pX++) {
-        store<u16>(2 * (pY * canvasW + pX), contourColor as u16);
+    for (let y: u32 = y0; y < y1; y++) {
+      for (let x: u32 = x0; x < x1; x++) {
+        store<u16>(2 * (y * canvasW + x), contourColor as u16);
       }
     }
     return;
   }
 
 
-  if (pX1 - pX0 >= minSizeToSplit) {
-    const pXMid: u32 = (pX0 + pX1) / 2;
-    renderRect(pX0, pY0, pXMid, pY1);
-    renderRect(pXMid, pY0, pX1, pY1);
+  if (x1 - x0 >= minSizeToSplit) {
+    const xMid: u32 = (x0 + x1) / 2;
+    renderRect(x0, y0, xMid, y1);
+    renderRect(xMid, y0, x1, y1);
     return;
   }
 
-  if (pY1 - pY0 >= minSizeToSplit) {
-    const pYMid: u32 = (pY0 + pY1) / 2;
-    renderRect(pX0, pY0, pX1, pYMid);
-    renderRect(pX0, pYMid, pX1, pY1);
+  if (y1 - y0 >= minSizeToSplit) {
+    const yMid: u32 = (y0 + y1) / 2;
+    renderRect(x0, y0, x1, yMid);
+    renderRect(x0, yMid, x1, y1);
     return;
   }
 
   let pendingXY: u64 = NULL_XY;
-  for (let pY: u32 = pY0; pY < pY1; pY++) {
-    for (let pX: u32 = pX0; pX < pX1; pX++) {
-      const xy: u64 = (pX as u64) | ((pY as u64) << 32);
+  for (let y: u32 = y0; y < y1; y++) {
+    for (let x: u32 = x0; x < x1; x++) {
+      const xy: u64 = (x as u64) | (y as u64) << 32;
       if (loadRendered(xy) === NOT_RENDERED_COLOR) {
         if (pendingXY === NULL_XY) {
           pendingXY = xy;
@@ -90,7 +89,7 @@ function renderRect(pX0: u32, pY0: u32, pX1: u32, pY1: u32): void {
   }
 
   if (pendingXY !== NULL_XY) {
-    const otherXY: u64 = (((pX1 + canvasW - 1) / 2) as u64) | ((((pY1 + canvasH - 1) / 2) as u64) << 32);
+    const otherXY: u64 = ((x1 + canvasW - 1) / 2 as u64) | ((y1 + canvasH - 1) / 2 as u64) << 32;
     renderTwoPoints(pendingXY, otherXY);
   }
 }
@@ -107,7 +106,7 @@ function getContourAndMidPointColor(x0: u32, y0: u32, x1: u32, y1: u32): u32 {
   genY1 = y1;
 
   let pendingXY: u64 = NULL_XY;
-  let prevTwoColors: u64 = NOT_RENDERED_TWO_COLOR;
+  let prevTwoColors: u64 = NOT_RENDERED_COLOR;
 
   for (let i: u32 = 0; ; i++) {
     const xy = generateContourAndMidPoints();
@@ -122,7 +121,7 @@ function getContourAndMidPointColor(x0: u32, y0: u32, x1: u32, y1: u32): u32 {
         pendingXY = xy;
       } else {
         const currTwoColors = renderTwoPoints(pendingXY, xy);
-        if (prevTwoColors === NOT_RENDERED_TWO_COLOR) {
+        if (prevTwoColors === NOT_RENDERED_COLOR) {
           prevTwoColors = currTwoColors
         } else if (prevTwoColors !== currTwoColors) {
           return NOT_RENDERED_COLOR;
@@ -130,7 +129,7 @@ function getContourAndMidPointColor(x0: u32, y0: u32, x1: u32, y1: u32): u32 {
         pendingXY = NULL_XY;
       }
     } else {
-      if (prevTwoColors === NOT_RENDERED_TWO_COLOR) {
+      if (prevTwoColors === NOT_RENDERED_COLOR) {
         prevTwoColors = currOneColor | (currOneColor << 32);
       } else if ((prevTwoColors as u32) !== currOneColor) {
         return NOT_RENDERED_COLOR;
@@ -139,6 +138,7 @@ function getContourAndMidPointColor(x0: u32, y0: u32, x1: u32, y1: u32): u32 {
 
     if (i === 5 && (prevTwoColors as u32) !== maxIterations) {
       // Quicker check for colored (diverging) rects
+      // disregard pendingXY
       return prevTwoColors as u32;
     }
   }
@@ -164,16 +164,16 @@ function generateContourAndMidPoints(): u64 {
       return genX0 | (genY0 << 32);
     case 1:
       genState = 2;
-      return genX0 | ((genY1 - 1) << 32);
+      return genX0 | (genY1 - 1) << 32;
     case 2:
       genState = 3;
-      return (genX1 - 1) | (genY0 << 32);
+      return (genX1 - 1) | genY0 << 32;
     case 3:
       genState = 4;
-      return (genX1 - 1) | ((genY1 - 1) << 32);
+      return (genX1 - 1) | (genY1 - 1) << 32;
     case 4:
-      genState = 5 | ((genY0 + step) << 4);
-      return ((genX0 + genX1 - 1) / 2) | (((genY0 + genY1 - 1) / 2) << 32);
+      genState = 5 | (genY0 + step) << 4;
+      return ((genX0 + genX1 - 1) / 2) | ((genY0 + genY1 - 1) / 2) << 32;
     case 5:
       // x0 (y0 -> y1)
       if (p < genY1) {
@@ -212,9 +212,9 @@ function generateContourAndMidPoints(): u64 {
 
 
 function loadRendered(xy: u64): u32 {
-  const pY = (xy >>> 32) as u32;
-  const pX = xy as u32;
-  return load<u16>(2 * (pY * canvasW + pX)) as u32;
+  const y = (xy >>> 32) as u32;
+  const x = xy as u32;
+  return load<u16>(2 * (y * canvasW + x)) as u32;
 }
 
 function renderTwoPoints(xy1: u64, xy2: u64): u64 {

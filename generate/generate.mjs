@@ -11,7 +11,7 @@ const outLines = [];
 setEmitCb(str => outLines.push(str));
 
 const minPrecision = 3;
-const maxPrecision = 12;
+const maxPrecision = 10;
 
 templateLines.forEach(inputLine => {
     const precision = 3;
