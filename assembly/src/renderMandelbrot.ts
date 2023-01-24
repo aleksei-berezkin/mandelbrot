@@ -81,7 +81,7 @@ function renderRect(x0: u32, y0: u32, x1: u32, y1: u32): void {
         if (pendingXY === NULL_XY) {
           pendingXY = xy;
         } else {
-          renderTwoPoints(pendingXY, xy);
+          renderAndStoreTwoPoints(pendingXY, xy);
           pendingXY = NULL_XY;
         }
       }
@@ -90,7 +90,7 @@ function renderRect(x0: u32, y0: u32, x1: u32, y1: u32): void {
 
   if (pendingXY !== NULL_XY) {
     const otherXY: u64 = ((x1 + canvasW - 1) / 2 as u64) | ((y1 + canvasH - 1) / 2 as u64) << 32;
-    renderTwoPoints(pendingXY, otherXY);
+    renderAndStoreTwoPoints(pendingXY, otherXY);
   }
 }
 
@@ -120,7 +120,7 @@ function getContourAndMidPointColor(x0: u32, y0: u32, x1: u32, y1: u32): u32 {
       if (pendingXY === NULL_XY) {
         pendingXY = xy;
       } else {
-        const currTwoColors = renderTwoPoints(pendingXY, xy);
+        const currTwoColors = renderAndStoreTwoPoints(pendingXY, xy);
         if (prevTwoColors === NOT_RENDERED_COLOR) {
           prevTwoColors = currTwoColors
         } else if (prevTwoColors !== currTwoColors) {
@@ -217,26 +217,23 @@ function loadRendered(xy: u64): u32 {
   return load<u32>(4 * (y * canvasW + x));
 }
 
-function renderTwoPoints(xy1: u64, xy2: u64): u64 {
-  // TODO vectorize
-  const c1 = renderPoint(xy1 as u32, (xy1 >>> 32) as u32) as u64;
-  const c2 = renderPoint(xy2 as u32, (xy2 >>> 32) as u32) as u64;
+function renderAndStoreTwoPoints(xy1: u64, xy2: u64): u64 {
+  const c1c2 = isBigNum
+      ? renderTwoPointsBigNum(xy1, xy2)
+      : renderTwoPointsDouble(xy1, xy2);
 
-  return c1 | (c2 << 32);
+  // ptr = 4 * (y * canvasW + x)
+  store<u32>(4 * (((xy1 >>> 32) as u32) * canvasW + (xy1 as u32)), c1c2 as u32);
+  store<u32>(4 * (((xy2 >>> 32) as u32) * canvasW + (xy2 as u32)), (c1c2 >>> 32) as u32);
+
+  return c1c2;
 }
 
-function renderPoint(pX: u32, pY: u32): u32 {
-  const iterPtr = 4 * (pY * canvasW + pX);
-  const alreadyRendered = load<u32>(iterPtr);
-  if (alreadyRendered !== 0) {
-    return alreadyRendered;
-  }
-
-  const iterNum = isBigNum
-      ? renderPointBigNum(pX, pY)
-      : renderPointDouble(pX, pY);
-  store<u32>(iterPtr, iterNum);
-  return iterNum;
+function renderTwoPointsDouble(xy1: u64, xy2: u64): u64 {
+  // TODO vectorized
+  const c1 = renderPointDouble(xy1 as u32, (xy1 >>> 32) as u32) as u64;
+  const c2 = renderPointDouble(xy2 as u32, (xy2 >>> 32) as u32) as u64;
+  return c1 | (c2 << 32);
 }
 
 function renderPointDouble(pX: u32, pY: u32): u32 {
@@ -261,6 +258,13 @@ function renderPointDouble(pX: u32, pY: u32): u32 {
   }
 
   return i;
+}
+
+function renderTwoPointsBigNum(xy1: u64, xy2: u64): u64 {
+  // TODO vectorized
+  const c1 = renderPointBigNum(xy1 as u32, (xy1 >>> 32) as u32) as u64;
+  const c2 = renderPointBigNum(xy2 as u32, (xy2 >>> 32) as u32) as u64;
+  return c1 | (c2 << 32);
 }
 
 // noinspection JSUnusedLocalSymbols
