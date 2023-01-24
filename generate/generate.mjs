@@ -21,7 +21,7 @@ templateLines.forEach(inputLine => {
         emitFunctionWithPrecisionSwitch('initializeBigNum', 'void', '', '');
         rangeFromTo(minPrecision, maxPrecision).forEach(emitInitializeBigNum);
     } else if (inputLine.includes('+++ Generate render')) {
-        emitFunctionWithPrecisionSwitch('renderPointBigNum', 'u16', 'pX: u32, pY: u32', 'pX, pY');
+        emitFunctionWithPrecisionSwitch('renderPointBigNum', 'u32', 'pX: u32, pY: u32', 'pX, pY');
         rangeFromTo(minPrecision, maxPrecision).forEach(emitRenderPointBigNum);
     } else {
         outLines.push(inputLine);
@@ -47,7 +47,7 @@ function emitFunctionWithPrecisionSwitch(name, type, paramsTyped, params) {
     rangeFromTo(minPrecision, maxPrecision).forEach(precision =>
         emit(`case ${precision}: ${returnStr}${name}${precision}(${params});${breakStr}`)
     );
-    if (type === 'u16') {
+    if (type === 'u32') {
         emit('default: return 1;');
     }
     emit('}', '}');
@@ -79,7 +79,7 @@ function emitInitializeBigNum(precision) {
 function emitRenderPointBigNum(precision) {
     // declarations
     emit(
-        `function renderPointBigNum${precision}(pX: u32, pY: u32): u16 {`,
+        `function renderPointBigNum${precision}(pX: u32, pY: u32): u32 {`,
     );
 
     emitDecl(['x', 'y', 'xPos', 'yPos', 'x0_', 'y0_', 't0_', 't1_', 't2_'], precision);
@@ -133,7 +133,7 @@ function emitRenderPointBigNum(precision) {
 
     emit('}', '');
 
-    emit('return i as u16;');
+    emit('return i;');
 
     emit('}');
 }

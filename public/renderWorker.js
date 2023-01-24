@@ -50,7 +50,7 @@ let wasmExports;
  * @return {Uint8ClampedArray}
  */
 async function doRender(coords, canvasW, canvasH, maxIterations) {
-    const outByteSize = 2 * canvasW * canvasH;
+    const outByteSize = 4 * canvasW * canvasH;
 
     const isBigNum = (await isBigNumPromise)(coords.w, coords.unit);
     const bigIntToBigNum = await bigIntToBigNumPromise;
@@ -98,8 +98,7 @@ async function doRender(coords, canvasW, canvasH, maxIterations) {
 
     wasmExports.renderMandelbrot();
 
-    const iterArray = new Uint16Array(wasmExports.memory.buffer);
-    return mapToRgba(iterArray, canvasW, canvasH, maxIterations);
+    return mapToRgba(u32Buf, canvasW, canvasH, maxIterations);
 }
 
 /**
@@ -132,7 +131,7 @@ function writeBigNum(offsetU32, bigNum, u32Buf) {
 const colorCache = new Map();
 
 /**
- * @param iterArray {Uint16Array}
+ * @param iterArray {Uint32Array}
  * @param canvasW {number}
  * @param canvasH {number}
  * @param maxIterations {number}

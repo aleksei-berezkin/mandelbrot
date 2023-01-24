@@ -4,7 +4,7 @@
 export let isBigNum: boolean;
 export let canvasW: u32;
 export let canvasH: u32;
-export let maxIterations: u16;
+export let maxIterations: u32;
 
 // Only double
 export let xMin: f64;
@@ -48,11 +48,11 @@ const NOT_RENDERED_COLOR: u32 = 0;
 
 
 function renderRect(x0: u32, y0: u32, x1: u32, y1: u32): void {
-  const contourColor = getContourAndMidPointColor(x0, y0, x1, y1);
+  const contourColor: u32 = getContourAndMidPointColor(x0, y0, x1, y1);
   if (contourColor !== NOT_RENDERED_COLOR) {
     for (let y: u32 = y0; y < y1; y++) {
       for (let x: u32 = x0; x < x1; x++) {
-        store<u16>(2 * (y * canvasW + x), contourColor as u16);
+        store<u32>(4 * (y * canvasW + x), contourColor);
       }
     }
     return;
@@ -214,7 +214,7 @@ function generateContourAndMidPoints(): u64 {
 function loadRendered(xy: u64): u32 {
   const y = (xy >>> 32) as u32;
   const x = xy as u32;
-  return load<u16>(2 * (y * canvasW + x)) as u32;
+  return load<u32>(4 * (y * canvasW + x));
 }
 
 function renderTwoPoints(xy1: u64, xy2: u64): u64 {
@@ -225,9 +225,9 @@ function renderTwoPoints(xy1: u64, xy2: u64): u64 {
   return c1 | (c2 << 32);
 }
 
-function renderPoint(pX: u32, pY: u32): u16 {
-  const iterPtr = 2 * (pY * canvasW + pX);
-  const alreadyRendered = load<u16>(iterPtr);
+function renderPoint(pX: u32, pY: u32): u32 {
+  const iterPtr = 4 * (pY * canvasW + pX);
+  const alreadyRendered = load<u32>(iterPtr);
   if (alreadyRendered !== 0) {
     return alreadyRendered;
   }
@@ -235,11 +235,11 @@ function renderPoint(pX: u32, pY: u32): u16 {
   const iterNum = isBigNum
       ? renderPointBigNum(pX, pY)
       : renderPointDouble(pX, pY);
-  store<u16>(iterPtr, iterNum);
+  store<u32>(iterPtr, iterNum);
   return iterNum;
 }
 
-function renderPointDouble(pX: u32, pY: u32): u16 {
+function renderPointDouble(pX: u32, pY: u32): u32 {
   // canvas has (0, 0) at the left-top, so flip Y
   const x0: f64 = xMin + wStepFraction * pX
   const y0: f64 = yMax - hStepFraction * pY;
@@ -247,7 +247,7 @@ function renderPointDouble(pX: u32, pY: u32): u16 {
   let x = 0 as f64;
   let y = 0 as f64;
 
-  let i: u16 = 0;
+  let i: u32 = 0;
   for ( ; i < maxIterations; i++) {
     const xSqr = x * x;
     const ySqr = y * y;
@@ -260,8 +260,8 @@ function renderPointDouble(pX: u32, pY: u32): u16 {
     y = yNext
   }
 
-  return i as u16;
+  return i;
 }
 
 // noinspection JSUnusedLocalSymbols
-function renderPointBigNum(pX: u32, pY: u32): u16 { /* +++ Generate render */ return 0 }
+function renderPointBigNum(pX: u32, pY: u32): u32 { /* +++ Generate render */ return 0 }
