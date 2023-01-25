@@ -249,11 +249,11 @@ function renderTwoPointsDouble(xy1: u64, xy2: u64): u64 {
   const x0 = v128.add<f64>(v128.splat<f64>(xMin), v128.mul<f64>(wStepFraction2xf64, pX));
   const y0 = v128.sub<f64>(v128.splat<f64>(yMax), v128.mul<f64>(hStepFraction2xf64, pY));
 
-  let x = v128.splat<f64>(0);
-  let y = v128.splat<f64>(0);
+  let x = f64x2(0, 0);
+  let y = f64x2(0, 0);
 
-  let notDivergedYet = v128.splat<u64>(0xffff_ffff_ffff_ffff);
-  let divergedAtIter = v128.splat<u64>(0);
+  let notDivergedYet = i64x2(0xffff_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff);
+  let divergedAtIter = i64x2(0, 0);
   for (let i: u32 = 0; i < maxIterations; i++) {
     const xSqr = v128.mul<f64>(x, x);
     const ySqr = v128.mul<f64>(y, y);
