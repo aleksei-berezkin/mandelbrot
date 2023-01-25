@@ -111,14 +111,20 @@ async function instantiate(requiredMemBytes) {
         {initial: requiredPages}
     );
 
-    const instObj = await WebAssembly.instantiateStreaming(
-        fetch('wasm/release.wasm'),
-        {
-            env: {memory}
-        },
-    );
-
-    return instObj.instance.exports;
+    try {
+        const instObj = await WebAssembly.instantiateStreaming(
+            fetch('wasm/release.wasm'),
+            {
+                env: {memory}
+            },
+        );
+        return instObj.instance.exports;
+    } catch (e) {
+        if (e instanceof WebAssembly.CompileError) {
+            // TODO non-vectorized
+            console.log('Seems like vectorization not supported')
+        }
+    }
 }
 
 function writeBigNum(offsetU32, bigNum, u32Buf) {

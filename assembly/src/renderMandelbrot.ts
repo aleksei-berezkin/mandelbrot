@@ -1,4 +1,4 @@
-// noinspection DuplicatedCode, ShiftOutOfRangeJS, JSUnusedGlobalSymbols
+// noinspection DuplicatedCode, ShiftOutOfRangeJS, JSUnusedGlobalSymbols,JSSuspiciousNameCombination
 
 // Shared
 export let isBigNum: boolean;
@@ -14,6 +14,8 @@ export let h: f64;
 let yMax: f64;
 let wStepFraction: f64;
 let hStepFraction: f64;
+let wStepFraction2xf64: v128;
+let hStepFraction2xf64: v128;
 
 
 // Only BigNum
@@ -27,6 +29,8 @@ export function renderMandelbrot(): void {
     yMax = yMin + h;
     wStepFraction = w * (1.0 / (canvasW as f64));
     hStepFraction = h * (1.0 / (canvasH as f64));
+    wStepFraction2xf64 = v128.splat<f64>(wStepFraction);
+    hStepFraction2xf64 = v128.splat<f64>(hStepFraction);
   } else {
     if (precision - fracPrecision !== 1) {
       // Must be 1
@@ -229,13 +233,61 @@ function renderAndStoreTwoPoints(xy1: u64, xy2: u64): u64 {
   return c1c2;
 }
 
+const two = v128.splat<f64>(2.0);
+const four = v128.splat<f64>(4.0);
+
 function renderTwoPointsDouble(xy1: u64, xy2: u64): u64 {
-  // TODO vectorized
-  const c1 = renderPointDouble(xy1 as u32, (xy1 >>> 32) as u32) as u64;
-  const c2 = renderPointDouble(xy2 as u32, (xy2 >>> 32) as u32) as u64;
-  return c1 | (c2 << 32);
+  let pX = v128.splat<f64>((xy1 & 0xffff_ffff) as f64);
+  pX = v128.replace_lane<f64>(pX, 1, (xy2 & 0xffff_ffff) as f64);
+
+  let pY = v128.splat<f64>((xy1 >>> 32) as f64);
+  pY = v128.replace_lane<f64>(pY, 1, (xy2 >>> 32) as f64);
+
+  // canvas has (0, 0) at the left-top, so flip Y
+  // x0 = xMin + wStepFraction * pX
+  // y0 = yMax - hStepFraction * pY;
+  const x0 = v128.add<f64>(v128.splat<f64>(xMin), v128.mul<f64>(wStepFraction2xf64, pX));
+  const y0 = v128.sub<f64>(v128.splat<f64>(yMax), v128.mul<f64>(hStepFraction2xf64, pY));
+
+  let x = v128.splat<f64>(0);
+  let y = v128.splat<f64>(0);
+
+  let notDivergedYet = v128.splat<u64>(0xffff_ffff_ffff_ffff);
+  let divergedAtIter = v128.splat<u64>(0);
+  for (let i: u32 = 0; i < maxIterations; i++) {
+    const xSqr = v128.mul<f64>(x, x);
+    const ySqr = v128.mul<f64>(y, y);
+    const ge4 = v128.ge<f64>(v128.add<f64>(xSqr, ySqr), four);
+
+    const justDiverged = v128.and(notDivergedYet, ge4);
+    notDivergedYet = v128.andnot(notDivergedYet, justDiverged);
+    if (v128.any_true(justDiverged)) {
+      divergedAtIter = v128.or(
+          divergedAtIter,
+          v128.and(justDiverged, v128.splat<u64>(i)),
+      );
+      if (v128.all_true<u64>(divergedAtIter)) {
+        break;
+      }
+    }
+
+    // xNext = xSqr - ySqr + x0;
+    // yNext = 2.0 * x * y + y0;
+    const xNext = v128.add<f64>(v128.sub<f64>(xSqr, ySqr), x0);
+    y = v128.add<f64>(v128.mul<f64>(v128.mul<f64>(two, x), y), y0);
+
+    x = xNext;
+  }
+
+  divergedAtIter = v128.or(
+      divergedAtIter,
+      v128.and(notDivergedYet, v128.splat<u64>(maxIterations)),
+  );
+
+  return v128.extract_lane<u64>(divergedAtIter, 0) | (v128.extract_lane<u64>(divergedAtIter, 1) << 32);
 }
 
+// TODO Fallback for Safari
 function renderPointDouble(pX: u32, pY: u32): u32 {
   // canvas has (0, 0) at the left-top, so flip Y
   const x0: f64 = xMin + wStepFraction * pX
