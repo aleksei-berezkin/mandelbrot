@@ -221,14 +221,14 @@ function loadRendered(xy: u64): u32 {
   return load<u32>(4 * (y * canvasW + x));
 }
 
-function renderAndStoreTwoPoints(xy1: u64, xy2: u64): u64 {
+function renderAndStoreTwoPoints(xy0: u64, xy1: u64): u64 {
   const c1c2 = isBigNum
-      ? renderTwoPointsBigNum(xy1, xy2)
-      : renderTwoPointsDouble(xy1, xy2);
+      ? renderTwoPointsBigNum(xy0, xy1)
+      : renderTwoPointsDouble(xy0, xy1);
 
   // ptr = 4 * (y * canvasW + x)
-  store<u32>(4 * (((xy1 >>> 32) as u32) * canvasW + (xy1 as u32)), c1c2 as u32);
-  store<u32>(4 * (((xy2 >>> 32) as u32) * canvasW + (xy2 as u32)), (c1c2 >>> 32) as u32);
+  store<u32>(4 * (((xy0 >>> 32) as u32) * canvasW + (xy0 as u32)), c1c2 as u32);
+  store<u32>(4 * (((xy1 >>> 32) as u32) * canvasW + (xy1 as u32)), (c1c2 >>> 32) as u32);
 
   return c1c2;
 }
@@ -236,12 +236,12 @@ function renderAndStoreTwoPoints(xy1: u64, xy2: u64): u64 {
 const two = v128.splat<f64>(2.0);
 const four = v128.splat<f64>(4.0);
 
-function renderTwoPointsDouble(xy1: u64, xy2: u64): u64 {
-  let pX = v128.splat<f64>((xy1 & 0xffff_ffff) as f64);
-  pX = v128.replace_lane<f64>(pX, 1, (xy2 & 0xffff_ffff) as f64);
+function renderTwoPointsDouble(xy0: u64, xy1: u64): u64 {
+  let pX = v128.splat<f64>((xy0 & 0xffff_ffff) as f64);
+  pX = v128.replace_lane<f64>(pX, 1, (xy1 & 0xffff_ffff) as f64);
 
-  let pY = v128.splat<f64>((xy1 >>> 32) as f64);
-  pY = v128.replace_lane<f64>(pY, 1, (xy2 >>> 32) as f64);
+  let pY = v128.splat<f64>((xy0 >>> 32) as f64);
+  pY = v128.replace_lane<f64>(pY, 1, (xy1 >>> 32) as f64);
 
   // canvas has (0, 0) at the left-top, so flip Y
   // x0 = xMin + wStepFraction * pX
@@ -312,10 +312,10 @@ function renderPointDouble(pX: u32, pY: u32): u32 {
   return i;
 }
 
-function renderTwoPointsBigNum(xy1: u64, xy2: u64): u64 {
+function renderTwoPointsBigNum(xy0: u64, xy1: u64): u64 {
   // TODO vectorized
-  const c1 = renderPointBigNum(xy1 as u32, (xy1 >>> 32) as u32) as u64;
-  const c2 = renderPointBigNum(xy2 as u32, (xy2 >>> 32) as u32) as u64;
+  const c1 = renderPointBigNum(xy0 as u32, (xy0 >>> 32) as u32) as u64;
+  const c2 = renderPointBigNum(xy1 as u32, (xy1 >>> 32) as u32) as u64;
   return c1 | (c2 << 32);
 }
 
