@@ -11,7 +11,7 @@ const outLines = [];
 setEmitCb(str => outLines.push(str));
 
 const minPrecision = 3;
-const maxPrecision = 4;
+const maxPrecision = 12;
 
 templateLines.forEach(inputLine => {
     const precision = 3;
@@ -39,9 +39,8 @@ function emitGlobalDeclarations(precision) {
     emitDecl({names: ['xMin', 'w', 'yMin', 'h'], precision, isExport: true});
     emitDecl({names: ['yMax', 'wStepFraction', 'hStepFraction'], precision});
 
-    // todo remove exports
-    emitDecl({names: ['xMinVec', 'wVec', 'yMinVec', 'hVec'], precision, vector: true, isExport: true});
-    emitDecl({names: ['yMaxVec', 'wStepFractionVec', 'hStepFractionVec'], precision, vector: true, isExport: true});
+    emitDecl({names: ['xMinVec', 'wVec', 'yMinVec', 'hVec'], precision, vector: true});
+    emitDecl({names: ['yMaxVec', 'wStepFractionVec', 'hStepFractionVec'], precision, vector: true});
 }
 
 function emitFunctionWithPrecisionSwitch(name, type, paramsTyped, params) {
@@ -179,8 +178,12 @@ function emitRenderPointBigNumVectorized(precision) {
     ));
 
     ['x', 'y'].forEach(op => {
-        emit(`neg = v128.ne<u64>(v128.and(${op}Pos0, ${i64x2('0x8000_0000')}), ${i64x2(0)});`);
+        emit(
+            `neg = v128.ne<u64>(v128.and(${op}Pos0, ${i64x2('0x8000_0000')}), ${i64x2(0)});`,
+            'if (v128.any_true(neg)) {',
+        );
         emitNegateVectorIf(`${op}Pos`, 'neg', precision);
+        emit('}')
     })
 
     emit('}');
@@ -291,8 +294,7 @@ function emitMulPosVector(a, b, c, precision) {
             if (!skipCheckOverflow) {
                 emit(
                     // No u64 comparison https://stackoverflow.com/questions/65441496/what-is-the-most-efficient-way-to-do-unsigned-64-bit-comparison-on-sse2#comment115700244_65441496
-                    `m = v128.lt<i64>(v128.xor(curr, ${i64x2('0x8000_0000_0000_0000')}), v128.xor(m, ${i64x2('0x8000_0000_0000_0000')}));`,
-                    `m = v128.and(m, ${i64x2('0x1_0000_0000')});`,
+                    `m = v128.and(${i64x2('0x1_0000_0000')}, v128.lt<i64>(v128.xor(curr, ${i64x2('0x8000_0000_0000_0000')}), v128.xor(m, ${i64x2('0x8000_0000_0000_0000')})));`,
                     `next = v128.add<u64>(next, m);`,
                 )
             }
@@ -388,9 +390,10 @@ function emitNegateVectorIf(a, b, precision) {
     emit(
         `// negate ${a} if ${b}`,
         `cOut = v128.and(${i64x2(1)}, ${b});`,
+        `m = v128.and(${i64x2('0xffff_ffff')}, ${b});`,
     );
     rangeFromTo(precision - 1, 0).forEach(i => {
-        emit(`${a}${i} = v128.add<u64>(v128.xor(${a}${i}, v128.and(${i64x2('0xffff_ffff')}, ${b})), cOut);`);
+        emit(`${a}${i} = v128.add<u64>(v128.xor(${a}${i}, m), cOut);`);
         if (i) {
             emit(`cOut = v128.shr<u64>(${a}${i}, 32);`);
         }
