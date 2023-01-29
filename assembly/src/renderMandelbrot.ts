@@ -14,8 +14,8 @@ export let h: f64;
 let yMax: f64;
 let wStepFraction: f64;
 let hStepFraction: f64;
-let wStepFraction2xf64: v128;
-let hStepFraction2xf64: v128;
+let wStepFractionVec: v128;
+let hStepFractionVec: v128;
 
 
 // Only BigNum
@@ -29,8 +29,8 @@ export function renderMandelbrot(): void {
     yMax = yMin + h;
     wStepFraction = w * (1.0 / (canvasW as f64));
     hStepFraction = h * (1.0 / (canvasH as f64));
-    wStepFraction2xf64 = v128.splat<f64>(wStepFraction);
-    hStepFraction2xf64 = v128.splat<f64>(hStepFraction);
+    wStepFractionVec = v128.splat<f64>(wStepFraction);
+    hStepFractionVec = v128.splat<f64>(hStepFraction);
   } else {
     if (precision - fracPrecision !== 1) {
       // Must be 1
@@ -246,8 +246,8 @@ function renderTwoPointsDouble(xy0: u64, xy1: u64): u64 {
   // canvas has (0, 0) at the left-top, so flip Y
   // x0 = xMin + wStepFraction * pX
   // y0 = yMax - hStepFraction * pY;
-  const x0 = v128.add<f64>(v128.splat<f64>(xMin), v128.mul<f64>(wStepFraction2xf64, pX));
-  const y0 = v128.sub<f64>(v128.splat<f64>(yMax), v128.mul<f64>(hStepFraction2xf64, pY));
+  const x0 = v128.add<f64>(v128.splat<f64>(xMin), v128.mul<f64>(wStepFractionVec, pX));
+  const y0 = v128.sub<f64>(v128.splat<f64>(yMax), v128.mul<f64>(hStepFractionVec, pY));
 
   let x = f64x2(0, 0);
   let y = f64x2(0, 0);
@@ -312,12 +312,14 @@ function renderPointDouble(pX: u32, pY: u32): u32 {
   return i;
 }
 
-function renderTwoPointsBigNum(xy0: u64, xy1: u64): u64 {
-  // TODO vectorized
-  const c1 = renderPointBigNum(xy0 as u32, (xy0 >>> 32) as u32) as u64;
-  const c2 = renderPointBigNum(xy1 as u32, (xy1 >>> 32) as u32) as u64;
-  return c1 | (c2 << 32);
-}
+function renderTwoPointsBigNum(xy0: u64, xy1: u64): u64 { /* +++ Generate render vectorized */ return 0 }
+
+// function renderTwoPointsBigNum(xy0: u64, xy1: u64): u64 {
+//   // TODO vectorized
+//   const c1 = renderPointBigNum(xy0 as u32, (xy0 >>> 32) as u32) as u64;
+//   const c2 = renderPointBigNum(xy1 as u32, (xy1 >>> 32) as u32) as u64;
+//   return c1 | (c2 << 32);
+// }
 
 // noinspection JSUnusedLocalSymbols
-function renderPointBigNum(pX: u32, pY: u32): u32 { /* +++ Generate render */ return 0 }
+function renderPointBigNum(pX: u32, pY: u32): u32 { /* +++ Generate render simple */ return 0 }
