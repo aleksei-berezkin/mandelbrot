@@ -16,8 +16,8 @@ const isBigNumPromise = (async () => {
  * @param message {{data: [Coords, number, number, number]}}
  */
 async function messageHandler(message) {
-    const [coords, canvasW, canvasH, zoom] = message.data;
-    const rgbaArray = await doRender(coords, canvasW, canvasH, zoom);
+    const [coords, canvasW, canvasH, maxIterations] = message.data;
+    const rgbaArray = await doRender(coords, canvasW, canvasH, maxIterations);
     self.postMessage(rgbaArray);
 }
 

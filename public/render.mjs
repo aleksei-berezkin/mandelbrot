@@ -58,8 +58,8 @@ async function render0(canvas, hiddenCanvas, taskId) {
     const canvasH = canvas.height;
 
     const parts = [...splitWork(
-        coords.yMin,
-        coords.h,
+        coords,
+        canvasW,
         canvasH,
         workers.length * 2,
     )];
@@ -81,14 +81,8 @@ async function render0(canvas, hiddenCanvas, taskId) {
             const part = parts.splice(0, 1)[0]
             const rgbaArray = await renderOnWorker(
                 worker,
-                {
-                    unit: coords.unit,
-                    xMin: coords.xMin,
-                    w: coords.w,
-                    yMin: part.yMin,
-                    h: part.h,
-                },
-                canvasW,
+                part.coords,
+                part.canvasW,
                 part.canvasH,
                 maxIterations,
             );
@@ -99,6 +93,8 @@ async function render0(canvas, hiddenCanvas, taskId) {
 
             results.push({
                 rgbaArray,
+                canvasXMin: part.canvasXMin,
+                canvasW: part.canvasW,
                 canvasYMin: part.canvasYMin,
                 canvasH: part.canvasH,
             });
@@ -132,11 +128,11 @@ async function render0(canvas, hiddenCanvas, taskId) {
  * @param coords {Coords}
  * @param canvasW {number}
  * @param canvasH {number}
- * @param zoom {number}
+ * @param maxIterations {number}
  * @return {Promise<Uint8ClampedArray>}
  */
-async function renderOnWorker(worker, coords, canvasW, canvasH, zoom) {
-    worker.postMessage([coords, canvasW, canvasH, zoom]);
+async function renderOnWorker(worker, coords, canvasW, canvasH, maxIterations) {
+    worker.postMessage([coords, canvasW, canvasH, maxIterations]);
     return new Promise(resolve => {
         worker.onmessage = function (message) {
             worker.onmessage = undefined;
@@ -148,30 +144,37 @@ async function renderOnWorker(worker, coords, canvasW, canvasH, zoom) {
 const minCanvasH = 8;
 
 /**
- * @param yMin {BigInt}
- * @param h {BigInt}
+ * @param coords {Coords}
+ * @param canvasW {number}
  * @param canvasH {number}
  * @param nApprox {number}
- * @return {Generator<{yMin: BigInt, h: BigInt, canvasYMin: number, canvasH: number}>}
+ * @return {Generator<{coords: Coords, canvasXMin: number, canvasW: number, canvasYMin: number, canvasH: number}>}
  */
-function* splitWork(yMin, h, canvasH, nApprox) {
+function* splitWork(coords, canvasW, canvasH, nApprox) {
     const _nApprox = Math.min(nApprox, Math.ceil(canvasH / minCanvasH));
 
-    const yPart = h / BigInt(_nApprox);
+    const yPart = coords.h / BigInt(_nApprox);
 
     let yDone = 0n;
-    let yRemaining = h;
+    let yRemaining = coords.h;
 
     let canvasYDone = 0;
     let canvasYRemaining = canvasH;
 
     while (yRemaining) {
         const currentYPart = min(yRemaining, mulBigIntByNum(yPart, (Math.random() + .5)));
-        const currentCanvasHPart = Number(BigInt(canvasH) * (yDone + currentYPart) / h) - canvasYDone;
+        const currentCanvasHPart = Number(BigInt(canvasH) * (yDone + currentYPart) / coords.h) - canvasYDone;
 
         yield {
-            yMin: yMin + yDone,
-            h: currentYPart,
+            coords: {
+                unit: coords.unit,
+                xMin: coords.xMin,
+                w: coords.w,
+                yMin: coords.yMin + yDone,
+                h: currentYPart,
+            },
+            canvasXMin: 0,
+            canvasW,
             canvasYMin: canvasYDone,
             canvasH: currentCanvasHPart,
         };
