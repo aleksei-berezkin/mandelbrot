@@ -1,8 +1,8 @@
 import { getMathCoords, mathCoordsToQuery } from './mathCoords.mjs';
 import { isBigNum } from './isBigNum.mjs';
 import { bigIntToBigNum } from './bigIntToBigNum.mjs';
-import { mulBigIntByNum } from './bigIntArithHelper.mjs';
 import { renderResults } from './renderResults.mjs';
+import { splitWork } from './splitWork.mjs';
 
 let currentTaskId = 0;
 
@@ -59,9 +59,13 @@ async function render0(canvas, hiddenCanvas, taskId) {
 
     const parts = [...splitWork(
         coords,
-        canvasW,
-        canvasH,
-        workers.length * 2,
+        {
+            xMin: 0,
+            w: canvasW,
+            yMin: 0,
+            h: canvasH,
+        },
+        Math.log2(workers.length * 8),
     )];
 
     const tasksNum = parts.length;
@@ -82,8 +86,8 @@ async function render0(canvas, hiddenCanvas, taskId) {
             const rgbaArray = await renderOnWorker(
                 worker,
                 part.coords,
-                part.canvasW,
-                part.canvasH,
+                part.canvasCoords.w,
+                part.canvasCoords.h,
                 maxIterations,
             );
 
@@ -93,10 +97,7 @@ async function render0(canvas, hiddenCanvas, taskId) {
 
             results.push({
                 rgbaArray,
-                canvasXMin: part.canvasXMin,
-                canvasW: part.canvasW,
-                canvasYMin: part.canvasYMin,
-                canvasH: part.canvasH,
+                canvasCoords: part.canvasCoords,
             });
             tasksDone++;
             if (tasksDone === tasksNum) {
@@ -139,58 +140,4 @@ async function renderOnWorker(worker, coords, canvasW, canvasH, maxIterations) {
             resolve(message.data);
         }
     });
-}
-
-const minCanvasH = 8;
-
-/**
- * @param coords {Coords}
- * @param canvasW {number}
- * @param canvasH {number}
- * @param nApprox {number}
- * @return {Generator<{coords: Coords, canvasXMin: number, canvasW: number, canvasYMin: number, canvasH: number}>}
- */
-function* splitWork(coords, canvasW, canvasH, nApprox) {
-    const _nApprox = Math.min(nApprox, Math.ceil(canvasH / minCanvasH));
-
-    const yPart = coords.h / BigInt(_nApprox);
-
-    let yDone = 0n;
-    let yRemaining = coords.h;
-
-    let canvasYDone = 0;
-    let canvasYRemaining = canvasH;
-
-    while (yRemaining) {
-        const currentYPart = min(yRemaining, mulBigIntByNum(yPart, (Math.random() + .5)));
-        const currentCanvasHPart = Number(BigInt(canvasH) * (yDone + currentYPart) / coords.h) - canvasYDone;
-
-        yield {
-            coords: {
-                unit: coords.unit,
-                xMin: coords.xMin,
-                w: coords.w,
-                yMin: coords.yMin + yDone,
-                h: currentYPart,
-            },
-            canvasXMin: 0,
-            canvasW,
-            canvasYMin: canvasYDone,
-            canvasH: currentCanvasHPart,
-        };
-
-        yDone += currentYPart;
-        yRemaining -= currentYPart;
-
-        canvasYDone += currentCanvasHPart;
-        canvasYRemaining -= currentCanvasHPart;
-    }
-}
-
-/**
- * @param a {BigInt}
- * @param b {BigInt}
- */
-function min(a, b) {
-    if (a < b) return a; else return b;
 }

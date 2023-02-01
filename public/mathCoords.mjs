@@ -1,7 +1,3 @@
-/**
- * 'unit' means '1'
- * @typedef {{unit: BigInt, xMin: BigInt, w: BigInt, yMin: BigInt, h: BigInt}} Coords
- */
 import { divToNum, mulBigIntByNum } from './bigIntArithHelper.mjs';
 
 const initUnit = 20000;

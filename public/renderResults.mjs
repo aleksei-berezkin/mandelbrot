@@ -8,7 +8,7 @@ const auxMulN = BigInt(auxMul);
  * @param canvas {HTMLCanvasElement}
  * @param hiddenCanvas {HTMLCanvasElement}
  * @param renderCoords {Coords}
- * @param results {[{rgbaArray: Uint8ClampedArray, canvasXMin: number, canvasW: number, canvasYMin: number, canvasH: number}]}
+ * @param results {[{rgbaArray: Uint8ClampedArray, canvasCoords: CanvasCoords}]}
  * @param isPrerender
  */
 export function renderResults(canvas, hiddenCanvas, renderCoords, results, isPrerender) {
@@ -28,9 +28,9 @@ export function renderResults(canvas, hiddenCanvas, renderCoords, results, isPre
     hiddenCtx.clearRect(0, 0, canvas.width, canvas.height);
     for (const result of results) {
         hiddenCtx.putImageData(
-            new ImageData(result.rgbaArray, canvas.width, result.canvasH),
-            result.canvasXMin + deltaPx.x,
-            deltaPx.y + canvas.height - result.canvasYMin - result.canvasH,
+            new ImageData(result.rgbaArray, result.canvasCoords.w, result.canvasCoords.h),
+            result.canvasCoords.xMin + deltaPx.x,
+            deltaPx.y + canvas.height - result.canvasCoords.yMin - result.canvasCoords.h,
         );
     }
 
