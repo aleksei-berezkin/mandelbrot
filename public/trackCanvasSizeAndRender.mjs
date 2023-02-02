@@ -14,12 +14,13 @@ export function trackCanvasSizeAndRender(canvas, hiddenCanvas) {
         canvas.height = rect.height * ddp;
         hiddenCanvas.width = canvas.width;
         hiddenCanvas.height = canvas.height;
+        const renderImmediately = initial;
         if (initial) {
             initial = false;
         } else {
             resizeMathCoords(canvas, oldWidth, oldHeight);
         }
-        void render(canvas, hiddenCanvas, true);
+        void render(canvas, hiddenCanvas, renderImmediately);
     }
     window.addEventListener('resize', setCanvasSize);
     setCanvasSize();
