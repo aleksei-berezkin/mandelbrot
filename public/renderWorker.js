@@ -13,12 +13,12 @@ const isBigNumPromise = (async () => {
 })()
 
 /**
- * @param message {{data: [Coords, number, number, number]}}
+ * @param message {{data: {workerTaskId: number, coords: Coords, canvasCoords: CanvasCoords, maxIterations: number}}}
  */
 async function messageHandler(message) {
-    const [coords, canvasW, canvasH, maxIterations] = message.data;
-    const rgbaArray = await doRender(coords, canvasW, canvasH, maxIterations);
-    self.postMessage(rgbaArray);
+    const {workerTaskId, coords, canvasCoords, maxIterations} = message.data;
+    const rgbaArray = await doRender(coords, canvasCoords.w, canvasCoords.h, maxIterations);
+    self.postMessage({workerTaskId, rgbaArray});
 }
 
 self.onmessage = messageHandler
@@ -127,10 +127,6 @@ async function instantiate(requiredMemBytes) {
     }
 }
 
-function writeBigNum(offsetU32, bigNum, u32Buf) {
-    bigNum.forEach((v, i) => u32Buf[offsetU32 + i] = v);
-}
-
 /**
  * @type {Map<number, [number, number, number]>}
  */
@@ -144,8 +140,7 @@ const colorCache = new Map();
  */
 function mapToRgba(iterArray, canvasW, canvasH, maxIterations) {
     const rgbaArray = new Uint8ClampedArray(4 * canvasW * canvasH);
-    for (let i = 0; i < iterArray.length; i++) {
-
+    for (let i = 0; i < canvasW * canvasH; i++) {
         const iterCount = iterArray[i];
         const arrOffset = i * 4;
         if (iterCount < maxIterations) {

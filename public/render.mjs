@@ -4,13 +4,13 @@ import { bigIntToBigNum } from './bigIntToBigNum.mjs';
 import { renderResults } from './renderResults.mjs';
 import { splitWork } from './splitWork.mjs';
 
-let currentTaskId = 0;
+let currentRenderTaskId = 0;
 
 
 export async function render(canvas, hiddenCanvas, immediately = false) {
-    const taskId = ++currentTaskId;
+    const thisRenderTaskId = ++currentRenderTaskId;
     const renderCb = async function() {
-        await render0(canvas, hiddenCanvas, taskId);
+        await render0(canvas, hiddenCanvas, thisRenderTaskId);
     }
 
     if (immediately) {
@@ -27,8 +27,8 @@ const workers = Array.from({length: navigator.hardwareConcurrency ?? 4})
 
 let initial = true;
 
-async function render0(canvas, hiddenCanvas, taskId) {
-    if (taskId !== currentTaskId) {
+async function render0(canvas, hiddenCanvas, thisRenderTaskId) {
+    if (thisRenderTaskId !== currentRenderTaskId) {
         return;
     }
 
@@ -78,7 +78,7 @@ async function render0(canvas, hiddenCanvas, taskId) {
     const workerPromises = workers.map(async worker => {
         const results = [];
         while (parts.length) {
-            if (taskId !== currentTaskId) {
+            if (thisRenderTaskId !== currentRenderTaskId) {
                 break;
             }
 
@@ -86,12 +86,11 @@ async function render0(canvas, hiddenCanvas, taskId) {
             const rgbaArray = await renderOnWorker(
                 worker,
                 part.coords,
-                part.canvasCoords.w,
-                part.canvasCoords.h,
+                part.canvasCoords,
                 maxIterations,
             );
 
-            if (taskId !== currentTaskId) {
+            if (thisRenderTaskId !== currentRenderTaskId) {
                 break;
             }
 
@@ -124,20 +123,31 @@ async function render0(canvas, hiddenCanvas, taskId) {
     document.getElementById('done-in').innerText = `Done in ${Date.now() - startMs} ms`
 }
 
+let nextWorkerTaskId = 0;
+
+const workerTaskIdToMessageListener = new Map();
+
 /**
  * @param worker {Worker}
  * @param coords {Coords}
- * @param canvasW {number}
- * @param canvasH {number}
+ * @param canvasCoords {CanvasCoords}
  * @param maxIterations {number}
  * @return {Promise<Uint8ClampedArray>}
  */
-async function renderOnWorker(worker, coords, canvasW, canvasH, maxIterations) {
-    worker.postMessage([coords, canvasW, canvasH, maxIterations]);
+async function renderOnWorker(worker, coords, canvasCoords, maxIterations) {
+    const workerTaskId = nextWorkerTaskId++;
     return new Promise(resolve => {
-        worker.onmessage = function (message) {
-            worker.onmessage = undefined;
-            resolve(message.data);
-        }
+        workerTaskIdToMessageListener.set(workerTaskId, function(rgbaArray) {
+            workerTaskIdToMessageListener.delete(workerTaskId);
+            resolve(rgbaArray);
+        });
+        worker.postMessage({workerTaskId, coords, canvasCoords, maxIterations});
     });
 }
+
+function messageFromWorkerHandler(message) {
+    const {workerTaskId, rgbaArray} = message.data;
+    workerTaskIdToMessageListener.get(workerTaskId)(rgbaArray);
+}
+
+workers.forEach(worker => worker.onmessage = messageFromWorkerHandler);

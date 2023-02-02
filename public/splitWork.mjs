@@ -1,6 +1,6 @@
 import { mulBigIntByNum } from './bigIntArithHelper.mjs';
 
-const minToSplit = 8;
+const minToSplit = 32;
 
 /**
  * @param coords {Coords}
