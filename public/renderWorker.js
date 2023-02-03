@@ -13,12 +13,12 @@ const isBigNumPromise = (async () => {
 })()
 
 /**
- * @param message {{data: {workerTaskId: number, coords: Coords, canvasCoords: CanvasCoords, maxIterations: number}}}
+ * @param message {{data: {renderTaskId: number, workerCallId: number, data: {coords: Coords, canvasCoords: CanvasCoords, maxIterations: number}}}}
  */
 async function messageHandler(message) {
-    const {workerTaskId, coords, canvasCoords, maxIterations} = message.data;
-    const rgbaArray = await doRender(coords, canvasCoords.w, canvasCoords.h, maxIterations);
-    self.postMessage({workerTaskId, rgbaArray});
+    const {workerCallId, data} = message.data;
+    const rgbaArray = await doRender(data.coords, data.canvasCoords.w, data.canvasCoords.h, data.maxIterations);
+    self.postMessage({workerCallId, data: {rgbaArray}});
 }
 
 self.onmessage = messageHandler
