@@ -8,7 +8,7 @@ const auxMulN = BigInt(auxMul);
  * @param canvas {HTMLCanvasElement}
  * @param hiddenCanvas {HTMLCanvasElement}
  * @param renderCoords {Coords}
- * @param results {[{rgbaArray: Uint8ClampedArray, canvasCoords: CanvasCoords}]}
+ * @param results {[{rgba: Uint8ClampedArray, canvasCoords: CanvasCoords}]}
  * @param isPrerender
  */
 export function renderResults(canvas, hiddenCanvas, renderCoords, results, isPrerender) {
@@ -28,7 +28,7 @@ export function renderResults(canvas, hiddenCanvas, renderCoords, results, isPre
     hiddenCtx.clearRect(0, 0, canvas.width, canvas.height);
     for (const result of results) {
         hiddenCtx.putImageData(
-            new ImageData(result.rgbaArray, result.canvasCoords.w, result.canvasCoords.h),
+            new ImageData(result.rgba, result.canvasCoords.w, result.canvasCoords.h),
             result.canvasCoords.xMin + deltaPx.x,
             deltaPx.y + canvas.height - result.canvasCoords.yMin - result.canvasCoords.h,
         );
@@ -63,13 +63,13 @@ function toSameUnit(...coords) {
 }
 
 /**
- * @param results {[{rgbaArray: Uint8ClampedArray}]}
+ * @param results {[{rgba: Uint8ClampedArray}]}
  * @param width {number}
  */
 function getEdgeColor(results, width) {
     const pixels = [
-        ...topSideRgb(results[0].rgbaArray, width),
-        ...bottomSideRgb(results[results.length - 1].rgbaArray, width),
+        ...topSideRgb(results[0].rgba, width),
+        ...bottomSideRgb(results[results.length - 1].rgba, width),
         ...results.map(res => [...sidesRgb(res, width)]).flatMap(rgbs => rgbs),
     ];
     const [r, g, b] = pixels
@@ -79,40 +79,40 @@ function getEdgeColor(results, width) {
 }
 
 /**
- * @param rgbaArray {Uint8ClampedArray}
+ * @param rgba {Uint8ClampedArray}
  * @param width
  * @return {Generator<[number, number, number]>}
  */
-function* topSideRgb(rgbaArray, width) {
+function* topSideRgb(rgba, width) {
     for (let i = 0; i < width; i++) {
         yield [
-            rgbaArray[4 * i],
-            rgbaArray[4 * i + 1],
-            rgbaArray[4 * i + 2],
+            rgba[4 * i],
+            rgba[4 * i + 1],
+            rgba[4 * i + 2],
         ]
     }
 }
 
-function* bottomSideRgb(rgbaArray, width) {
-    const height = rgbaArray.length / 4 / width;
+function* bottomSideRgb(rgba, width) {
+    const height = rgba.length / 4 / width;
     const offset = 4 * width * (height - 1);
     for (let i = 0; i < width; i++) {
         yield [
-            rgbaArray[offset + 4 * i],
-            rgbaArray[offset + 4 * i + 1],
-            rgbaArray[offset + 4 * i + 2],
+            rgba[offset + 4 * i],
+            rgba[offset + 4 * i + 1],
+            rgba[offset + 4 * i + 2],
         ]
     }
 }
 
-function* sidesRgb(rgbaArray, width) {
-    const height = rgbaArray.length / 4 / width;
+function* sidesRgb(rgba, width) {
+    const height = rgba.length / 4 / width;
     for (let i = 0; i < height; i++) {
         for (const j of [0, width - 1]) {
             yield [
-                rgbaArray[4 * width * i + 4 * j],
-                rgbaArray[4 * width * i + 4 * j + 1],
-                rgbaArray[4 * width * i + 4 * j + 2],
+                rgba[4 * width * i + 4 * j],
+                rgba[4 * width * i + 4 * j + 1],
+                rgba[4 * width * i + 4 * j + 2],
             ]
         }
     }

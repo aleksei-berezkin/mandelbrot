@@ -12,17 +12,69 @@ const isBigNumPromise = (async () => {
     return isBigNum;
 })()
 
-/**
- * @param message {{data: {renderTaskId: number, workerCallId: number, data: {coords: Coords, canvasCoords: CanvasCoords, maxIterations: number}}}}
- */
 async function messageHandler(message) {
-    const {workerCallId, data} = message.data;
-    const rgbaArray = await doRender(data.coords, data.canvasCoords.w, data.canvasCoords.h, data.maxIterations);
-    self.postMessage({workerCallId, data: {rgbaArray}});
+    const {renderTaskId, workerCallId, commandName, data} = message.data;
+    let resultData;
+    if (commandName === 'renderMain') {
+        const {coords, canvasCoords, maxIterations} = data;
+        resultData = await renderMain(renderTaskId, coords, canvasCoords, maxIterations);
+    } else if (commandName === 'mapToRgba') {
+        const {paletteDepth} = data;
+        resultData = mapToRgba(renderTaskId, paletteDepth);
+    }
+    self.postMessage({workerCallId, data: resultData});
 }
 
 self.onmessage = messageHandler
 
+/**
+ * @type {undefined | number}
+ */
+let lastRenderTaskId = undefined;
+/**
+ * @type {{coords: Coords, canvasCoords: CanvasCoords, iterNums: Uint32Array, maxIterations: number}[]}
+ */
+const lastResults = []
+
+/**
+ * @param renderTaskId {number}
+ * @param coords {Coords}
+ * @param canvasCoords {CanvasCoords}
+ * @param maxIterations {number}
+ */
+async function renderMain(renderTaskId, coords, canvasCoords, maxIterations) {
+    if (lastRenderTaskId == null) {
+        lastRenderTaskId = renderTaskId;
+    } else {
+        if (renderTaskId < lastRenderTaskId) {
+            return;
+        }
+        if (renderTaskId > lastRenderTaskId) {
+            lastRenderTaskId = renderTaskId;
+            lastResults.length = 0;
+        }
+    }
+
+    const iterNums = await doRenderMain(coords, canvasCoords.w, canvasCoords.h, maxIterations);
+    lastResults.push({coords, canvasCoords, iterNums, maxIterations});
+    return {distinctIterNum: new Set(iterNums)};
+}
+
+function mapToRgba(renderTaskId, paletteDepth) {
+    if (lastRenderTaskId !== renderTaskId) {
+        return;
+    }
+
+    const rgbaParts = lastResults.map(({iterNums, canvasCoords, maxIterations}) => ({
+        canvasCoords,
+        rgba: doMapToRgba(iterNums, canvasCoords, maxIterations, paletteDepth),
+    }));
+
+    lastRenderTaskId = undefined;
+    lastResults.length = 0;
+
+    return {rgbaParts};
+}
 
 /**
  * @type {{
@@ -47,9 +99,9 @@ let wasmExports;
  * @param canvasW {number}
  * @param canvasH {number}
  * @param maxIterations {number}
- * @return {Uint8ClampedArray}
+ * @return {Uint32Array}
  */
-async function doRender(coords, canvasW, canvasH, maxIterations) {
+async function doRenderMain(coords, canvasW, canvasH, maxIterations) {
     const outByteSize = 4 * canvasW * canvasH;
 
     const isBigNum = (await isBigNumPromise)(coords.w, coords.unit);
@@ -98,7 +150,7 @@ async function doRender(coords, canvasW, canvasH, maxIterations) {
 
     wasmExports.renderMandelbrot();
 
-    return mapToRgba(u32Buf, canvasW, canvasH, maxIterations);
+    return new Uint32Array(u32Buf);
 }
 
 /**
@@ -127,6 +179,8 @@ async function instantiate(requiredMemBytes) {
     }
 }
 
+let paletteDepthInCache = undefined;
+
 /**
  * @type {Map<number, [number, number, number]>}
  */
@@ -134,13 +188,18 @@ const colorCache = new Map();
 
 /**
  * @param iterArray {Uint32Array}
- * @param canvasW {number}
- * @param canvasH {number}
+ * @param canvasCoords {CanvasCoords}
  * @param maxIterations {number}
+ * @param paletteDepth {number}
  */
-function mapToRgba(iterArray, canvasW, canvasH, maxIterations) {
-    const rgbaArray = new Uint8ClampedArray(4 * canvasW * canvasH);
-    for (let i = 0; i < canvasW * canvasH; i++) {
+function doMapToRgba(iterArray, canvasCoords, maxIterations, paletteDepth) {
+    if (paletteDepth !== paletteDepthInCache) {
+        colorCache.clear();
+    }
+
+    const {w, h} = canvasCoords;
+    const rgba = new Uint8ClampedArray(4 * w * h);
+    for (let i = 0; i < w * h; i++) {
         const iterCount = iterArray[i];
         const arrOffset = i * 4;
         if (iterCount < maxIterations) {
@@ -148,19 +207,19 @@ function mapToRgba(iterArray, canvasW, canvasH, maxIterations) {
             if (colorCache.has(iterCount)) {
                 [r, g, b] = colorCache.get(iterCount);
             } else {
-                r = (Math.sin(iterCount / 13) + 1) / 2 * 255;
-                g = (Math.sin(iterCount / 13 + 5) + 1) / 2 * 255;
-                b = (Math.sin(iterCount / 13 + 9) + 1) / 2 * 255;
+                r = (Math.sin(iterCount / paletteDepth) + 1) / 2 * 255;
+                g = (Math.sin(iterCount / paletteDepth + 5) + 1) / 2 * 255;
+                b = (Math.sin(iterCount / paletteDepth + 9) + 1) / 2 * 255;
                 colorCache.set(iterCount, [r, g, b]);
             }
 
-            rgbaArray[arrOffset] = r;
-            rgbaArray[arrOffset + 1] = g;
-            rgbaArray[arrOffset + 2] = b;
+            rgba[arrOffset] = r;
+            rgba[arrOffset + 1] = g;
+            rgba[arrOffset + 2] = b;
         }
 
-        rgbaArray[arrOffset + 3] = 255;
+        rgba[arrOffset + 3] = 255;
     }
 
-    return rgbaArray;
+    return rgba;
 }

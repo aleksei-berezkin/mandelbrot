@@ -10,7 +10,7 @@ export function prerender(canvas, hiddenCanvas, coords) {
     const {width, height} = canvas;
     const imageData = ctx.getImageData(0, 0, width, height);
     renderResults(canvas, hiddenCanvas, coords, [{
-        rgbaArray: imageData.data,
+        rgba: imageData.data,
         canvasCoords: {
             xMin: 0,
             w: width,
