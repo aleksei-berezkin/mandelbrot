@@ -19,8 +19,8 @@ async function messageHandler(message) {
         const {coords, canvasCoords, maxIterations} = data;
         resultData = await renderMain(renderTaskId, coords, canvasCoords, maxIterations);
     } else if (commandName === 'mapToRgba') {
-        const {paletteDepth} = data;
-        resultData = mapToRgba(renderTaskId, paletteDepth);
+        const {velocity} = data;
+        resultData = mapToRgba(renderTaskId, velocity);
     }
     self.postMessage({workerCallId, data: resultData});
 }
@@ -57,17 +57,22 @@ async function renderMain(renderTaskId, coords, canvasCoords, maxIterations) {
 
     const iterNums = await doRenderMain(coords, canvasCoords.w, canvasCoords.h, maxIterations);
     lastResults.push({coords, canvasCoords, iterNums, maxIterations});
-    return {distinctIterNum: new Set(iterNums)};
+    return {
+        velocity: measureVelocity(iterNums, canvasCoords),
+    };
 }
 
-function mapToRgba(renderTaskId, paletteDepth) {
+const baseVelocity = 10.32;
+const baseIterCountDivisor = 19;
+
+function mapToRgba(renderTaskId, velocity) {
     if (lastRenderTaskId !== renderTaskId) {
         return;
     }
 
     const rgbaParts = lastResults.map(({iterNums, canvasCoords, maxIterations}) => ({
         canvasCoords,
-        rgba: doMapToRgba(iterNums, canvasCoords, maxIterations, paletteDepth),
+        rgba: doMapToRgba(iterNums, canvasCoords, maxIterations, velocity),
     }));
 
     lastRenderTaskId = undefined;
@@ -179,21 +184,59 @@ async function instantiate(requiredMemBytes) {
     }
 }
 
-let paletteDepthInCache = undefined;
+/**
+ * @param iterArray {Uint32Array}
+ * @param canvasCoords {CanvasCoords}
+ */
+function measureVelocity(iterArray, canvasCoords) {
+    let velocity = 0;
+
+    for (let row= 0; row < canvasCoords.h; row++) {
+        let prevIterNum = undefined;
+        for (let col = 0; col < canvasCoords.w; col++) {
+            const currIterNum = iterArray[row * canvasCoords.w + col];
+            if (prevIterNum != null) {
+                velocity += Math.abs(currIterNum - prevIterNum);
+            }
+            prevIterNum = currIterNum;
+        }
+        prevIterNum = undefined;
+    }
+
+    for (let col = 0; col < canvasCoords.w; col++) {
+        let prevIterNum = undefined;
+        for (let row = 0; row < canvasCoords.h; row++) {
+            const currIterNum = iterArray[row * canvasCoords.w + col];
+            if (prevIterNum) {
+                velocity += Math.abs(currIterNum - prevIterNum);
+            }
+            prevIterNum = currIterNum;
+        }
+    }
+
+    return velocity;
+}
+
 
 /**
  * @type {Map<number, [number, number, number]>}
  */
 const colorCache = new Map();
 
+let iterCountDivisorInCache = undefined;
+
 /**
  * @param iterArray {Uint32Array}
  * @param canvasCoords {CanvasCoords}
  * @param maxIterations {number}
- * @param paletteDepth {number}
+ * @param velocity {number}
  */
-function doMapToRgba(iterArray, canvasCoords, maxIterations, paletteDepth) {
-    if (paletteDepth !== paletteDepthInCache) {
+function doMapToRgba(iterArray, canvasCoords, maxIterations, velocity) {
+    const iterCountDivisor = velocity > baseVelocity
+        ? baseIterCountDivisor * Math.pow(1 + .03 * (velocity - baseVelocity), 1.31)
+        : baseIterCountDivisor;
+
+    if (iterCountDivisor !== iterCountDivisorInCache) {
         colorCache.clear();
     }
 
@@ -207,9 +250,9 @@ function doMapToRgba(iterArray, canvasCoords, maxIterations, paletteDepth) {
             if (colorCache.has(iterCount)) {
                 [r, g, b] = colorCache.get(iterCount);
             } else {
-                r = (Math.sin(iterCount / paletteDepth) + 1) / 2 * 255;
-                g = (Math.sin(iterCount / paletteDepth + 5) + 1) / 2 * 255;
-                b = (Math.sin(iterCount / paletteDepth + 9) + 1) / 2 * 255;
+                r = (Math.sin(iterCount / iterCountDivisor) + 1) / 2 * 255;
+                g = (Math.sin(iterCount / iterCountDivisor + 5) + 1) / 2 * 255;
+                b = (Math.sin(iterCount / iterCountDivisor + 9) + 1) / 2 * 255;
                 colorCache.set(iterCount, [r, g, b]);
             }
 

@@ -76,7 +76,7 @@ async function render0(canvas, hiddenCanvas, thisRenderTaskId) {
     loaderWr.style.setProperty('--progress', '0%');
 
     const renderPromises = workers.map(async (worker) => {
-        const resultsWithDistinctIterNum = new Set();
+        const resultDataArr = [];
         while (parts.length) {
             if (thisRenderTaskId !== currentRenderTaskId) {
                 break;
@@ -98,26 +98,24 @@ async function render0(canvas, hiddenCanvas, thisRenderTaskId) {
                 break;
             }
 
-            resultData.distinctIterNum.forEach(iterNum => resultsWithDistinctIterNum.add(iterNum));
+            resultDataArr.push(resultData);
             renderTasksDone++;
-            if (renderTasksDone === renderTasksNum) {
-                loaderWr.style.removeProperty('display');
-                loaderWr.style.setProperty('--progress', '0%');
-            } else {
-                loaderWr.style.setProperty('--progress', `${renderTasksDone / renderTasksNum * 100}%`);
-            }
+
+            const donePercent = renderTasksDone / renderTasksNum * 98;
+            loaderWr.style.setProperty('--progress', `${donePercent}%`);
         }
-        return resultsWithDistinctIterNum;
+        return resultDataArr;
     });
 
 
-    const resultSetsArr = await Promise.all(renderPromises);
+    const resultDataArrArr = await Promise.all(renderPromises);
     if (renderTasksDone < renderTasksNum || canvas.width !== canvasW || canvas.height !== canvasH) {
         return;
     }
 
-    const distinctIterNum = resultSetsArr.reduce((s, t) => new Set([...s, ...t]));
-    console.log(distinctIterNum);
+    const resultDataArr = resultDataArrArr.flatMap(a => a);
+
+    const velocity = resultDataArr.map(a => a.velocity).reduce((v, u) => v + u) / canvasW / canvasH;
 
     let rgbaTasksDone = 0;
     const rgbaPromises = workers.map(async (worker) => {
@@ -126,7 +124,7 @@ async function render0(canvas, hiddenCanvas, thisRenderTaskId) {
             thisRenderTaskId,
             'mapToRgba',
             {
-                paletteDepth: 13, // TODO + (distinctIterNum.size - 1332),
+                velocity,
             },
         );
 
@@ -144,7 +142,11 @@ async function render0(canvas, hiddenCanvas, thisRenderTaskId) {
         return;
     }
 
+    loaderWr.style.removeProperty('display');
+    loaderWr.style.setProperty('--progress', '0%');
+
     renderResults(canvas, hiddenCanvas, coords, rgbaParts, false);
+
     document.getElementById('done-in').innerText = `Done in ${Date.now() - startMs} ms`
 }
 
