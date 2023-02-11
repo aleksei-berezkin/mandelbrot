@@ -216,7 +216,6 @@ function measureVelocity(iterArray, canvasCoords) {
 
 const baseVelocity = 10.32;
 const baseHuePeriod = 119;
-// const saturationPeriodToHuePeriod = .093;
 const lightnessPeriodToHuePeriod = .183
 const hueOffset = 245;
 
@@ -242,7 +241,6 @@ function doMapToRgba(iterArray, canvasCoords, maxIterations, velocity) {
         colorCache.clear();
     }
 
-    // const saturationPeriod = huePeriod * saturationPeriodToHuePeriod;
     const lightnessPeriod = huePeriod * lightnessPeriodToHuePeriod;
 
     const {w, h} = canvasCoords;
@@ -257,7 +255,6 @@ function doMapToRgba(iterArray, canvasCoords, maxIterations, velocity) {
             } else {
                 const hue = (hueOffset + iterCount / huePeriod * 360) % 360;
                 // 4/6 ... 6/6
-                // const saturation = (Math.cos(iterCount / saturationPeriod * 2 * Math.PI) + 4) / 6;
                 // .5 +- .2
                 const lightness = .5 + Math.sin(iterCount / lightnessPeriod * 2 * Math.PI) * .2;
                 [r, g, b] = hslToRgb(hue, 1, lightness);
@@ -303,5 +300,5 @@ function hslToRgb(h, s, l) {
         [r1, g1, b1] = [c, 0, x];
     }
     const m = l - c / 2;
-    return [r1 + m, g1 + m, b1 + m].map(c => c * 255);
+    return [255 * (r1 + m), 255 * (g1 + m), 255 * (b1 + m)];
 }
