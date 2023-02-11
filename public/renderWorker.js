@@ -62,9 +62,6 @@ async function renderMain(renderTaskId, coords, canvasCoords, maxIterations) {
     };
 }
 
-const baseVelocity = 10.32;
-const baseIterCountDivisor = 19;
-
 function mapToRgba(renderTaskId, velocity) {
     if (lastRenderTaskId !== renderTaskId) {
         return;
@@ -217,6 +214,11 @@ function measureVelocity(iterArray, canvasCoords) {
     return velocity;
 }
 
+const baseVelocity = 10.32;
+const baseHuePeriod = 119;
+// const saturationPeriodToHuePeriod = .093;
+const lightnessPeriodToHuePeriod = .183
+const hueOffset = 245;
 
 /**
  * @type {Map<number, [number, number, number]>}
@@ -232,13 +234,16 @@ let iterCountDivisorInCache = undefined;
  * @param velocity {number}
  */
 function doMapToRgba(iterArray, canvasCoords, maxIterations, velocity) {
-    const iterCountDivisor = velocity > baseVelocity
-        ? baseIterCountDivisor * Math.pow(1 + .03 * (velocity - baseVelocity), 1.31)
-        : baseIterCountDivisor;
+    const huePeriod = velocity > baseVelocity
+        ? baseHuePeriod * Math.pow(1 + .03 * (velocity - baseVelocity), 1.31)
+        : baseHuePeriod;
 
-    if (iterCountDivisor !== iterCountDivisorInCache) {
+    if (huePeriod !== iterCountDivisorInCache) {
         colorCache.clear();
     }
+
+    // const saturationPeriod = huePeriod * saturationPeriodToHuePeriod;
+    const lightnessPeriod = huePeriod * lightnessPeriodToHuePeriod;
 
     const {w, h} = canvasCoords;
     const rgba = new Uint8ClampedArray(4 * w * h);
@@ -250,9 +255,12 @@ function doMapToRgba(iterArray, canvasCoords, maxIterations, velocity) {
             if (colorCache.has(iterCount)) {
                 [r, g, b] = colorCache.get(iterCount);
             } else {
-                r = (Math.sin(iterCount / iterCountDivisor) + 1) / 2 * 255;
-                g = (Math.sin(iterCount / iterCountDivisor + 5) + 1) / 2 * 255;
-                b = (Math.sin(iterCount / iterCountDivisor + 9) + 1) / 2 * 255;
+                const hue = (hueOffset + iterCount / huePeriod * 360) % 360;
+                // 4/6 ... 6/6
+                // const saturation = (Math.cos(iterCount / saturationPeriod * 2 * Math.PI) + 4) / 6;
+                // .5 +- .2
+                const lightness = .5 + Math.sin(iterCount / lightnessPeriod * 2 * Math.PI) * .2;
+                [r, g, b] = hslToRgb(hue, 1, lightness);
                 colorCache.set(iterCount, [r, g, b]);
             }
 
@@ -265,4 +273,35 @@ function doMapToRgba(iterArray, canvasCoords, maxIterations, velocity) {
     }
 
     return rgba;
+}
+
+/**
+ * https://en.wikipedia.org/wiki/HSL_and_HSV#HSL_to_RGB
+ * @param h {number} 0..360
+ * @param s {number} 0..1
+ * @param l {number} 0..1
+ * @return {[number, number, number]} 0..255
+ */
+function hslToRgb(h, s, l) {
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const h1 = h / 60;
+    const x = c * (1 - Math.abs(h1 % 2 - 1));
+    let r1;
+    let g1;
+    let b1;
+    if (h1 < 1) {
+        [r1, g1, b1] = [c, x, 0];
+    } else if (h1 < 2) {
+        [r1, g1, b1] = [x, c, 0];
+    } else if (h1 < 3) {
+        [r1, g1, b1] = [0, c, x];
+    } else if (h1 < 4) {
+        [r1, g1, b1] = [0, x, c];
+    } else if (h1 < 5) {
+        [r1, g1, b1] = [x, 0, c];
+    } else {
+        [r1, g1, b1] = [c, 0, x];
+    }
+    const m = l - c / 2;
+    return [r1 + m, g1 + m, b1 + m].map(c => c * 255);
 }
