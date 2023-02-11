@@ -116,6 +116,7 @@ async function render0(canvas, hiddenCanvas, thisRenderTaskId) {
     const resultDataArr = resultDataArrArr.flatMap(a => a);
 
     const velocity = resultDataArr.map(a => a.velocity).reduce((v, u) => v + u) / canvasW / canvasH;
+    const minIterCount = resultDataArr.map(a => a.minIterCount).reduce((a, b) => a < b ? a : b);
 
     let rgbaTasksDone = 0;
     const rgbaPromises = workers.map(async (worker) => {
@@ -125,6 +126,7 @@ async function render0(canvas, hiddenCanvas, thisRenderTaskId) {
             'mapToRgba',
             {
                 velocity,
+                minIterCount,
             },
         );
 

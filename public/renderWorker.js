@@ -19,8 +19,8 @@ async function messageHandler(message) {
         const {coords, canvasCoords, maxIterations} = data;
         resultData = await renderMain(renderTaskId, coords, canvasCoords, maxIterations);
     } else if (commandName === 'mapToRgba') {
-        const {velocity} = data;
-        resultData = mapToRgba(renderTaskId, velocity);
+        const {velocity, minIterCount} = data;
+        resultData = mapToRgba(renderTaskId, velocity, minIterCount);
     }
     self.postMessage({workerCallId, data: resultData});
 }
@@ -59,17 +59,18 @@ async function renderMain(renderTaskId, coords, canvasCoords, maxIterations) {
     lastResults.push({coords, canvasCoords, iterNums, maxIterations});
     return {
         velocity: measureVelocity(iterNums, canvasCoords),
+        minIterCount: getMinIterCount(iterNums, canvasCoords),
     };
 }
 
-function mapToRgba(renderTaskId, velocity) {
+function mapToRgba(renderTaskId, velocity, minIterCount) {
     if (lastRenderTaskId !== renderTaskId) {
         return;
     }
 
     const rgbaParts = lastResults.map(({iterNums, canvasCoords, maxIterations}) => ({
         canvasCoords,
-        rgba: doMapToRgba(iterNums, canvasCoords, maxIterations, velocity),
+        rgba: doMapToRgba(iterNums, canvasCoords, maxIterations, velocity, minIterCount),
     }));
 
     lastRenderTaskId = undefined;
@@ -184,6 +185,7 @@ async function instantiate(requiredMemBytes) {
 /**
  * @param iterArray {Uint32Array}
  * @param canvasCoords {CanvasCoords}
+ * @return {number}
  */
 function measureVelocity(iterArray, canvasCoords) {
     let velocity = 0;
@@ -214,6 +216,19 @@ function measureVelocity(iterArray, canvasCoords) {
     return velocity;
 }
 
+/**
+ * @param iterArray {Uint32Array}
+ * @param canvasCoords {CanvasCoords}
+ * @return {number}
+ */
+function getMinIterCount(iterArray, canvasCoords) {
+    let min = iterArray[0];
+    for (let i = 1; i < canvasCoords.w * canvasCoords.h; i++) {
+        min = Math.min(min, iterArray[i]);
+    }
+    return min;
+}
+
 const baseVelocity = 10.32;
 const baseHuePeriod = 119;
 const lightnessPeriodToHuePeriod = .183
@@ -231,8 +246,9 @@ let iterCountDivisorInCache = undefined;
  * @param canvasCoords {CanvasCoords}
  * @param maxIterations {number}
  * @param velocity {number}
+ * @param minIterCount {number}
  */
-function doMapToRgba(iterArray, canvasCoords, maxIterations, velocity) {
+function doMapToRgba(iterArray, canvasCoords, maxIterations, velocity, minIterCount) {
     const huePeriod = velocity > baseVelocity
         ? baseHuePeriod * Math.pow(1 + .03 * (velocity - baseVelocity), 1.31)
         : baseHuePeriod;
@@ -253,8 +269,7 @@ function doMapToRgba(iterArray, canvasCoords, maxIterations, velocity) {
             if (colorCache.has(iterCount)) {
                 [r, g, b] = colorCache.get(iterCount);
             } else {
-                const hue = (hueOffset + iterCount / huePeriod * 360) % 360;
-                // 4/6 ... 6/6
+                const hue = (hueOffset + (minIterCount / baseHuePeriod + (iterCount - minIterCount) / huePeriod) * 360) % 360;
                 // .5 +- .2
                 const lightness = .5 + Math.sin(iterCount / lightnessPeriod * 2 * Math.PI) * .2;
                 [r, g, b] = hslToRgb(hue, 1, lightness);
