@@ -250,7 +250,7 @@ let iterCountDivisorInCache = undefined;
  */
 function doMapToRgba(iterArray, canvasCoords, maxIterations, velocity, minIterCount) {
     const huePeriod = velocity > baseVelocity
-        ? baseHuePeriod * Math.pow(1 + .03 * (velocity - baseVelocity), 1.31)
+        ? baseHuePeriod * Math.pow(1 + .07 * (velocity - baseVelocity), .9)
         : baseHuePeriod;
 
     if (huePeriod !== iterCountDivisorInCache) {
