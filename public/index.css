@@ -1,6 +1,8 @@
 html, body {
     border: none;
+    color: #000b;
     font-family: 'Roboto', sans-serif;
+    font-size: 14px;
     height: 100%;
     margin: 0;
     overflow: hidden;
@@ -9,6 +11,15 @@ html, body {
     touch-action: none;
 
     --btn-size: 32px;
+    --menu-color: #fff8;
+    --tx: 300ms;
+}
+
+button {
+    border: none;
+    cursor: pointer;
+    margin: 0;
+    padding: 0;
 }
 
 #hidden-canvas {
@@ -78,34 +89,49 @@ html, body {
     width: 100%;
 }
 
-.bottom-info-wr {
-    bottom: 0;
-    color: #000b;
-    filter: drop-shadow(0 0 3px #fff9);
-    font-size: 14px;
-    padding: .5em;
-    position: absolute;
-    right: 0;
-    text-align: right;
-}
-
 .main-menu {
+    background-color: var(--menu-color);
+    border-radius: calc(var(--btn-size) / 4);
+    display: flex;
+    filter: drop-shadow(0 0 3px #fff9);
     left: calc(var(--btn-size) * .375);
     position: absolute;
     top: calc(var(--btn-size) * .375);
+    transition: transform var(--tx), background-color var(--tx)
+}
+
+.menu-content {
+    transition: opacity var(--tx);
 }
 
 .menu-button {
-    background-color: #fff8;
+    background-color: transparent;
     border-radius: calc(var(--btn-size) * .5);
     height: var(--btn-size);
-    cursor: pointer;
     line-height: var(--btn-size);
     text-align: center;
+    transition: background-color var(--tx), transform var(--tx);
     width: var(--btn-size);
 }
 
+.main-menu.collapsed {
+    background-color: transparent;
+    transform: translateX(calc(-100% + var(--btn-size)));
+}
+
+.main-menu.collapsed > .menu-content {
+    opacity: 0;
+}
+
+.main-menu.collapsed > .menu-button {
+    background-color: var(--menu-color);
+    transform: rotateY(-180deg);
+}
+
+.info-wr {
+    padding: .5em;
+}
+
 .menu-button > .material-symbols-outlined {
-    color: #000b;
     line-height: var(--btn-size);
 }
