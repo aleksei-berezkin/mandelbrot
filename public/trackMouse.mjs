@@ -8,7 +8,7 @@ export function trackMouse(canvas, hiddenCanvas) {
      */
     let prevClientPoint = undefined;
 
-    window.addEventListener('mousedown', function(e) {
+    canvas.addEventListener('mousedown', function(e) {
         e.preventDefault();
 
         prevClientPoint = {x: e.clientX, y :e.clientY};
@@ -16,7 +16,7 @@ export function trackMouse(canvas, hiddenCanvas) {
         window.document.body.style.cursor = 'grab';
     });
 
-    window.addEventListener('mousemove', function(e) {
+    canvas.addEventListener('mousemove', function(e) {
         if (prevClientPoint == null || e.clientX == null || e.clientY == null) {
             return;
         }
@@ -36,7 +36,7 @@ export function trackMouse(canvas, hiddenCanvas) {
         void render(canvas, hiddenCanvas);
     });
 
-    window.addEventListener('mouseup', function() {
+    canvas.addEventListener('mouseup', function() {
         prevClientPoint = undefined;
 
         window.document.body.style.removeProperty('cursor');

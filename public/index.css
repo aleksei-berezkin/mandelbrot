@@ -109,6 +109,7 @@ button {
     border-radius: calc(var(--btn-size) * .5);
     height: var(--btn-size);
     line-height: var(--btn-size);
+    pointer-events: all;
     text-align: center;
     transition: background-color var(--tx), transform var(--tx);
     width: var(--btn-size);
@@ -116,6 +117,7 @@ button {
 
 .main-menu.collapsed {
     background-color: transparent;
+    pointer-events: none;
     transform: translateX(calc(-100% + var(--btn-size)));
 }
 
