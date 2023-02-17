@@ -7,6 +7,8 @@ html, body {
     padding: 0;
     width: 100%;
     touch-action: none;
+
+    --btn-size: 32px;
 }
 
 #hidden-canvas {
@@ -85,4 +87,25 @@ html, body {
     position: absolute;
     right: 0;
     text-align: right;
+}
+
+.main-menu {
+    left: calc(var(--btn-size) * .375);
+    position: absolute;
+    top: calc(var(--btn-size) * .375);
+}
+
+.menu-button {
+    background-color: #fff8;
+    border-radius: calc(var(--btn-size) * .5);
+    height: var(--btn-size);
+    cursor: pointer;
+    line-height: var(--btn-size);
+    text-align: center;
+    width: var(--btn-size);
+}
+
+.menu-button > .material-symbols-outlined {
+    color: #000b;
+    line-height: var(--btn-size);
 }
