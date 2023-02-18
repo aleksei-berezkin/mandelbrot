@@ -7,10 +7,10 @@ import { splitWork } from './splitWork.mjs';
 let currentRenderTaskId = 0;
 
 
-export async function render(canvas, hiddenCanvas, immediately = false) {
+export async function render(immediately = false) {
     const thisRenderTaskId = ++currentRenderTaskId;
     const renderCb = async function() {
-        await render0(canvas, hiddenCanvas, thisRenderTaskId);
+        await render0(thisRenderTaskId);
     }
 
     if (immediately) {
@@ -27,10 +27,18 @@ const workers = Array.from({length: (navigator.hardwareConcurrency ?? 4) + 1})
 
 let initial = true;
 
-async function render0(canvas, hiddenCanvas, thisRenderTaskId) {
+async function render0(thisRenderTaskId) {
     if (thisRenderTaskId !== currentRenderTaskId) {
         return;
     }
+    const canvas = document.getElementById('main-canvas');
+    const hiddenCanvas = document.getElementById('hidden-canvas');
+    // noinspection JSUnresolvedReference
+    const iterationsRangeVal = document.getElementById('iterations-range').valueAsNumber;
+    // noinspection JSUnresolvedReference
+    const colorsRangeVal = document.getElementById('colors-range').valueAsNumber;
+    // noinspection JSUnresolvedReference
+    const hueRangeVal = document.getElementById('hue-range').valueAsNumber;
 
     const startMs = Date.now();
     const coords = getMathCoords(canvas);
@@ -41,18 +49,19 @@ async function render0(canvas, hiddenCanvas, thisRenderTaskId) {
         history.replaceState(null, null, "?" + mathCoordsToQuery(coords));
     }
 
+    const _baseIterations = Math.round(baseIterations * Math.pow(50, iterationsRangeVal / 50 - 1));
     let hNum = Number(coords.h) / Number(coords.unit);
     const zoom = 3 / hNum;
     const maxIterations = Math.max(
-        baseIterations,
-        Math.round((Math.log10(zoom) + 1) * baseIterations),
+        _baseIterations,
+        Math.round((Math.log10(zoom) + 1) * _baseIterations),
     );
 
     const bigNum = isBigNum(coords.w, coords.unit);
     const wBigNum = bigNum ? bigIntToBigNum(coords.w, coords.unit) : undefined;
 
-    document.getElementById('precision').innerText = wBigNum ? `Precision: BigNum ${wBigNum.length * 32} bits` : 'Precision: float 64 bits';
-    document.getElementById('max-iterations').innerText = `Max iterations: ${maxIterations}`;
+    document.getElementById('precision').innerText = wBigNum ? `BigNum ${wBigNum.length * 32}` : 'Float 64';
+    document.getElementById('max-iterations').innerText = String(maxIterations);
 
     const canvasW = canvas.width;
     const canvasH = canvas.height;
@@ -127,6 +136,8 @@ async function render0(canvas, hiddenCanvas, thisRenderTaskId) {
             {
                 velocity,
                 minIterCount,
+                colorsRangeVal,
+                hueRangeVal,
             },
         );
 
@@ -149,7 +160,7 @@ async function render0(canvas, hiddenCanvas, thisRenderTaskId) {
 
     renderResults(canvas, hiddenCanvas, coords, rgbaParts, false);
 
-    document.getElementById('done-in').innerText = `Done in ${Date.now() - startMs} ms`
+    document.getElementById('done-in').innerText = `${Date.now() - startMs} ms`;
 }
 
 let nextWorkerCallId = 0;

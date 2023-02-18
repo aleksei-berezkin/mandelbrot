@@ -4,6 +4,7 @@ import { trackMouseLocation } from './trackMouseLocation.mjs';
 import { trackWheel } from './trackWheel.mjs';
 import { trackMouse } from './trackMouse.mjs';
 import { trackTouch } from './trackTouch.mjs';
+import { render } from './render.mjs';
 
 const canvas = document.getElementById('main-canvas');
 const hiddenCanvas = document.getElementById('hidden-canvas');
@@ -16,6 +17,9 @@ if (inputCoords) {
 }
 trackMouseLocation(canvas);
 trackCanvasSizeAndRender(canvas, hiddenCanvas);
-trackWheel(canvas, hiddenCanvas);
-trackMouse(canvas, hiddenCanvas);
-trackTouch(canvas, hiddenCanvas);
+trackWheel(canvas);
+trackMouse(canvas);
+trackTouch(canvas);
+
+document.querySelectorAll('.menu-controls > input').forEach(input => input.onchange = render);
+document.querySelector('.reset-btn').addEventListener('click', render);

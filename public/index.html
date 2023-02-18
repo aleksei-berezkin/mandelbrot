@@ -6,7 +6,7 @@
     <title>Mandelbrot visualization</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@48,400,0,0" />
     <link rel="stylesheet" type="text/css" href="index.css"/>
 </head>
@@ -21,10 +21,24 @@
 <canvas id="main-canvas"></canvas>
 <div class="main-menu collapsed">
     <div class="menu-content">
+        <div class="menu-controls">
+            <label for="iterations-range">Iterations</label>
+            <input id="iterations-range" type="range">
+            <label for="colors-range">Colors</label>
+            <input id="colors-range" type="range">
+            <label for="hue-range">Hue</label>
+            <input id="hue-range" type="range">
+        </div>
+        <button class='reset-btn' onclick="document.querySelectorAll('.menu-controls > input').forEach(i => i.valueAsNumber = 50)">Reset</button>
         <div class="info-wr">
-            <div id="precision"></div>
-            <div id="max-iterations"></div>
-            <div id="done-in"></div>
+            <div class="info-caption">Precision</div>
+            <div id="precision">&hellip;</div>
+            <div class="info-caption">Max iterations</div>
+            <div id="max-iterations">&hellip;</div>
+            <div class="info-caption">Done in</div>
+            <div id="done-in">&hellip;</div>
+            <div class="info-caption">Vectorization</div>
+            <div id="vectorization-status">supported</div>
         </div>
     </div>
     <button class="menu-button" onclick="this.parentElement.classList.toggle('collapsed')">

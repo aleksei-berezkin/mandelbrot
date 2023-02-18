@@ -2,7 +2,7 @@ import { getMathCoords, moveCoords, setMathCoords } from './mathCoords.mjs';
 import { render } from './render.mjs';
 import { prerender } from './prerender.mjs';
 
-export function trackMouse(canvas, hiddenCanvas) {
+export function trackMouse(canvas) {
     /**
      * @type {{x: number, y: number}}
      */
@@ -32,8 +32,8 @@ export function trackMouse(canvas, hiddenCanvas) {
         setMathCoords(canvas, newCoords);
         prevClientPoint = {x: e.clientX, y: e.clientY};
 
-        prerender(canvas, hiddenCanvas, coords);
-        void render(canvas, hiddenCanvas);
+        prerender(coords);
+        void render();
     });
 
     canvas.addEventListener('mouseup', function() {

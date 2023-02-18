@@ -15,11 +15,24 @@ html, body {
     --tx: 300ms;
 }
 
-button {
+input {
     border: none;
-    cursor: pointer;
     margin: 0;
     padding: 0;
+}
+
+button {
+    background: unset;
+    border: none;
+    color: unset;
+    cursor: pointer;
+    font-size: unset;
+    margin: 0;
+    padding: 0;
+}
+
+button:hover {
+    text-decoration: underline;
 }
 
 #hidden-canvas {
@@ -102,6 +115,8 @@ button {
 
 .menu-content {
     transition: opacity var(--tx);
+    padding: .5em 0 .5em .5em;
+    margin-right: -.25em;
 }
 
 .menu-button {
@@ -130,8 +145,32 @@ button {
     transform: rotateY(-180deg);
 }
 
+.menu-controls > label {
+    display: block;
+}
+
+.menu-controls > input {
+    display: block;
+    margin-bottom: .25em;
+    width: 100%;
+}
+
+.reset-btn {
+    color: #444b;
+    letter-spacing: .05em;
+    padding: .25em;
+    margin-left: 50%;
+    transform: translateX(-50%);
+}
+
 .info-wr {
-    padding: .5em;
+    display: grid;
+    gap: .25em .75em;
+    grid-template-columns: auto auto;
+}
+
+.info-wr > .info-caption {
+    color: #222b;
 }
 
 .menu-button > .material-symbols-outlined {

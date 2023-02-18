@@ -3,8 +3,8 @@ import { getMouseLocationFraction } from './trackMouseLocation.mjs';
 import { render } from './render.mjs';
 import { prerender } from './prerender.mjs';
 
-export function trackWheel(canvas, hiddenCanvas) {
-    window.addEventListener('wheel', function (e) {
+export function trackWheel(canvas) {
+    canvas.addEventListener('wheel', function (e) {
         e.preventDefault();
 
         const coords = getMathCoords(canvas);
@@ -14,8 +14,8 @@ export function trackWheel(canvas, hiddenCanvas) {
         const newCoords = zoomCoords(coords, originFraction, zoomFactor);
         setMathCoords(canvas, newCoords);
 
-        prerender(canvas, hiddenCanvas, coords);
-        void render(canvas, hiddenCanvas);
+        prerender(coords);
+        void render();
 
     }, {passive: false});
 }

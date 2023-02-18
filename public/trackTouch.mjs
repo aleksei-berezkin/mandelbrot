@@ -2,7 +2,7 @@ import { getMathCoords, moveCoords, setMathCoords, zoomCoords } from './mathCoor
 import { render } from './render.mjs';
 import { prerender } from './prerender.mjs';
 
-export function trackTouch(canvas, hiddenCanvas) {
+export function trackTouch(canvas) {
 
     /**
      * @type {TouchList}
@@ -41,9 +41,9 @@ export function trackTouch(canvas, hiddenCanvas) {
 
         prevTouches = e.touches;
 
-        prerender(canvas, hiddenCanvas, coords);
+        prerender(coords);
 
-        void render(canvas, hiddenCanvas);
+        void render();
 
     }, {passive: false});
 

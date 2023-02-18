@@ -1,11 +1,12 @@
 import { renderResults } from './renderResults.mjs';
 
 /**
- * @param canvas {HTMLCanvasElement}
- * @param hiddenCanvas {HTMLCanvasElement}
  * @param coords {Coords}
  */
-export function prerender(canvas, hiddenCanvas, coords) {
+export function prerender(coords) {
+    const canvas = document.getElementById('main-canvas');
+    const hiddenCanvas = document.getElementById('hidden-canvas');
+
     const ctx = canvas.getContext('2d', {willReadFrequently: true});
     const {width, height} = canvas;
     const imageData = ctx.getImageData(0, 0, width, height);
