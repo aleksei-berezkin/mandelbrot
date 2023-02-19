@@ -110,7 +110,7 @@ button:hover {
     left: calc(var(--btn-size) * .375);
     position: absolute;
     top: calc(var(--btn-size) * .375);
-    transition: transform var(--tx), background-color var(--tx)
+    transition: transform var(--tx), background-color var(--tx), opacity var(--tx);
 }
 
 .menu-content {
