@@ -199,4 +199,5 @@ button {
     position: absolute;
     right: calc(var(--btn-size) / 2);
     top: calc(var(--btn-size) / 2);
+    transition: opacity var(--tx);
 }
