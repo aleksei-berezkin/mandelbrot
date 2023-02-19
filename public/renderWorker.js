@@ -191,13 +191,11 @@ async function instantiate(requiredMemBytes) {
 function measureVelocity(iterArray, canvasCoords, maxIterations) {
     let velocity = 0;
 
-    for (let row= 0; row < canvasCoords.h; row++) {
+    for (const series of [...iterateRows(iterArray, canvasCoords), ...iterateCols(iterArray, canvasCoords)]) {
         let prevIterNum = undefined;
-        for (let col = 0; col < canvasCoords.w; col++) {
-            const currIterNum = iterArray[row * canvasCoords.w + col];
+        for (const currIterNum of series) {
             if (prevIterNum != null) {
                 if (currIterNum !== prevIterNum && (currIterNum === maxIterations || prevIterNum === maxIterations)) {
-                    // TODO compare to some maximum (?)
                     velocity += Math.min(currIterNum, prevIterNum) / 2;
                 } else {
                     velocity += Math.abs(currIterNum - prevIterNum);
@@ -208,22 +206,29 @@ function measureVelocity(iterArray, canvasCoords, maxIterations) {
         prevIterNum = undefined;
     }
 
-    for (let col = 0; col < canvasCoords.w; col++) {
-        let prevIterNum = undefined;
-        for (let row = 0; row < canvasCoords.h; row++) {
-            const currIterNum = iterArray[row * canvasCoords.w + col];
-            if (prevIterNum) {
-                if (currIterNum !== prevIterNum && (currIterNum === maxIterations || prevIterNum === maxIterations)) {
-                    velocity += Math.min(currIterNum, prevIterNum) / 2;
-                } else {
-                    velocity += Math.abs(currIterNum - prevIterNum);
-                }
-            }
-            prevIterNum = currIterNum;
-        }
-    }
-
     return velocity;
+}
+
+function* iterateRows(iterArray, canvasCoords) {
+    for (let row= 0; row < canvasCoords.h; row++) {
+        // noinspection JSMismatchedCollectionQueryUpdate
+        const series = [];
+        for (let col = 0; col < canvasCoords.w; col++) {
+            series.push(iterArray[row * canvasCoords.w + col]);
+        }
+        yield series;
+    }
+}
+
+function* iterateCols(iterArray, canvasCoords) {
+    for (let col = 0; col < canvasCoords.w; col++) {
+        // noinspection JSMismatchedCollectionQueryUpdate
+        const series = [];
+        for (let row= 0; row < canvasCoords.h; row++) {
+            series.push(iterArray[row * canvasCoords.w + col]);
+        }
+        yield series;
+    }
 }
 
 /**
