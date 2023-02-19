@@ -12,6 +12,7 @@ html, body {
 
     --btn-size: 32px;
     --menu-color: #fff8;
+    --menu-color-a2: #fffa;
     --tx: 300ms;
 }
 
@@ -31,8 +32,30 @@ button {
     padding: 0;
 }
 
-button:hover {
-    text-decoration: underline;
+@media (hover: hover) {
+    button:hover {
+        text-decoration: underline;
+    }
+}
+
+.round-button {
+    background-color: var(--menu-color);
+    border-radius: calc(var(--btn-size) * .5);
+    height: var(--btn-size);
+    line-height: var(--btn-size);
+    text-align: center;
+    transition: background-color var(--tx), transform var(--tx);
+    width: var(--btn-size);
+}
+
+@media (hover: hover) {
+    .round-button:hover {
+        background-color: var(--menu-color-a2);
+    }
+}
+
+.round-button > .material-symbols-outlined {
+    line-height: var(--btn-size);
 }
 
 #hidden-canvas {
@@ -119,17 +142,6 @@ button:hover {
     margin-right: -.25em;
 }
 
-.menu-button {
-    background-color: transparent;
-    border-radius: calc(var(--btn-size) * .5);
-    height: var(--btn-size);
-    line-height: var(--btn-size);
-    pointer-events: all;
-    text-align: center;
-    transition: background-color var(--tx), transform var(--tx);
-    width: var(--btn-size);
-}
-
 .main-menu.collapsed {
     background-color: transparent;
     pointer-events: none;
@@ -141,8 +153,18 @@ button:hover {
 }
 
 .main-menu.collapsed > .menu-button {
-    background-color: var(--menu-color);
     transform: rotateY(-180deg);
+    pointer-events: all;
+}
+
+.main-menu:not(.collapsed) > .menu-button {
+    background-color: transparent;
+}
+
+@media (hover: hover) {
+    .main-menu:not(.collapsed) > .menu-button:hover {
+        background-color: #fff5;
+    }
 }
 
 .menu-controls > label {
@@ -173,6 +195,8 @@ button:hover {
     color: #222b;
 }
 
-.menu-button > .material-symbols-outlined {
-    line-height: var(--btn-size);
+.reset-coords-button {
+    position: absolute;
+    right: calc(var(--btn-size) / 2);
+    top: calc(var(--btn-size) / 2);
 }

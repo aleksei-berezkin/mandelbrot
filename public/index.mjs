@@ -21,5 +21,5 @@ trackWheel(canvas);
 trackMouse(canvas);
 trackTouch(canvas);
 
-document.querySelectorAll('.menu-controls > input').forEach(input => input.onchange = render);
+document.querySelectorAll('.menu-controls > input').forEach(input => input.oninput = render);
 document.querySelector('.reset-btn').addEventListener('click', render);
