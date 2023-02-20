@@ -200,5 +200,9 @@ button {
     position: absolute;
     right: calc(var(--btn-size) / 2);
     top: calc(var(--btn-size) / 2);
-    transition: opacity var(--tx);
+    transition: opacity var(--tx), transform var(--tx);
+}
+
+.reset-coords-button > .material-symbols-outlined {
+    margin-top: -1px;
 }

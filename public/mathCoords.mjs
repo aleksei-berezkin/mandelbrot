@@ -115,17 +115,31 @@ function fmtWithE(n) {
  */
 export function parseMathCoordsFromLocation() {
     const p = new URL(window.location.href).searchParams;
-    const unitStr = p.get('unit');
-    if (!unitStr) {
+    if (!(p?.toString())) {
         return undefined;
     }
-    return {
-        unit: BigInt(unwrapE(unitStr)),
-        xMin: BigInt(p.get('xMin')),
-        w: BigInt(p.get('w')),
-        yMin: BigInt(p.get('yMin')),
-        h: BigInt(p.get('h')),
-    };
+
+    const unit = unwrapE(p.get('unit'));
+    const xMin = p.get('xMin');
+    const w = p.get('w');
+    const yMin = p.get('yMin');
+    const h = p.get('h');
+
+    if (!unit || !xMin || !w || !yMin || !h) {
+        return undefined;
+    }
+
+    try {
+        return {
+            unit: BigInt(unit),
+            xMin: BigInt(xMin),
+            w: BigInt(w),
+            yMin: BigInt(yMin),
+            h: BigInt(h),
+        };
+    } catch (e) {
+        return undefined;
+    }
 }
 
 function unwrapE(s) {

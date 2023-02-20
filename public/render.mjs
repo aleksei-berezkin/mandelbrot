@@ -61,7 +61,7 @@ async function render0(thisRenderTaskId) {
     const bigNum = isBigNum(coords.w, coords.unit);
     const wBigNum = bigNum ? bigIntToBigNum(coords.w, coords.unit) : undefined;
 
-    document.getElementById('precision').innerText = wBigNum ? `BigNum ${wBigNum.length * 32}` : 'Float 64';
+    document.getElementById('precision').innerText = wBigNum ? `BigNum ${wBigNum.length * 32}` : 'float 64';
     document.getElementById('max-iterations').innerText = String(maxIterations);
 
     const canvasW = canvas.width;
