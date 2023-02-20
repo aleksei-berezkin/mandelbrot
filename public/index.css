@@ -10,7 +10,7 @@ html, body {
     width: 100%;
     touch-action: none;
 
-    --btn-size: 32px;
+    --btn-size: 36px;
     --menu-color: #fff8;
     --menu-color-a2: #fffa;
     --tx: 300ms;
@@ -55,6 +55,7 @@ button {
 }
 
 .round-button > .material-symbols-outlined {
+    font-size: 28px;
     line-height: var(--btn-size);
 }
 
