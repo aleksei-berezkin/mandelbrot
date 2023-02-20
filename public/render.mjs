@@ -25,7 +25,7 @@ const baseIterations = 2000;
 const workers = Array.from({length: (navigator.hardwareConcurrency ?? 4) + 1})
     .map(() => new Worker('renderWorker.js'));
 
-let initial = true;
+let seenEmptyLocation = false;
 
 async function render0(thisRenderTaskId) {
     if (thisRenderTaskId !== currentRenderTaskId) {
@@ -43,10 +43,11 @@ async function render0(thisRenderTaskId) {
     const startMs = Date.now();
     const coords = getMathCoords(canvas);
 
-    if (initial && window.location.search === '') {
-        initial = false
+    if (window.location.search === '' && !seenEmptyLocation) {
+        seenEmptyLocation = true
     } else {
         history.replaceState(null, null, "?" + mathCoordsToQuery(coords));
+        seenEmptyLocation = false;
     }
 
     const _baseIterations = Math.round(baseIterations * Math.pow(50, iterationsRangeVal / 50 - 1));

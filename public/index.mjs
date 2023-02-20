@@ -23,3 +23,9 @@ trackTouch(canvas);
 
 document.querySelectorAll('.menu-controls > input').forEach(input => input.oninput = render);
 document.querySelector('.reset-btn').addEventListener('click', render);
+
+document.querySelector('.reset-coords-button').onclick = function () {
+    history.replaceState(null, null, '/');
+    initMathCoords(canvas);
+    void render();
+}
