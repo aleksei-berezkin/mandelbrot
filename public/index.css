@@ -41,16 +41,18 @@ button {
 .round-button {
     background-color: var(--menu-color);
     border-radius: calc(var(--btn-size) * .5);
+    color: #000a;
     height: var(--btn-size);
     line-height: var(--btn-size);
     text-align: center;
-    transition: background-color var(--tx), transform var(--tx);
+    transition: background-color var(--tx), color var(--tx), opacity var(--tx), transform var(--tx);
     width: var(--btn-size);
 }
 
 @media (hover: hover) {
     .round-button:hover {
         background-color: var(--menu-color-a2);
+        color: #000e;
     }
 }
 
@@ -164,7 +166,7 @@ button {
 
 @media (hover: hover) {
     .main-menu:not(.collapsed) > .menu-button:hover {
-        background-color: #fff5;
+        color: #000f;
     }
 }
 
@@ -200,7 +202,6 @@ button {
     position: absolute;
     right: calc(var(--btn-size) / 2);
     top: calc(var(--btn-size) / 2);
-    transition: opacity var(--tx), transform var(--tx);
 }
 
 .reset-coords-button > .material-symbols-outlined {
