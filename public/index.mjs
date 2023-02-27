@@ -22,6 +22,27 @@ trackWheel(canvas);
 trackMouse(canvas);
 trackTouch(canvas);
 
+document.body.onpointerup = function(e) {
+    const menuButton = document.querySelector('.menu-button');
+    const mainMenu = document.querySelector('.main-menu');
+    if (isDescendant(menuButton, e.target)) {
+        mainMenu.classList.toggle('collapsed');
+    } else if (!isDescendant(mainMenu, e.target)) {
+        mainMenu.classList.add('collapsed');
+    }
+}
+
+function isDescendant(ancestor, descendant) {
+    let curr = descendant;
+    while (curr) {
+        if (ancestor === curr) {
+            return true;
+        }
+        curr = curr.parentElement;
+    }
+    return false;
+}
+
 document.querySelectorAll('.menu-controls > input').forEach(input => input.oninput = render);
 document.querySelector('.reset-btn').addEventListener('click', render);
 
