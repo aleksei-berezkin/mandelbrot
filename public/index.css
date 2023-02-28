@@ -2,7 +2,7 @@ html, body {
     border: none;
     color: #000b;
     font-family: 'Roboto', sans-serif;
-    font-size: 14px;
+    font-size: 15px;
     height: 100%;
     margin: 0;
     overflow: hidden;
@@ -10,7 +10,7 @@ html, body {
     width: 100%;
     touch-action: none;
 
-    --btn-size: 36px;
+    --btn-size: 38px;
     --menu-color: #fff8;
     --menu-color-a2: #fffa;
     --tx: 300ms;
@@ -57,7 +57,7 @@ button {
 }
 
 .round-button > .material-symbols-outlined {
-    font-size: 28px;
+    font-size: 30px;
     line-height: var(--btn-size);
 }
 
@@ -197,6 +197,34 @@ button {
 .info-wr > .info-caption {
     color: #222b;
 }
+
+.social-wr {
+    fill: #0006;
+    display: flex;
+    justify-content: center;
+    margin-top: .5em;
+}
+
+.social-wr > a:not(:last-child) {
+    margin-right: .4em;
+}
+
+.social-wr > a {
+    transition: fill var(--tx);
+}
+
+@media (hover: hover) {
+    .social-wr > a:hover {
+        fill: #000c;
+    }
+}
+
+.social-wr > a > svg {
+    height: 20px;
+    width: 20px;
+}
+
+
 
 .reset-coords-button {
     position: absolute;
