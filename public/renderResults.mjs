@@ -35,7 +35,10 @@ export function renderResults(canvas, hiddenCanvas, renderCoords, results, isPre
     }
 
     if (!isPrerender) {
-        canvas.style.backgroundColor = getEdgeColor(results, width);
+        const edgeRgb = getEdgeRgb(results, width);
+        const darker = edgeRgb.map(c => Math.round(c * .25));
+        const lighter = edgeRgb.map(c => Math.round(255 - (255 - c) * .5));
+        document.body.style.background = `radial-gradient(rgb(${lighter.join()}), rgb(${darker.join()}))`
     }
 
     const scale = Number(c0.w * auxMulN / c1.w) / auxMul;
@@ -66,7 +69,7 @@ function toSameUnit(...coords) {
  * @param results {[{rgba: Uint8ClampedArray}]}
  * @param width {number}
  */
-function getEdgeColor(results, width) {
+function getEdgeRgb(results, width) {
     const pixels = [
         ...topSideRgb(results[0].rgba, width),
         ...bottomSideRgb(results[results.length - 1].rgba, width),
@@ -75,7 +78,7 @@ function getEdgeColor(results, width) {
     const [r, g, b] = pixels
         .reduce((c0, c1) => [c0[0] + c1[0], c0[1] + c1[1], c0[2] + c1[2]])
         .map(col => Math.round(col / pixels.length));
-    return `rgb(${r}, ${g}, ${b})`;
+    return [r, g, b];
 }
 
 /**

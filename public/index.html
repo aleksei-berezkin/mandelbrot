@@ -28,8 +28,10 @@
             <input id="colors-range" type="range">
             <label for="hue-range">Hue</label>
             <input id="hue-range" type="range">
+            <label for="size-range">Size</label>
+            <input id="size-range" type="range" value="100">
         </div>
-        <button class='reset-btn' onclick="document.querySelectorAll('.menu-controls > input').forEach(i => i.valueAsNumber = 50)">Reset</button>
+        <button class='reset-btn' onclick="document.querySelectorAll('.menu-controls > input').forEach(i => i.valueAsNumber = i.getAttribute('value') ?? 50)">Reset</button>
         <div class="info-wr">
             <div class="info-caption">Precision</div>
             <div id="precision">&hellip;</div>

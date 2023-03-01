@@ -1,8 +1,12 @@
 html, body {
+    align-items: center;
+    background: #3b1dff90;
     border: none;
     color: #000b;
+    display: flex;
     font-family: 'Roboto', sans-serif;
     font-size: 15px;
+    justify-content: center;
     height: 100%;
     margin: 0;
     overflow: hidden;
@@ -120,7 +124,7 @@ button {
 }
 
 #main-canvas {
-    background-color: #3b1dff90;
+    background-color: #fff2;
     border: none;
     height: 100%;
     margin: 0;

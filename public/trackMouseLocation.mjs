@@ -1,7 +1,7 @@
 export function trackMouseLocation(canvas) {
-    window.addEventListener('mousemove', function(e) {
-        canvas.dataset.mouseOffsetX = String(e.clientX);
-        canvas.dataset.mouseOffsetY = String(e.clientY);
+    canvas.addEventListener('mousemove', function(e) {
+        canvas.dataset.mouseOffsetX = String(e.offsetX);
+        canvas.dataset.mouseOffsetY = String(e.offsetY);
     });
 }
 

@@ -43,8 +43,17 @@ function isDescendant(ancestor, descendant) {
     return false;
 }
 
-document.querySelectorAll('.menu-controls > input').forEach(input => input.oninput = render);
-document.querySelector('.reset-btn').addEventListener('click', render);
+document.querySelector('#size-range').addEventListener('input', e => {
+    canvas.style.height = `${e.target.value}%`;
+    canvas.style.width = `${e.target.value}%`;
+});
+document.querySelectorAll('.menu-controls > input').forEach(input => input.addEventListener('input', render));
+
+document.querySelector('.reset-btn').addEventListener('click', () => {
+    canvas.style.removeProperty('height');
+    canvas.style.removeProperty('width');
+    void render();
+});
 
 document.querySelector('.reset-coords-button').onclick = function () {
     rotateBtn(this);
@@ -52,7 +61,7 @@ document.querySelector('.reset-coords-button').onclick = function () {
     history.replaceState(null, null, '/');
     initMathCoords(canvas);
 
-    canvas.style.removeProperty('background-color')
+    document.body.style.removeProperty('background')
     const ctx = canvas.getContext('2d', {willReadFrequently: true});
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
