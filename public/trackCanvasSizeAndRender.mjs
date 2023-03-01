@@ -5,25 +5,29 @@ import { mulBigIntByNum } from './bigIntArithHelper.mjs';
 let initial = true;
 const ddp = window.devicePixelRatio ?? 1;
 
-export function trackCanvasSizeAndRender(canvas, hiddenCanvas) {
-    function setCanvasSize() {
-        const oldWidth = canvas.width;
-        const oldHeight = canvas.height;
-        const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width * ddp;
-        canvas.height = rect.height * ddp;
-        hiddenCanvas.width = canvas.width;
-        hiddenCanvas.height = canvas.height;
-        const renderImmediately = initial;
-        if (initial) {
-            initial = false;
-        } else {
-            resizeMathCoords(canvas, oldWidth, oldHeight);
-        }
-        void render(renderImmediately);
+export function trackCanvasSizeAndRender() {
+    window.addEventListener('resize', setCanvasSizeAndRender);
+    setCanvasSizeAndRender();
+}
+
+export function setCanvasSizeAndRender() {
+    const canvas = document.getElementById('main-canvas');
+    const hiddenCanvas = document.getElementById('hidden-canvas');
+
+    const oldWidth = canvas.width;
+    const oldHeight = canvas.height;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * ddp;
+    canvas.height = rect.height * ddp;
+    hiddenCanvas.width = canvas.width;
+    hiddenCanvas.height = canvas.height;
+    const renderImmediately = initial;
+    if (initial) {
+        initial = false;
+    } else {
+        resizeMathCoords(canvas, oldWidth, oldHeight);
     }
-    window.addEventListener('resize', setCanvasSize);
-    setCanvasSize();
+    void render(renderImmediately);
 }
 
 /**

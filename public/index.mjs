@@ -1,5 +1,5 @@
 import { initMathCoords, inputMathCoords, parseMathCoordsFromLocation } from './mathCoords.mjs';
-import { trackCanvasSizeAndRender } from './trackCanvasSizeAndRender.mjs';
+import { setCanvasSizeAndRender, trackCanvasSizeAndRender } from './trackCanvasSizeAndRender.mjs';
 import { trackMouseLocation } from './trackMouseLocation.mjs';
 import { trackWheel } from './trackWheel.mjs';
 import { trackMouse } from './trackMouse.mjs';
@@ -46,13 +46,14 @@ function isDescendant(ancestor, descendant) {
 document.querySelector('#size-range').addEventListener('input', e => {
     canvas.style.height = `${e.target.value}%`;
     canvas.style.width = `${e.target.value}%`;
+    setCanvasSizeAndRender();
 });
 document.querySelectorAll('.menu-controls > input').forEach(input => input.addEventListener('input', render));
 
 document.querySelector('.reset-btn').addEventListener('click', () => {
     canvas.style.removeProperty('height');
     canvas.style.removeProperty('width');
-    void render();
+    setCanvasSizeAndRender();
 });
 
 document.querySelector('.reset-coords-button').onclick = function () {
