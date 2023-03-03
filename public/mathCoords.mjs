@@ -29,29 +29,6 @@ export function initMathCoords(canvas) {
 }
 
 /**
- * @param canvas {HTMLCanvasElement}
- * @param coords {Coords}
- */
-export function inputMathCoords(canvas, coords) {
-    const {width: canvasW, height: canvasH} = canvas.getBoundingClientRect();
-
-    const inputAspect = divToNum(coords.w, coords.h);
-    const ourAspect = canvasW / canvasH;
-
-    if (ourAspect === inputAspect) {
-        setMathCoords(canvas, coords);
-    } else if (ourAspect > inputAspect) {
-        const w = mulBigIntByNum(coords.w, ourAspect / inputAspect);
-        const xMin = coords.xMin - (w - coords.w) / 2n;
-        setMathCoords(canvas, {...coords, xMin, w});
-    } else {
-        const h = mulBigIntByNum(coords.h, inputAspect / ourAspect);
-        const yMin = coords.yMin - (h - coords.h) / 2n;
-        setMathCoords(canvas, {...coords, yMin, h});
-    }
-}
-
-/**
  * @return {Coords}
  */
 export function getMathCoords(canvas) {
@@ -185,4 +162,25 @@ export function zoomCoords(coords, originFraction, zoomFactor) {
     const newYMin = origin.y - mulBigIntByNum(newH, originFraction.y);
 
     return {unit: coords.unit, xMin: newXMin, w: newW, yMin: newYMin, h: newH};
+}
+
+/**
+ * @param canvas {HTMLCanvasElement}
+ */
+export function fitCoords(canvas) {
+    const coords = getMathCoords(canvas);
+    const {width, height} = canvas.getBoundingClientRect();
+
+    const mathAspect = divToNum(coords.w, coords.h);
+    const canvasAspect = width / height;
+
+    if (canvasAspect > mathAspect) {
+        const w = mulBigIntByNum(coords.w, canvasAspect / mathAspect);
+        const xMin = coords.xMin - (w - coords.w) / 2n;
+        setMathCoords(canvas, {...coords, xMin, w});
+    } else if (canvasAspect < mathAspect) {
+        const h = mulBigIntByNum(coords.h, mathAspect / canvasAspect);
+        const yMin = coords.yMin - (h - coords.h) / 2n;
+        setMathCoords(canvas, {...coords, yMin, h});
+    }
 }

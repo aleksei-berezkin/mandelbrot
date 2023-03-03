@@ -22,14 +22,14 @@
 <div class="main-menu collapsed" style="opacity: 0">
     <div class="menu-content">
         <div class="menu-controls">
+            <label for="size-range">Size</label>
+            <input id="size-range" type="range" value="100">
             <label for="iterations-range">Iterations</label>
             <input id="iterations-range" type="range">
             <label for="colors-range">Colors</label>
             <input id="colors-range" type="range">
             <label for="hue-range">Hue</label>
             <input id="hue-range" type="range">
-            <label for="size-range">Size</label>
-            <input id="size-range" type="range" value="100">
         </div>
         <button class='reset-btn' onclick="document.querySelectorAll('.menu-controls > input').forEach(i => i.valueAsNumber = i.getAttribute('value') ?? 50)">Reset</button>
         <div class="info-wr">

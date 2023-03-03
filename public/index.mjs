@@ -1,5 +1,9 @@
-import { initMathCoords, inputMathCoords, parseMathCoordsFromLocation } from './mathCoords.mjs';
-import { setCanvasSizeAndRender, trackCanvasSizeAndRender } from './trackCanvasSizeAndRender.mjs';
+import {
+    fitCoords,
+    initMathCoords,
+    parseMathCoordsFromLocation,
+    setMathCoords
+} from './mathCoords.mjs';
 import { trackMouseLocation } from './trackMouseLocation.mjs';
 import { trackWheel } from './trackWheel.mjs';
 import { trackMouse } from './trackMouse.mjs';
@@ -7,20 +11,26 @@ import { trackTouch } from './trackTouch.mjs';
 import { render } from './render.mjs';
 
 const canvas = document.getElementById('main-canvas');
-const hiddenCanvas = document.getElementById('hidden-canvas');
 
 const inputCoords = parseMathCoordsFromLocation();
 if (inputCoords) {
-    inputMathCoords(canvas, inputCoords);
+    setMathCoords(canvas, inputCoords);
+    fitCoords(canvas);
 } else {
     history.replaceState(null, null, '/');
     initMathCoords(canvas);
 }
+
 trackMouseLocation(canvas);
-trackCanvasSizeAndRender(canvas, hiddenCanvas);
 trackWheel(canvas);
 trackMouse(canvas);
 trackTouch(canvas);
+
+window.addEventListener('resize', () => {
+    setCanvasSize();
+    fitCoords(canvas);
+    void render();
+});
 
 document.body.onpointerup = function(e) {
     const menuButton = document.querySelector('.menu-button');
@@ -32,28 +42,18 @@ document.body.onpointerup = function(e) {
     }
 }
 
-function isDescendant(ancestor, descendant) {
-    let curr = descendant;
-    while (curr) {
-        if (ancestor === curr) {
-            return true;
-        }
-        curr = curr.parentElement;
-    }
-    return false;
-}
-
-document.querySelector('#size-range').addEventListener('input', e => {
-    canvas.style.height = `${e.target.value}%`;
-    canvas.style.width = `${e.target.value}%`;
-    setCanvasSizeAndRender();
-});
 document.querySelectorAll('.menu-controls > input').forEach(input => input.addEventListener('input', render));
 
+document.querySelector('#size-range').addEventListener('input', e => {
+    canvas.style.setProperty('--size', `${e.target.value}`);
+    setCanvasSize();
+    void render();
+});
+
 document.querySelector('.reset-btn').addEventListener('click', () => {
-    canvas.style.removeProperty('height');
-    canvas.style.removeProperty('width');
-    setCanvasSizeAndRender();
+    canvas.style.removeProperty('--size');
+    setCanvasSize();
+    void render();
 });
 
 document.querySelector('.reset-coords-button').onclick = function () {
@@ -67,6 +67,41 @@ document.querySelector('.reset-coords-button').onclick = function () {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     void render(true);
+}
+
+function setCanvasSize() {
+    const canvas = document.getElementById('main-canvas');
+    const hiddenCanvas = document.getElementById('hidden-canvas');
+
+    const bodyRect = document.body.getBoundingClientRect();
+    const sizeProp = Number(canvas.style.getPropertyValue('--size') || 100);
+    const roundedWidth = Math.round(bodyRect.width * sizeProp / 100);
+    const roundedHeight = Math.round(bodyRect.height * sizeProp / 100);
+
+    canvas.style.width = `${roundedWidth}px`;
+    canvas.style.height = `${roundedHeight}px`;
+
+    const ddp = window.devicePixelRatio ?? 1;
+    canvas.width = roundedWidth * ddp;
+    canvas.height = roundedHeight * ddp;
+    hiddenCanvas.width = canvas.width;
+    hiddenCanvas.height = canvas.height;
+}
+
+setCanvasSize(true);
+void render(true);
+
+// Util
+
+function isDescendant(ancestor, descendant) {
+    let curr = descendant;
+    while (curr) {
+        if (ancestor === curr) {
+            return true;
+        }
+        curr = curr.parentElement;
+    }
+    return false;
 }
 
 function rotateBtn(btn) {
