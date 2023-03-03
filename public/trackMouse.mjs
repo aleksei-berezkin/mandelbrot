@@ -36,9 +36,13 @@ export function trackMouse(canvas) {
         void render();
     });
 
-    canvas.addEventListener('mouseup', function() {
+    const mouseupHandler = function() {
         prevClientPoint = undefined;
 
         window.document.body.style.removeProperty('cursor');
-    })
+    };
+
+    canvas.addEventListener('mouseup', mouseupHandler);
+
+    canvas.addEventListener('mouseout', mouseupHandler);
 }
