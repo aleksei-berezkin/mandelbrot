@@ -20,8 +20,8 @@ export function trackTouch(canvas) {
 
         const {width, height} = canvas.getBoundingClientRect();
 
-        const prevCenter = getCenter(prevTouches);
-        const newCenter = getCenter(e.touches);
+        const prevCenter = getCenter(prevTouches, canvas);
+        const newCenter = getCenter(e.touches, canvas);
         const newCenterFr = {
             x: newCenter.x / width,
             y: 1 - newCenter.y / height,
@@ -57,16 +57,18 @@ export function trackTouch(canvas) {
 
 /**
  * @param touches {TouchList}
+ * @param canvas {HTMLCanvasElement}
  * @return {{x: number, y: number}}
  */
-function getCenter(touches) {
+function getCenter(touches, canvas) {
     if (touches.length < 1) {
-        return {x: .5, y: .5};
+        return {x: canvas.width / 2, y: canvas.height / 2};
     }
+    const {x: canvasX, y: canvasY} = canvas.getBoundingClientRect();
     return [...touches].reduce(
         (avg, touch) => ({
-            x: avg.x + touch.clientX / touches.length,
-            y: avg.y + touch.clientY / touches.length,
+            x: avg.x + (touch.clientX - canvasX) / touches.length,
+            y: avg.y + (touch.clientY - canvasY) / touches.length,
         }),
         {x: 0, y: 0},
     );
