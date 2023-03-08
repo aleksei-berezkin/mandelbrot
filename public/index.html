@@ -11,6 +11,7 @@
     <link rel="stylesheet" type="text/css" href="index.css"/>
 </head>
 <body>
+<div class="toast" style="opacity: 0" onclick="this.classList.remove('shown')"></div>
 <canvas id="hidden-canvas"></canvas>
 <div id="main-loader-wr">
     <svg class="main-loader" xmlns="http://www.w3.org/2000/svg">
@@ -69,6 +70,7 @@
 </button>
 <script src="index.mjs" type="module"></script>
 <script>
-    setTimeout(() => document.querySelectorAll('.main-menu, .reset-coords-button').forEach(el => el.style.removeProperty('opacity')), 400);
+    // To prevent animation on first show
+    setTimeout(() => document.querySelectorAll('.toast, .main-menu, .reset-coords-button').forEach(el => el.style.removeProperty('opacity')), 400);
 </script>
 </body>

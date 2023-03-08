@@ -9,6 +9,7 @@ import { trackWheel } from './trackWheel.mjs';
 import { trackMouse } from './trackMouse.mjs';
 import { trackTouch } from './trackTouch.mjs';
 import { render } from './render.mjs';
+import { showToast } from './toast.mjs';
 
 const canvas = document.getElementById('main-canvas');
 
@@ -90,6 +91,8 @@ function setCanvasSize() {
 
 setCanvasSize(true);
 void render(true);
+
+setTimeout(() => showToast('Zoom & drag to explore'), 1200);
 
 // Util
 

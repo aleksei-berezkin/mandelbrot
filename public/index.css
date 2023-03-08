@@ -15,6 +15,7 @@ html, body {
     touch-action: none;
 
     --btn-size: 38px;
+    --btn-pos: calc(var(--btn-size) * .375);
     --menu-color: #fff8;
     --menu-color-a2: #fffa;
     --tx: 300ms;
@@ -40,6 +41,23 @@ button {
     button:hover {
         text-decoration: underline;
     }
+}
+
+.toast {
+    background-color: #000b;
+    border-radius: .6em;
+    color: #fffc;
+    padding: .6em;
+    position: fixed;
+    top: var(--btn-pos);
+    text-align: center;
+    left: 50%;
+    transform: translate3d(-50%, -200%, 0);
+    transition: transform var(--tx);
+}
+
+.toast.shown {
+    transform: translate3d(-50%, 0, 0);
 }
 
 .round-button {
@@ -138,9 +156,9 @@ button {
     border-radius: calc(var(--btn-size) / 4);
     display: flex;
     filter: drop-shadow(0 0 3px #fff9);
-    left: calc(var(--btn-size) * .375);
+    left: var(--btn-pos);
     position: absolute;
-    top: calc(var(--btn-size) * .375);
+    top: var(--btn-pos);
     transition: transform var(--tx), background-color var(--tx), opacity var(--tx);
 }
 
@@ -233,8 +251,8 @@ button {
 
 .reset-coords-button {
     position: absolute;
-    right: calc(var(--btn-size) / 2);
-    top: calc(var(--btn-size) / 2);
+    right: var(--btn-pos);
+    top: var(--btn-pos);
 }
 
 .reset-coords-button > .material-symbols-outlined {
