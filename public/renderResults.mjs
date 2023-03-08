@@ -35,9 +35,9 @@ export function renderResults(canvas, hiddenCanvas, renderCoords, results, isPre
     }
 
     if (!isPrerender) {
-        const edgeRgb = getEdgeRgb(results, width);
-        const darker = edgeRgb.map(c => Math.round(c * .25));
-        const lighter = edgeRgb.map(c => Math.round(255 - (255 - c) * .5));
+        const avgRgb = getAvgRgb(results);
+        const darker = avgRgb.map(c => Math.round(c * .25));
+        const lighter = avgRgb.map(c => Math.round(255 - (255 - c) * .5));
         document.body.style.background = `radial-gradient(rgb(${lighter.join()}), rgb(${darker.join()}))`
     }
 
@@ -67,56 +67,18 @@ function toSameUnit(...coords) {
 
 /**
  * @param results {[{rgba: Uint8ClampedArray}]}
- * @param width {number}
  */
-function getEdgeRgb(results, width) {
-    const pixels = [
-        ...topSideRgb(results[0].rgba, width),
-        ...bottomSideRgb(results[results.length - 1].rgba, width),
-        ...results.map(res => [...sidesRgb(res, width)]).flatMap(rgbs => rgbs),
-    ];
-    const [r, g, b] = pixels
-        .reduce((c0, c1) => [c0[0] + c1[0], c0[1] + c1[1], c0[2] + c1[2]])
-        .map(col => Math.round(col / pixels.length));
-    return [r, g, b];
-}
-
-/**
- * @param rgba {Uint8ClampedArray}
- * @param width
- * @return {Generator<[number, number, number]>}
- */
-function* topSideRgb(rgba, width) {
-    for (let i = 0; i < width; i++) {
-        yield [
-            rgba[4 * i],
-            rgba[4 * i + 1],
-            rgba[4 * i + 2],
-        ]
+function getAvgRgb(results) {
+    let r = 0;
+    let g = 0;
+    let b = 0;
+    const samplesNum = 100;
+    for (let i = 0; i < samplesNum; i++) {
+        const rgba = results[Math.floor(results.length * Math.random())].rgba;
+        const pixelIndex = Math.floor(rgba.length / 4 * Math.random());
+        r += rgba[4 * pixelIndex];
+        g += rgba[4 * pixelIndex + 1];
+        b += rgba[4 * pixelIndex + 2];
     }
-}
-
-function* bottomSideRgb(rgba, width) {
-    const height = rgba.length / 4 / width;
-    const offset = 4 * width * (height - 1);
-    for (let i = 0; i < width; i++) {
-        yield [
-            rgba[offset + 4 * i],
-            rgba[offset + 4 * i + 1],
-            rgba[offset + 4 * i + 2],
-        ]
-    }
-}
-
-function* sidesRgb(rgba, width) {
-    const height = rgba.length / 4 / width;
-    for (let i = 0; i < height; i++) {
-        for (const j of [0, width - 1]) {
-            yield [
-                rgba[4 * width * i + 4 * j],
-                rgba[4 * width * i + 4 * j + 1],
-                rgba[4 * width * i + 4 * j + 2],
-            ]
-        }
-    }
+    return [r / samplesNum, g / samplesNum, b / samplesNum].map(Math.floor);
 }

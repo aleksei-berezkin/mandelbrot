@@ -126,6 +126,7 @@ button {
 #main-canvas {
     background-color: #fff2;
     border: none;
+    box-shadow: 0.3em 0.3em 1em #0002;
     height: 100%;
     margin: 0;
     padding: 0;
