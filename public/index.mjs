@@ -92,7 +92,7 @@ function setCanvasSize() {
 setCanvasSize(true);
 void render(true);
 
-setTimeout(() => showToast('Zoom & drag to explore'), 1200);
+setTimeout(() => showToast('Zoom & drag to explore'), 1000);
 
 // Util
 

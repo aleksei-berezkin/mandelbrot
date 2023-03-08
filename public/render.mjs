@@ -3,6 +3,7 @@ import { isBigNum } from './isBigNum.mjs';
 import { bigIntToBigNum } from './bigIntToBigNum.mjs';
 import { renderResults } from './renderResults.mjs';
 import { splitWork } from './splitWork.mjs';
+import { showToast } from './toast.mjs';
 
 let currentRenderTaskId = 0;
 
@@ -84,6 +85,15 @@ async function render0(thisRenderTaskId) {
     const loaderWr = document.getElementById('main-loader-wr');
     loaderWr.style.display = 'block';
     loaderWr.style.setProperty('--progress', '0%');
+
+    setTimeout(
+        function () {
+            if (thisRenderTaskId === currentRenderTaskId && loaderWr.style.display === 'block') {
+                showToast('Laggy? Try to decrease Size in menu', 3200);
+            }
+        },
+        3000,
+    );
 
     const renderPromises = workers.map(async (worker) => {
         const resultDataArr = [];
