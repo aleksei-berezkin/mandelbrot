@@ -89,10 +89,10 @@ async function render0(thisRenderTaskId) {
     setTimeout(
         function () {
             if (thisRenderTaskId === currentRenderTaskId && loaderWr.style.display === 'block') {
-                showToast('Laggy? Try to decrease Size in menu', 3200);
+                showToast('Laggy? Try to decrease <b>Size</b> or <b>Iterations</b> in menu', 4000);
             }
         },
-        3000,
+        3500,
     );
 
     const renderPromises = workers.map(async (worker) => {

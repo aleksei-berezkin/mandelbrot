@@ -16,6 +16,7 @@ html, body {
 
     --btn-size: 38px;
     --btn-pos: calc(var(--btn-size) * .375);
+    --btn-text-color: #000a;
     --menu-color: #fff8;
     --menu-color-a2: #fffa;
     --tx: 300ms;
@@ -63,7 +64,7 @@ button {
 .round-button {
     background-color: var(--menu-color);
     border-radius: calc(var(--btn-size) * .5);
-    color: #000a;
+    color: var(--btn-text-color);
     height: var(--btn-size);
     line-height: var(--btn-size);
     text-align: center;
@@ -181,6 +182,28 @@ button {
 .main-menu.collapsed > .menu-button {
     transform: rotateY(-180deg);
     pointer-events: all;
+}
+
+.main-menu.collapsed > .menu-button.blink {
+    animation: blink-bg 800ms infinite;
+}
+
+@keyframes blink-bg {
+    0% {
+        background-color: var(--menu-color);
+        box-shadow: none;
+        color: var(--btn-text-color);
+    }
+    50% {
+        background-color: white;
+        box-shadow: 0 0 1.2em #fffc;
+        color: black;
+    }
+    100% {
+        background-color: var(--menu-color);
+        box-shadow: none;
+        color: var(--btn-text-color);
+    }
 }
 
 .main-menu:not(.collapsed) > .menu-button {
