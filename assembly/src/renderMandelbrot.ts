@@ -252,23 +252,23 @@ function renderTwoPointsDouble(xy0: u64, xy1: u64): u64 {
   let x = f64x2(0, 0);
   let y = f64x2(0, 0);
 
-  let notDivergedYet = i64x2(0xffff_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff);
-  let divergedAtIter = i64x2(0, 0);
+  let divergedAtIter0: u32 = 0;
+  let divergedAtIter1: u32 = 0;
+
   for (let i: u32 = 0; i < maxIterations; i++) {
     const xSqr = v128.mul<f64>(x, x);
     const ySqr = v128.mul<f64>(y, y);
     const ge4 = v128.ge<f64>(v128.add<f64>(xSqr, ySqr), four);
 
-    const justDiverged = v128.and(notDivergedYet, ge4);
-    notDivergedYet = v128.andnot(notDivergedYet, justDiverged);
-    if (v128.any_true(justDiverged)) {
-      divergedAtIter = v128.or(
-          divergedAtIter,
-          v128.and(justDiverged, v128.splat<u64>(i)),
-      );
-      if (v128.all_true<u64>(divergedAtIter)) {
-        break;
-      }
+    if (!divergedAtIter0 && v128.extract_lane<u64>(ge4, 0)) {
+      divergedAtIter0 = i;
+    }
+    if (!divergedAtIter1 && v128.extract_lane<u64>(ge4, 1)) {
+      divergedAtIter1 = i;
+    }
+
+    if (divergedAtIter0 && divergedAtIter1) {
+      break;
     }
 
     // xNext = xSqr - ySqr + x0;
@@ -279,47 +279,15 @@ function renderTwoPointsDouble(xy0: u64, xy1: u64): u64 {
     x = xNext;
   }
 
-  divergedAtIter = v128.or(
-      divergedAtIter,
-      v128.and(notDivergedYet, v128.splat<u64>(maxIterations)),
-  );
-
-  return v128.extract_lane<u64>(divergedAtIter, 0) | (v128.extract_lane<u64>(divergedAtIter, 1) << 32);
-}
-
-// TODO Fallback for Safari
-function renderPointDouble(pX: u32, pY: u32): u32 {
-  // canvas has (0, 0) at the left-top, so flip Y
-  const x0: f64 = xMin + wStepFraction * pX
-  const y0: f64 = yMax - hStepFraction * pY;
-
-  let x = 0 as f64;
-  let y = 0 as f64;
-
-  let i: u32 = 0;
-  for ( ; i < maxIterations; i++) {
-    const xSqr = x * x;
-    const ySqr = y * y;
-    if (xSqr + ySqr > 4.0) {
-      break;
-    }
-    const xNext = xSqr - ySqr + x0;
-    const yNext = 2.0 * x * y + y0;
-    x = xNext
-    y = yNext
+  if (!divergedAtIter0) {
+    divergedAtIter0 = maxIterations;
+  }
+  if (!divergedAtIter1) {
+    divergedAtIter1 = maxIterations;
   }
 
-  return i;
+  return (divergedAtIter1 as u64) << 32 | divergedAtIter0 as u64;
 }
 
-function renderTwoPointsBigNum(xy0: u64, xy1: u64): u64 { /* +++ Generate render vectorized */ return 0 }
-
-// function renderTwoPointsBigNum(xy0: u64, xy1: u64): u64 {
-//   // TODO vectorized
-//   const c1 = renderPointBigNum(xy0 as u32, (xy0 >>> 32) as u32) as u64;
-//   const c2 = renderPointBigNum(xy1 as u32, (xy1 >>> 32) as u32) as u64;
-//   return c1 | (c2 << 32);
-// }
-
 // noinspection JSUnusedLocalSymbols
-function renderPointBigNum(pX: u32, pY: u32): u32 { /* +++ Generate render simple */ return 0 }
+function renderTwoPointsBigNum(xy0: u64, xy1: u64): u64 { /* +++ Generate render vectorized */ return 0 }
