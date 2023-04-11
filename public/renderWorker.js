@@ -55,12 +55,20 @@ async function renderMain(renderTaskId, coords, canvasCoords, maxIterations) {
         }
     }
 
-    const iterNums = await doRenderMain(coords, canvasCoords.w, canvasCoords.h, maxIterations);
-    lastResults.push({coords, canvasCoords, iterNums, maxIterations});
-    return {
-        velocity: measureVelocity(iterNums, canvasCoords, maxIterations),
-        minIterCount: getMinIterCount(iterNums, canvasCoords),
-    };
+    try {
+        const iterNums = await doRenderMain(coords, canvasCoords.w, canvasCoords.h, maxIterations);
+        lastResults.push({coords, canvasCoords, iterNums, maxIterations});
+        return {
+            velocity: measureVelocity(iterNums, canvasCoords, maxIterations),
+            minIterCount: getMinIterCount(iterNums, canvasCoords),
+        };
+    } catch (e) {
+        if (e instanceof WebAssembly.CompileError) {
+            return e.toString();
+        } else {
+            throw e;
+        }
+    }
 }
 
 function mapToRgba(renderTaskId, velocity, minIterCount, colorsRangeVal, hueRangeVal) {
@@ -166,20 +174,13 @@ async function instantiate(requiredMemBytes) {
         {initial: requiredPages}
     );
 
-    try {
-        const instObj = await WebAssembly.instantiateStreaming(
-            fetch('wasm/release.wasm'),
-            {
-                env: {memory}
-            },
-        );
-        return instObj.instance.exports;
-    } catch (e) {
-        if (e instanceof WebAssembly.CompileError) {
-            // TODO non-vectorized
-            console.log('Seems like vectorization not supported')
-        }
-    }
+    const instObj = await WebAssembly.instantiateStreaming(
+        fetch('wasm/release.wasm'),
+        {
+            env: {memory}
+        },
+    );
+    return instObj.instance.exports;
 }
 
 /**

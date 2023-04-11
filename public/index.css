@@ -4,7 +4,7 @@ html, body {
     border: none;
     color: #000b;
     display: flex;
-    font-family: 'Roboto', sans-serif;
+    font-family: "Helvetica Neue", Helvetica, sans-serif;
     font-size: 15px;
     justify-content: center;
     height: 100%;
@@ -41,6 +41,32 @@ button {
 @media (hover: hover) {
     button:hover {
         text-decoration: underline;
+    }
+}
+
+.error-wr {
+    background: #fff8;
+    box-shadow: 0.1em 0.2em 1.2em #fff6;
+    border-radius: .15em;
+    margin: 1em;
+    padding: 2em;
+}
+
+.error-wr > code {
+    color: #0009;
+    display: block;
+    font-size: .9em;
+    max-width: 42em;
+}
+
+@media (max-width: 425px) {
+    .error-wr {
+        margin: .5em;
+        padding: 1em;
+    }
+
+    .error-wr > code {
+        word-break: break-all;
     }
 }
 

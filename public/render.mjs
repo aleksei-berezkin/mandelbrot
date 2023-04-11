@@ -11,7 +11,16 @@ let currentRenderTaskId = 0;
 export async function render(immediately = false) {
     const thisRenderTaskId = ++currentRenderTaskId;
     const renderCb = async function() {
-        await render0(thisRenderTaskId);
+        try {
+            await render0(thisRenderTaskId);
+        } catch (e) {
+            document.body.innerHTML = '<div class="error-wr">' +
+                '<h1>Could not run WASM script</h1>' +
+                '<p>Maybe <a href="https://browser-update.org/update-browser.html" target="_blank">update your browser</a>?</p>' +
+                '<p>Required browser versions: Chrome 96; Firefox 89; Safari 16.4. <a href="https://webassembly.org/roadmap/" target="_blank">More...</a></p>' +
+                `<code>${e}</code>` +
+                '</div>';
+        }
     }
 
     if (immediately) {
@@ -113,6 +122,10 @@ async function render0(thisRenderTaskId) {
                     maxIterations,
                 },
             );
+
+            if (typeof resultData === 'string') {
+                throw resultData;
+            }
 
             if (!resultData || thisRenderTaskId !== currentRenderTaskId) {
                 break;
