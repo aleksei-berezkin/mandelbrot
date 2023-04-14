@@ -45,7 +45,7 @@ export function renderMandelbrot(): void {
 
 function initializeBigNum() { /* +++ Generate initialization */ }
 
-const minSizeToSplit: u32 = 6;
+const minSizeToSplit: u32 = 5;
 
 const NULL_XY: u64 = 0xffff_ffff_ffff_ffff;
 const NOT_RENDERED_COLOR: u32 = 0;
@@ -115,8 +115,7 @@ function getContourAndMidPointColor(x0: u32, y0: u32, x1: u32, y1: u32): u32 {
   for (let i: u32 = 0; ; i++) {
     const xy = generateContourAndMidPoints();
     if (xy === NULL_XY) {
-      // disregard pending XY
-      return prevTwoColors as u32;
+      break;
     }
 
     const currOneColor: u32 = loadRendered(xy);
@@ -125,6 +124,9 @@ function getContourAndMidPointColor(x0: u32, y0: u32, x1: u32, y1: u32): u32 {
         pendingXY = xy;
       } else {
         const currTwoColors = renderAndStoreTwoPoints(pendingXY, xy);
+        if (currTwoColors as u32 !== (currTwoColors >>> 32) as u32) {
+          return NOT_RENDERED_COLOR;
+        }
         if (prevTwoColors === NOT_RENDERED_COLOR) {
           prevTwoColors = currTwoColors
         } else if (prevTwoColors !== currTwoColors) {
@@ -134,21 +136,27 @@ function getContourAndMidPointColor(x0: u32, y0: u32, x1: u32, y1: u32): u32 {
       }
     } else {
       if (prevTwoColors === NOT_RENDERED_COLOR) {
-        prevTwoColors = currOneColor | (currOneColor << 32);
+        prevTwoColors = (currOneColor as u64) | ((currOneColor as u64) << 32);
       } else if ((prevTwoColors as u32) !== currOneColor) {
         return NOT_RENDERED_COLOR;
       }
     }
 
-    if (i === 5 && (prevTwoColors as u32) !== maxIterations) {
+    if (i === 4 && (prevTwoColors as u32) !== maxIterations) {
       // Quicker check for colored (diverging) rects
-      // disregard pendingXY
-      return prevTwoColors as u32;
+      break;
     }
   }
 
-  // Unreachable in fact
-  // noinspection UnreachableCodeJS,JSUnusedAssignment
+  if (pendingXY !== NULL_XY) {
+    const otherXY: u64 = (((pendingXY as u32) + canvasW - 1) / 2 as u64) | (((pendingXY >>> 32 as u32) + canvasH - 1) / 2 as u64) << 32;
+    const currTwoColors = renderAndStoreTwoPoints(pendingXY, otherXY);
+    if (currTwoColors as u32 !== prevTwoColors as u32) {
+      return NOT_RENDERED_COLOR;
+    }
+    return prevTwoColors as u32;
+  }
+
   return prevTwoColors as u32;
 }
 
@@ -176,6 +184,9 @@ function generateContourAndMidPoints(): u64 {
       genState = 4;
       return (genX1 - 1) | (genY1 - 1) << 32;
     case 4:
+      if (genX1 - genX0 <= step && genY1 - genY0 <= step) {
+        return NULL_XY;
+      }
       genState = 5 | (genY0 + step) << 4;
       return ((genX0 + genX1 - 1) / 2) | ((genY0 + genY1 - 1) / 2) << 32;
     case 5:
@@ -222,15 +233,15 @@ function loadRendered(xy: u64): u32 {
 }
 
 function renderAndStoreTwoPoints(xy0: u64, xy1: u64): u64 {
-  const c1c2 = isBigNum
+  const c0c1 = isBigNum
       ? renderTwoPointsBigNum(xy0, xy1)
       : renderTwoPointsDouble(xy0, xy1);
 
   // ptr = 4 * (y * canvasW + x)
-  store<u32>(4 * (((xy0 >>> 32) as u32) * canvasW + (xy0 as u32)), c1c2 as u32);
-  store<u32>(4 * (((xy1 >>> 32) as u32) * canvasW + (xy1 as u32)), (c1c2 >>> 32) as u32);
+  store<u32>(4 * (((xy0 >>> 32) as u32) * canvasW + (xy0 as u32)), c0c1 as u32);
+  store<u32>(4 * (((xy1 >>> 32) as u32) * canvasW + (xy1 as u32)), (c0c1 >>> 32) as u32);
 
-  return c1c2;
+  return c0c1;
 }
 
 const two = v128.splat<f64>(2.0);
