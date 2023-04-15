@@ -8,7 +8,7 @@ export function bigIntToBigNum(a, unit, fracPrecision) {
     let aPos = (a < 0 ? -a : a);
     const bigNum = [];
     let significantBits = 0;
-    for (let i = 0; i < (fracPrecision ? 1 + fracPrecision : 20); i++) {
+    for (let i = 0; i < (fracPrecision ? 1 + fracPrecision : 12); i++) {
         const item = aPos / unit;
         const itemNum = Number(item)
         bigNum[i] = itemNum;

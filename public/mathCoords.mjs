@@ -80,7 +80,7 @@ export function mathCoordsToQuery(coords) {
 
 function fmtWithE(n) {
     const s = String(n);
-    const m = /^([-1-9]+)(0+)$/.exec(s);
+    const m = /^(-?\d*[1-9])(0+)$/.exec(s);
     if (!m) {
         return s;
     }
@@ -123,7 +123,7 @@ function unwrapE(s) {
     if (!s) {
         return s;
     }
-    const m = /^([-1-9]+)e(\d+)/.exec(s);
+    const m = /^(-?\d+)e(\d+)/.exec(s);
     if (!m) {
         return s;
     }

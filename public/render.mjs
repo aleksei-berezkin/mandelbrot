@@ -67,11 +67,6 @@ async function render0(thisRenderTaskId) {
         _baseIterations,
         Math.round((Math.log10(zoom) + 1) * _baseIterations),
     );
-
-    const bigNum = isBigNum(coords.w, coords.unit);
-    const wBigNum = bigNum ? bigIntToBigNum(coords.w, coords.unit) : undefined;
-
-    document.getElementById('precision').innerText = wBigNum ? `BigNum ${wBigNum.length * 32}` : 'float 64';
     document.getElementById('max-iterations').innerText = String(maxIterations);
 
     const canvasW = canvas.width;
@@ -87,6 +82,11 @@ async function render0(thisRenderTaskId) {
         },
         Math.log2(workers.length * 8),
     )];
+
+    const wBigNum = parts
+        .map(({coords: {w, unit}}) => isBigNum(w, unit) ? bigIntToBigNum(w, unit).length : 0)
+        .reduce((l, r) => Math.max(l, r));
+    document.getElementById('precision').innerText = wBigNum ? `BigNum ${wBigNum * 32}` : 'float 64';
 
     const renderTasksNum = parts.length;
     let renderTasksDone = 0;
