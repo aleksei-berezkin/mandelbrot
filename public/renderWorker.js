@@ -1,3 +1,7 @@
+// Firefox still doesn't support modules workers
+// https://bugzilla.mozilla.org/show_bug.cgi?id=1247687
+// https://github.com/mdn/content/issues/24402
+
 const bigIntToBigNumPromise = (async () => {
     const text = await (await fetch('bigIntToBigNum.mjs')).text();
     eval(text.replace('export', ''));

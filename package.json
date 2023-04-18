@@ -1,7 +1,7 @@
 {
   "name": "mandelbrot",
   "version": "1.0.0",
-  "description": "Mandelbrot interactive visualization",
+  "description": "Mandelbrot set interactive visualization",
   "main": "public/index.html",
   "scripts": {
     "postinstall": "cd assembly ; npm i ; cd ..",

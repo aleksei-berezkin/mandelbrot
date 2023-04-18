@@ -113,7 +113,7 @@ function getContourAndMidPointColor(x0: u32, y0: u32, x1: u32, y1: u32): u32 {
   let prevTwoColors: u64 = NOT_RENDERED_COLOR;
 
   for (let i: u32 = 0; ; i++) {
-    const xy = generateContourAndMidPoints();
+    const xy = generateContourAndMidPoints((prevTwoColors as u32) !== maxIterations);
     if (xy === NULL_XY) {
       break;
     }
@@ -141,11 +141,6 @@ function getContourAndMidPointColor(x0: u32, y0: u32, x1: u32, y1: u32): u32 {
         return NOT_RENDERED_COLOR;
       }
     }
-
-    if (i === 4 && (prevTwoColors as u32) !== maxIterations) {
-      // Quicker check for colored (diverging) rects
-      break;
-    }
   }
 
   if (pendingXY !== NULL_XY) {
@@ -154,20 +149,25 @@ function getContourAndMidPointColor(x0: u32, y0: u32, x1: u32, y1: u32): u32 {
     if (currTwoColors as u32 !== prevTwoColors as u32) {
       return NOT_RENDERED_COLOR;
     }
-    return prevTwoColors as u32;
   }
 
   return prevTwoColors as u32;
 }
 
-const step: u64 = 10;
+const stepDiverged: u64 = 48;
+const stepConverged: u64 = 9;
+const minSizeForMidPoint: u64 = 18;
 let genState: u64 = 0;
 let genX0: u64 = 0;
 let genY0: u64 = 0;
 let genX1: u64 = 0;
 let genY1: u64 = 0;
 
-function generateContourAndMidPoints(): u64 {
+/**
+ * For diverged (colored) rectangles can take larger step
+ */
+function generateContourAndMidPoints(diverged: boolean): u64 {
+  const step = diverged ? stepDiverged : stepConverged;
   const baseState = genState & 0xf;
   let p = genState >>> 4;
   switch (baseState as u32) {
@@ -184,18 +184,19 @@ function generateContourAndMidPoints(): u64 {
       genState = 4;
       return (genX1 - 1) | (genY1 - 1) << 32;
     case 4:
-      if (genX1 - genX0 <= step && genY1 - genY0 <= step) {
-        return NULL_XY;
+      if (genX1 - genX0 >= minSizeForMidPoint || genY1 - genY0 >= minSizeForMidPoint) {
+        genState = 5 | (genY0 + step / 3) << 4;
+        return ((genX0 + genX1 - 1) / 2) | ((genY0 + genY1 - 1) / 2) << 32;
       }
-      genState = 5 | (genY0 + step) << 4;
-      return ((genX0 + genX1 - 1) / 2) | ((genY0 + genY1 - 1) / 2) << 32;
+      p = genY0 + step / 3;
+      // fall-through
     case 5:
       // x0 (y0 -> y1)
       if (p < genY1) {
         genState = 5 | (p + step) << 4;
         return genX0 | p << 32;
       }
-      p = genX0 + step
+      p = genX0 + step / 3;
       // fall-through
     case 6:
       // (x0->x1) y1
@@ -203,7 +204,7 @@ function generateContourAndMidPoints(): u64 {
         genState = 6 | (p + step) << 4;
         return p | (genY1 - 1) << 32;
       }
-      p = genX0 + step;
+      p = genX0 + step * 2 / 3;
       // fall-through
     case 7:
       // (x0 -> x1) y0
@@ -211,7 +212,7 @@ function generateContourAndMidPoints(): u64 {
         genState = 7 | (p + step) << 4;
         return p | genY0 << 32;
       }
-      p = genY0 + step;
+      p = genY0 + step * 2 / 3;
       // fall-through
     case 8:
       // x1 (y0 -> y1)
