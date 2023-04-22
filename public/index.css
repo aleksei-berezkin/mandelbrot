@@ -38,9 +38,37 @@ button {
     padding: 0;
 }
 
+.text-btn {
+    --a-color: #444b;
+    --a-hover: #444d;
+    --a-shadow: #4443;
+
+    letter-spacing: .05em;
+    padding: .25em;
+    margin-left: 50%;
+    transform: translateX(-50%);
+}
+
+a {
+    --a-color: rgba(0, 63, 153, 0.86);
+    --a-hover: rgba(0, 59, 142, 0.99);
+    --a-shadow: rgba(0, 59, 142, 0.13);
+}
+
+a, .text-btn {
+    --a-tx: 150ms;
+
+    color: var(--a-color);
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    transition: color var(--a-tx), filter var(--a-tx), text-decoration-color var(--a-tx);
+}
+
 @media (hover: hover) {
-    button:hover {
-        text-decoration: underline;
+    a:hover, .text-btn:hover {
+        color: var(--a-hover);
+        filter: drop-shadow(0 0 .12em var(--a-shadow));
+        text-decoration-color: var(--a-hover);
     }
 }
 
@@ -88,20 +116,25 @@ button {
 }
 
 .round-button {
-    background-color: var(--menu-color);
     border-radius: calc(var(--btn-size) * .5);
     fill: var(--btn-text-color);
     height: var(--btn-size);
     line-height: var(--btn-size);
     text-align: center;
-    transition: background-color var(--tx), color var(--tx), opacity var(--tx), transform var(--tx);
+    transition: background-color var(--tx), fill var(--tx), opacity var(--tx), transform var(--tx);
     width: var(--btn-size);
+}
+
+.round-button:not(.no-bg) {
+    background-color: var(--menu-color);
 }
 
 @media (hover: hover) {
     .round-button:hover {
+        fill: #000e;
+    }
+    .round-button:not(.no-bg):hover {
         background-color: var(--menu-color-a2);
-        color: #000e;
     }
 }
 
@@ -259,14 +292,6 @@ button {
     width: 100%;
 }
 
-.reset-btn {
-    color: #444b;
-    letter-spacing: .05em;
-    padding: .25em;
-    margin-left: 50%;
-    transform: translateX(-50%);
-}
-
 .info-wr {
     display: grid;
     gap: .25em .75em;
@@ -277,10 +302,43 @@ button {
     color: #222b;
 }
 
+
+.reset-coords-button {
+    position: absolute;
+    right: var(--btn-pos);
+    top: var(--btn-pos);
+}
+
+.about {
+    --m: 2rem;
+    --w: calc(min(460px, 100vw - 2 * var(--m)));
+    --l: calc((100vw - var(--w)) / 2);
+
+    background: #fffc;
+    box-sizing: border-box;
+    border-radius: .5em;
+    overflow: scroll;
+    padding: 1em;
+    position: absolute;
+    top: var(--m);
+    left: var(--l);
+    max-height: calc(100vh - 2 * var(--m));
+    width: var(--w);
+}
+
+.about.hidden {
+    display: none;
+}
+
+#about-close-btn {
+    position: fixed;
+    left: calc(var(--l) + var(--w) - var(--btn-size) - .75em);
+    top: calc(var(--m) + .75em);
+}
+
 .social-wr {
-    fill: #0006;
+    fill: #0009;
     display: flex;
-    justify-content: center;
     margin-top: .5em;
 }
 
@@ -294,19 +352,11 @@ button {
 
 @media (hover: hover) {
     .social-wr > a:hover {
-        fill: #000c;
+        fill: #000d;
     }
 }
 
 .social-wr > a > svg {
-    height: 20px;
-    width: 20px;
-}
-
-
-
-.reset-coords-button {
-    position: absolute;
-    right: var(--btn-pos);
-    top: var(--btn-pos);
+    height: 24px;
+    width: 24px;
 }

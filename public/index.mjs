@@ -33,12 +33,29 @@ window.addEventListener('resize', () => {
     void render();
 });
 
+// Open/close dialogs
 document.body.onpointerup = function(e) {
     const menuButton = document.querySelector('.menu-button');
     const mainMenu = document.querySelector('.main-menu');
+
+    const aboutButton = document.querySelector('#about-btn');
+    const aboutSection = document.querySelector('.about');
+    const aboutCloseButton = document.querySelector('#about-close-btn');
+
+    if (isDescendant(aboutButton, e.target)) {
+        aboutSection.classList.remove('hidden');
+        mainMenu.classList.add('collapsed');
+        return;
+    }
+
     if (isDescendant(menuButton, e.target)) {
         mainMenu.classList.toggle('collapsed');
-    } else if (!isDescendant(mainMenu, e.target)) {
+    }
+
+    if (isDescendant(aboutCloseButton, e.target) || !isDescendant(aboutSection, e.target)) {
+        aboutSection.classList.add('hidden');
+    }
+    if (!isDescendant(mainMenu, e.target)) {
         mainMenu.classList.add('collapsed');
     }
 }
@@ -51,7 +68,7 @@ document.querySelector('#size-range').addEventListener('input', e => {
     void render();
 });
 
-document.querySelector('.reset-btn').addEventListener('click', () => {
+document.querySelector('#reset-btn').addEventListener('click', () => {
     canvas.style.removeProperty('--size');
     setCanvasSize();
     void render();
