@@ -270,12 +270,12 @@ function renderTwoPointsDouble(xy0: u64, xy1: u64): u64 {
   for (let i: u32 = 0; i < maxIterations; i++) {
     const xSqr = v128.mul<f64>(x, x);
     const ySqr = v128.mul<f64>(y, y);
-    const ge4 = v128.ge<f64>(v128.add<f64>(xSqr, ySqr), four);
+    const gt4 = v128.gt<f64>(v128.add<f64>(xSqr, ySqr), four);
 
-    if (!divergedAtIter0 && v128.extract_lane<u64>(ge4, 0)) {
+    if (!divergedAtIter0 && v128.extract_lane<u64>(gt4, 0)) {
       divergedAtIter0 = i;
     }
-    if (!divergedAtIter1 && v128.extract_lane<u64>(ge4, 1)) {
+    if (!divergedAtIter1 && v128.extract_lane<u64>(gt4, 1)) {
       divergedAtIter1 = i;
     }
 

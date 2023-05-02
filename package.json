@@ -10,7 +10,8 @@
     "build:full": "cd assembly ; npm run asbuild ; cd ..",
     "build:test": "cd assembly ; npm run asbuild:debug ; cd ..",
     "generate": "node generate/generate.mjs",
-    "start": "npx serve public"
+    "start": "npx serve public",
+    "rebuild-and-start": "npm run clean ; npm run build ; npm start"
   },
   "repository": {
     "type": "git",

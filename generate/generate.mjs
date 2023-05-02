@@ -88,6 +88,8 @@ function emitRenderPointBigNumVectorized(precision) {
         `function renderTwoPointsBigNum${precision}(xy0: u64, xy1: u64): u64 {`,
     );
 
+    // xPos and yPos are abs (positive) values of x and y
+    // Because 2-s complement multiplication is too complicated
     emitDecl({names: ['x', 'y', 'xPos', 'yPos', 'x0_', 'y0_', 't0_', 't1_', 't2_'], precision, vector: true});
     emitArithVarsDecl(true);
 
@@ -121,14 +123,14 @@ function emitRenderPointBigNumVectorized(precision) {
     emitMulPosVector('xPos', 'xPos', 't0_', precision);
     emitMulPosVector('yPos', 'yPos', 't1_', precision);
     emitAddVector('t0_', 't1_', 't2_', precision);
-    emit(`const ge4 = v128.ge<i64>(t2_0, ${i64x2(4)});`);
+    emit(`const gt4 = v128.gt<i64>(t2_0, ${i64x2(4)});`);
 
     // Check diverge
     emit(
-        'if (!divergedAtIter0 && v128.extract_lane<u64>(ge4, 0)) {',
+        'if (!divergedAtIter0 && v128.extract_lane<u64>(gt4, 0)) {',
         'divergedAtIter0 = i;',
         '}',
-        'if (!divergedAtIter1 && v128.extract_lane<u64>(ge4, 1)) {',
+        'if (!divergedAtIter1 && v128.extract_lane<u64>(gt4, 1)) {',
         'divergedAtIter1 = i;',
         '}',
         'if (divergedAtIter0 && divergedAtIter1) {',
