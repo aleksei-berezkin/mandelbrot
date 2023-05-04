@@ -63,7 +63,7 @@ function renderRect(x0: u32, y0: u32, x1: u32, y1: u32): void {
   }
 
 
-  if (x1 - x0 >= minSizeToSplit) {
+  if (x1 - x0 >= minSizeToSplit && x1 - x0 > y1 - y0) {
     const xMid: u32 = (x0 + x1) / 2;
     renderRect(x0, y0, xMid, y1);
     renderRect(xMid, y0, x1, y1);

@@ -2,7 +2,7 @@ import { getMathCoords, mathCoordsToQuery } from './mathCoords.mjs';
 import { isBigNum } from './isBigNum.mjs';
 import { bigIntToBigNum } from './bigIntToBigNum.mjs';
 import { renderResults } from './renderResults.mjs';
-import { splitWork } from './splitWork.mjs';
+import { shuffleInPlace, splitWork } from './splitWork.mjs';
 import { showToast } from './toast.mjs';
 
 let currentRenderTaskId = 0;
@@ -72,7 +72,7 @@ async function render0(thisRenderTaskId) {
     const canvasW = canvas.width;
     const canvasH = canvas.height;
 
-    const parts = [...splitWork(
+    const parts = shuffleInPlace([...splitWork(
         coords,
         {
             xMin: 0,
@@ -81,7 +81,7 @@ async function render0(thisRenderTaskId) {
             h: canvasH,
         },
         Math.log2(workers.length * 8),
-    )];
+    )]);
 
     const wBigNum = parts
         .map(({coords: {w, unit}}) => isBigNum(w, unit) ? bigIntToBigNum(w, unit).length : 0)
