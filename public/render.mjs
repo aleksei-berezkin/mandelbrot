@@ -159,7 +159,6 @@ async function render0(thisRenderTaskId) {
     const medianIterCountArr = resultDataArr
         .filter(a => a.medianIterCount != null)
         .map(a => a.medianIterCount);
-    medianIterCountArr.sort((a, b) => a < b ? -1 : 1);
 
     let rgbaTasksDone = 0;
     const rgbaPromises = workers.map(async (worker) => {
@@ -172,7 +171,8 @@ async function render0(thisRenderTaskId) {
                 minIterCount,
                 maxIterCount,
                 avgIterCount,
-                medianIterCount: medianIterCountArr.length ? medianIterCountArr[Math.floor(medianIterCountArr.length /2)] : undefined,
+                // Avg of medians
+                medianIterCount: medianIterCountArr.length ? medianIterCountArr.reduce((a, b) => a + b) / medianIterCountArr.length : undefined,
                 colorsRangeVal,
                 hueRangeVal,
             },

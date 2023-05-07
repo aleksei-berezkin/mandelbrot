@@ -268,9 +268,23 @@ function getMinMaxAvgIterCount(iterArray, canvasCoords, maxIterations) {
         minIterCount,
         maxIterCount,
         avgIterCount,
-        medianIterCount: allCounts.length ? allCounts[Math.floor(allCounts.length / 2)] : undefined,
+        // TODO it's 90th percentile in fact
+        medianIterCount: allCounts.length ? allCounts[Math.floor(allCounts.length * .9)] : undefined,
     };
 }
+
+const colors = [
+    '#001f65',
+    '#ffecde',
+    '#492d74',
+    '#fff0b2',
+    '#671b6f',
+    '#d2ffd8',
+    '#740202',
+    '#d1f8ff',
+    '#0d470f',
+    '#ffe9fd',
+].map(hexToRgb);
 
 /**
  * @param iterArray {Uint32Array}
@@ -288,8 +302,9 @@ function doMapToRgba(iterArray, canvasCoords, maxIterations, velocity, minIterCo
     const initZoneBound = minIterCount + (medianIterCount - minIterCount) * .95;
     const chaosZoneStart = medianIterCount + (medianIterCount - minIterCount) * 1.7;
 
-    const huePeriod = 2.0 * Math.pow(20, 1 - colorsRangeVal / 50);
-    const userHueOffset = (hueRangeVal / 50 - 1) * 180;
+    const hueOffset = -2.1;
+    const huePeriod = 4.81 * Math.pow(20, 1 - colorsRangeVal / 50);
+    const userHueOffset = (hueRangeVal / 50 - 1) * colors.length / 2;
 
     const normalizedMin = 1;
     const normalizedAvg = 10;
@@ -301,7 +316,7 @@ function doMapToRgba(iterArray, canvasCoords, maxIterations, velocity, minIterCo
      */
     function compressIterCount(iterCount) {
         const compressedIterCount =
-            iterCount < initZoneBound ? (1.1 * initZoneBound + iterCount) / 2.1
+            iterCount < initZoneBound ? (3.1 * initZoneBound + iterCount) / 4.1
             : iterCount > chaosZoneStart ? chaosZoneStart + Math.pow(iterCount - chaosZoneStart + 1, .59) - 1
             : iterCount;
 
@@ -322,16 +337,25 @@ function doMapToRgba(iterArray, canvasCoords, maxIterations, velocity, minIterCo
         if (iterCount < maxIterations) {
             const compressedIterCount = compressIterCount(iterCount);
 
-            const hue = (110 + userHueOffset + minIterCount * 3 + (compressedIterCount / huePeriod) * 360) % 360;
-            // .5 +- .2
-            const lightness = .5 + Math.sin(/*-minIterCount / 10 % .1*/ + compressedIterCount / (3.9 * normalizedSpan) * 2 * Math.PI) * .15;
+            // [0, colors.length)
+            const myHue = (
+                colors.length /* to avoid negatives */
+                + hueOffset
+                + userHueOffset
+                + minIterCount * .17
+                + (compressedIterCount / huePeriod) * colors.length
+            ) % colors.length;
 
-            const [r, g, b] = hslToRgb(hue, 1, lightness);
+            const fromColor = colors[Math.floor(myHue)];
+            const toColor = colors[(Math.floor(myHue) + 1) % colors.length];
+            const progress = myHue % 1;
+
+            const [r, g, b] = fromColor
+                .map((fc, i) => fc * (1 - progress) + toColor[i] * progress);
 
             rgba[arrOffset] = r;
             rgba[arrOffset + 1] = g;
             rgba[arrOffset + 2] = b;
-
         }
 
         rgba[arrOffset + 3] = 255;
@@ -340,33 +364,7 @@ function doMapToRgba(iterArray, canvasCoords, maxIterations, velocity, minIterCo
     return rgba;
 }
 
-/**
- * https://en.wikipedia.org/wiki/HSL_and_HSV#HSL_to_RGB
- * @param h {number} 0..360
- * @param s {number} 0..1
- * @param l {number} 0..1
- * @return {[number, number, number]} 0..255
- */
-function hslToRgb(h, s, l) {
-    const c = (1 - Math.abs(2 * l - 1)) * s;
-    const h1 = h / 60;
-    const x = c * (1 - Math.abs(h1 % 2 - 1));
-    let r1;
-    let g1;
-    let b1;
-    if (h1 < 1) {
-        [r1, g1, b1] = [c, x, 0];
-    } else if (h1 < 2) {
-        [r1, g1, b1] = [x, c, 0];
-    } else if (h1 < 3) {
-        [r1, g1, b1] = [0, c, x];
-    } else if (h1 < 4) {
-        [r1, g1, b1] = [0, x, c];
-    } else if (h1 < 5) {
-        [r1, g1, b1] = [x, 0, c];
-    } else {
-        [r1, g1, b1] = [c, 0, x];
-    }
-    const m = l - c / 2;
-    return [255 * (r1 + m), 255 * (g1 + m), 255 * (b1 + m)];
+function hexToRgb(hex) {
+    const [_, ...hexRgb] = /#([\da-zA-Z]{2})([\da-zA-Z]{2})([\da-zA-Z]{2})/.exec(hex);
+    return hexRgb.map(h => Number.parseInt(h, 16));
 }
