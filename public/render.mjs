@@ -2,8 +2,9 @@ import { getMathCoords, mathCoordsToQuery } from './mathCoords.mjs';
 import { isBigNum } from './isBigNum.mjs';
 import { bigIntToBigNum } from './bigIntToBigNum.mjs';
 import { renderResults } from './renderResults.mjs';
-import { shuffleInPlace, splitWork } from './splitWork.mjs';
+import { splitWork } from './splitWork.mjs';
 import { showToast } from './toast.mjs';
+import { shuffleInPlace } from './shuffleInPlace.mjs';
 
 let currentRenderTaskId = 0;
 
@@ -156,9 +157,18 @@ async function render0(thisRenderTaskId) {
     const maxIterCount = maxIterCountArr.length ? maxIterCountArr.reduce((a, b) => a > b ? a : b) : undefined;
     const avgIterCount = resultDataArr.map(a => a.avgIterCount).reduce((a, b) => a + b) / resultDataArr.length;
 
-    const medianIterCountArr = resultDataArr
-        .filter(a => a.medianIterCount != null)
-        .map(a => a.medianIterCount);
+    // const medianIterCountArr = resultDataArr
+    //     .filter(a => a.medianIterCount != null)
+    //     .map(a => a.medianIterCount);
+
+    const sample = [];
+    const notCounted = [minIterCount, minIterCount + 1, maxIterations]
+
+    resultDataArr.forEach(a =>
+        sample.push(...a.sample.filter(s => !notCounted.includes(s)))
+    );
+    sample.sort((a, b) => a < b ? -1 : 1);
+    const sampleMedian = sample[Math.floor(sample.length * .8)];
 
     let rgbaTasksDone = 0;
     const rgbaPromises = workers.map(async (worker) => {
@@ -171,8 +181,8 @@ async function render0(thisRenderTaskId) {
                 minIterCount,
                 maxIterCount,
                 avgIterCount,
-                // Avg of medians
-                medianIterCount: medianIterCountArr.length ? medianIterCountArr.reduce((a, b) => a + b) / medianIterCountArr.length : undefined,
+
+                medianIterCount: sampleMedian,
                 colorsRangeVal,
                 hueRangeVal,
             },

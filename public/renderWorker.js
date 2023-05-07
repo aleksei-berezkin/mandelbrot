@@ -69,6 +69,7 @@ async function renderMain(renderTaskId, coords, canvasCoords, maxIterations) {
             maxIterCount,
             avgIterCount,
             medianIterCount,
+            sample: getSample(iterNums, canvasCoords),
         };
     } catch (e) {
         if (e instanceof WebAssembly.CompileError) {
@@ -86,7 +87,7 @@ function mapToRgba(renderTaskId, velocity, minIterCount, maxIterCount, avgIterCo
 
     const rgbaParts = lastResults.map(({iterNums, canvasCoords, maxIterations}) => ({
         canvasCoords,
-        rgba: doMapToRgba(iterNums, canvasCoords, maxIterations, velocity, minIterCount, maxIterCount, medianIterCount, avgIterCount, colorsRangeVal, hueRangeVal),
+        rgba: doMapToRgba(iterNums, canvasCoords, maxIterations, velocity, minIterCount, maxIterCount, avgIterCount, medianIterCount, colorsRangeVal, hueRangeVal),
     }));
 
     lastRenderTaskId = undefined;
@@ -273,6 +274,18 @@ function getMinMaxAvgIterCount(iterArray, canvasCoords, maxIterations) {
     };
 }
 
+function getSample(iterArray, canvasCoords) {
+    const sampleApproxSize = 100;
+    const sampleFraction = sampleApproxSize / (canvasCoords.w * canvasCoords.h);
+    const sample = [];
+    for (let i = 0; i < canvasCoords.w * canvasCoords.h; i++) {
+        if (Math.random() < sampleFraction) {
+            sample.push(iterArray[i]);
+        }
+    }
+    return sample;
+}
+
 const colors = [
     '#001f65',
     '#ffecde',
@@ -299,6 +312,7 @@ const colors = [
  * @param hueRangeVal {number}
  */
 function doMapToRgba(iterArray, canvasCoords, maxIterations, velocity, minIterCount, maxIterCount, avgIterCount, medianIterCount, colorsRangeVal, hueRangeVal) {
+    console.log(medianIterCount);
     const initZoneBound = minIterCount + (medianIterCount - minIterCount) * .95;
     const chaosZoneStart = medianIterCount + (medianIterCount - minIterCount) * 1.7;
 
@@ -339,7 +353,7 @@ function doMapToRgba(iterArray, canvasCoords, maxIterations, velocity, minIterCo
 
             // [0, colors.length)
             const myHue = (
-                colors.length /* to avoid negatives */
+                2 * colors.length /* to avoid negatives */
                 + hueOffset
                 + userHueOffset
                 + minIterCount * .17
