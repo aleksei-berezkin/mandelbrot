@@ -23,8 +23,8 @@ async function messageHandler(message) {
         const {coords, canvasCoords, maxIterations} = data;
         resultData = await renderMain(renderTaskId, coords, canvasCoords, maxIterations);
     } else if (commandName === 'mapToRgba') {
-        const {velocity, minIterCount, colorsRangeVal, hueRangeVal} = data;
-        resultData = mapToRgba(renderTaskId, velocity, minIterCount, colorsRangeVal, hueRangeVal);
+        const {velocity, minIterCount, maxIterCount, avgIterCount, medianIterCount, colorsRangeVal, hueRangeVal} = data;
+        resultData = mapToRgba(renderTaskId, velocity, minIterCount, maxIterCount, avgIterCount, medianIterCount, colorsRangeVal, hueRangeVal);
     }
     self.postMessage({workerCallId, data: resultData});
 }
@@ -62,9 +62,13 @@ async function renderMain(renderTaskId, coords, canvasCoords, maxIterations) {
     try {
         const iterNums = await doRenderMain(coords, canvasCoords.w, canvasCoords.h, maxIterations);
         lastResults.push({coords, canvasCoords, iterNums, maxIterations});
+        const {minIterCount, maxIterCount, avgIterCount, medianIterCount} = getMinMaxAvgIterCount(iterNums, canvasCoords, maxIterations);
         return {
             velocity: measureVelocity(iterNums, canvasCoords, maxIterations),
-            minIterCount: getMinIterCount(iterNums, canvasCoords),
+            minIterCount,
+            maxIterCount,
+            avgIterCount,
+            medianIterCount,
         };
     } catch (e) {
         if (e instanceof WebAssembly.CompileError) {
@@ -75,14 +79,14 @@ async function renderMain(renderTaskId, coords, canvasCoords, maxIterations) {
     }
 }
 
-function mapToRgba(renderTaskId, velocity, minIterCount, colorsRangeVal, hueRangeVal) {
+function mapToRgba(renderTaskId, velocity, minIterCount, maxIterCount, avgIterCount, medianIterCount, colorsRangeVal, hueRangeVal) {
     if (lastRenderTaskId !== renderTaskId) {
         return;
     }
 
     const rgbaParts = lastResults.map(({iterNums, canvasCoords, maxIterations}) => ({
         canvasCoords,
-        rgba: doMapToRgba(iterNums, canvasCoords, maxIterations, velocity, minIterCount, colorsRangeVal, hueRangeVal),
+        rgba: doMapToRgba(iterNums, canvasCoords, maxIterations, velocity, minIterCount, maxIterCount, medianIterCount, avgIterCount, colorsRangeVal, hueRangeVal),
     }));
 
     lastRenderTaskId = undefined;
@@ -239,27 +243,38 @@ function* iterateCols(iterArray, canvasCoords) {
 /**
  * @param iterArray {Uint32Array}
  * @param canvasCoords {CanvasCoords}
- * @return {number}
+ * @param maxIterations {number}
+ * @return {{minIterCount: number, maxIterCount: number | undefined , avgIterCount: number, medianIterCount}}
  */
-function getMinIterCount(iterArray, canvasCoords) {
-    let min = iterArray[0];
+function getMinMaxAvgIterCount(iterArray, canvasCoords, maxIterations) {
+    let minIterCount = iterArray[0];
+    let maxIterCount = undefined;
+    let avgIterCount = 0;
+    let avgIterAddedCounter = 0;
+    const allCounts = [];
     for (let i = 1; i < canvasCoords.w * canvasCoords.h; i++) {
-        min = Math.min(min, iterArray[i]);
+        minIterCount = Math.min(minIterCount, iterArray[i]);
+        if (iterArray[i] !== maxIterations) {
+            maxIterCount = Math.max(maxIterCount ?? 0, iterArray[i]);
+            avgIterCount += iterArray[i];
+            avgIterAddedCounter++;
+            allCounts.push(iterArray[i]);
+        }
     }
-    return min;
+    avgIterCount /= avgIterAddedCounter || 1;
+    allCounts.sort((a, b) => a < b ? -1 : 1);
+
+    return {
+        minIterCount,
+        maxIterCount,
+        avgIterCount,
+        medianIterCount: allCounts.length ? allCounts[Math.floor(allCounts.length / 2)] : undefined,
+    };
 }
 
-const baseVelocity = 10.32;
-const baseHuePeriod = 119;
-const lightnessPeriodToHuePeriod = .183
-const hueOffset = 245;
-
-/**
- * @type {Map<number, [number, number, number]>}
- */
-const colorCache = new Map();
-
-let iterCountDivisorInCache = undefined;
+const normalizedMin = 1;
+const normalizedAvg = 10;
+const normalizedSpan = Math.log10(normalizedAvg) - Math.log10(normalizedMin); // 1
 
 /**
  * @param iterArray {Uint32Array}
@@ -267,42 +282,47 @@ let iterCountDivisorInCache = undefined;
  * @param maxIterations {number}
  * @param velocity {number}
  * @param minIterCount {number}
+ * @param maxIterCount {number | undefined}
+ * @param avgIterCount {number}
+ * @param medianIterCount {number}
  * @param colorsRangeVal {number}
  * @param hueRangeVal {number}
  */
-function doMapToRgba(iterArray, canvasCoords, maxIterations, velocity, minIterCount, colorsRangeVal, hueRangeVal) {
-    const _baseHuePeriod = baseHuePeriod * Math.pow(20, 1 - colorsRangeVal / 50);
-    const huePeriod = velocity > baseVelocity
-        ? _baseHuePeriod * Math.pow(1 + .07 * (velocity - baseVelocity), .9)
-        : _baseHuePeriod;
+function doMapToRgba(iterArray, canvasCoords, maxIterations, velocity, minIterCount, maxIterCount, avgIterCount, medianIterCount, colorsRangeVal, hueRangeVal) {
+    const initZoneBound = minIterCount + (medianIterCount - minIterCount) * .95;
+    const chaosZoneStart = medianIterCount + (medianIterCount - minIterCount) * 1.7;
 
-    if (huePeriod !== iterCountDivisorInCache) {
-        colorCache.clear();
-    }
-
-    const lightnessPeriod = huePeriod * lightnessPeriodToHuePeriod;
-
+    const huePeriod = 2.0 * Math.pow(20, 1 - colorsRangeVal / 50);
     const userHueOffset = (hueRangeVal / 50 - 1) * 180;
+
     const {w, h} = canvasCoords;
     const rgba = new Uint8ClampedArray(4 * w * h);
+
     for (let i = 0; i < w * h; i++) {
         const iterCount = iterArray[i];
         const arrOffset = i * 4;
+
         if (iterCount < maxIterations) {
-            let r, g, b;
-            if (colorCache.has(iterCount)) {
-                [r, g, b] = colorCache.get(iterCount);
-            } else {
-                const hue = (hueOffset + userHueOffset + (minIterCount / baseHuePeriod + (iterCount - minIterCount) / huePeriod) * 360) % 360;
-                // .5 +- .2
-                const lightness = .5 + Math.sin(iterCount / lightnessPeriod * 2 * Math.PI) * .2;
-                [r, g, b] = hslToRgb(hue, 1, lightness);
-                colorCache.set(iterCount, [r, g, b]);
-            }
+            const compressedIterCount =
+                iterCount < initZoneBound ? (1.1 * initZoneBound + iterCount) / 2.1
+                : iterCount > chaosZoneStart ? chaosZoneStart + Math.pow(iterCount - chaosZoneStart + 1, .59) - 1
+                : iterCount;
+
+            const normalizedIterCount = normalizedMin + (compressedIterCount - minIterCount) / (medianIterCount - minIterCount) * (normalizedAvg - normalizedMin);
+
+            // 0-based
+            const logIterCount = Math.log10(normalizedIterCount) - Math.log10(normalizedMin);
+
+            const hue = (110 + userHueOffset + minIterCount * 3 + (logIterCount / huePeriod) * 360) % 360;
+            // .5 +- .2
+            const lightness = .5 + Math.sin(/*-minIterCount / 10 % .1*/ + logIterCount / (3.9 * normalizedSpan) * 2 * Math.PI) * .15;
+
+            const [r, g, b] = hslToRgb(hue, 1, lightness);
 
             rgba[arrOffset] = r;
             rgba[arrOffset + 1] = g;
             rgba[arrOffset + 2] = b;
+
         }
 
         rgba[arrOffset + 3] = 255;
