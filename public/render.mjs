@@ -149,17 +149,7 @@ async function render0(thisRenderTaskId) {
 
     const resultDataArr = resultDataArrArr.flatMap(a => a);
 
-    const velocity = resultDataArr.map(a => a.velocity).reduce((v, u) => v + u) / canvasW / canvasH;
     const minIterCount = resultDataArr.map(a => a.minIterCount).reduce((a, b) => a < b ? a : b);
-    const maxIterCountArr = resultDataArr
-        .filter(a => a.maxIterCount != null)
-        .map(a => a.maxIterCount);
-    const maxIterCount = maxIterCountArr.length ? maxIterCountArr.reduce((a, b) => a > b ? a : b) : undefined;
-    const avgIterCount = resultDataArr.map(a => a.avgIterCount).reduce((a, b) => a + b) / resultDataArr.length;
-
-    // const medianIterCountArr = resultDataArr
-    //     .filter(a => a.medianIterCount != null)
-    //     .map(a => a.medianIterCount);
 
     const sample = [];
     const notCounted = [minIterCount, minIterCount + 1, maxIterations]
@@ -168,7 +158,7 @@ async function render0(thisRenderTaskId) {
         sample.push(...a.sample.filter(s => !notCounted.includes(s)))
     );
     sample.sort((a, b) => a < b ? -1 : 1);
-    const sampleMedian = sample[Math.floor(sample.length * .8)];
+    const sampleMedian = sample[Math.floor(sample.length * .8)] ?? /* All black, +1 just not to /0 */ (minIterCount + 1);
 
     let rgbaTasksDone = 0;
     const rgbaPromises = workers.map(async (worker) => {
@@ -177,11 +167,7 @@ async function render0(thisRenderTaskId) {
             thisRenderTaskId,
             'mapToRgba',
             {
-                velocity,
                 minIterCount,
-                maxIterCount,
-                avgIterCount,
-
                 medianIterCount: sampleMedian,
                 colorsRangeVal,
                 hueRangeVal,
