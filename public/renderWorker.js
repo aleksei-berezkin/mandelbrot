@@ -292,9 +292,9 @@ const colors = [
     '#492d74',
     '#fff0b2',
     '#671b6f',
-    '#d2ffd8',
-    '#740202',
-    '#d1f8ff',
+    '#d2f7ff',
+    '#995300',
+    '#e3ffd1',
     '#0d470f',
     '#ffe9fd',
 ].map(hexToRgb);
@@ -312,13 +312,20 @@ const colors = [
  * @param hueRangeVal {number}
  */
 function doMapToRgba(iterArray, canvasCoords, maxIterations, velocity, minIterCount, maxIterCount, avgIterCount, medianIterCount, colorsRangeVal, hueRangeVal) {
-    console.log(medianIterCount);
     const initZoneBound = minIterCount + (medianIterCount - minIterCount) * .95;
     const chaosZoneStart = medianIterCount + (medianIterCount - minIterCount) * 1.7;
 
-    const hueOffset = -2.1;
-    const huePeriod = 4.81 * Math.pow(20, 1 - colorsRangeVal / 50);
-    const userHueOffset = (hueRangeVal / 50 - 1) * colors.length / 2;
+    // Offsets and frequencies are given in the scale
+    // [0..1) for [minIterCount..highPercentile)
+    const colorOffset = .79;
+    const colorHueOffset = hueRangeVal / 100 + .5;
+    const colorOffsetByMinIter = .011 * minIterCount;
+
+    const colorFreq = .2079 * Math.pow(20, colorsRangeVal / 50 - 1);
+    const colorFreqByMinIterMultiplier = Math.min(
+        1.9,
+        1 + Math.log10(Math.max(1, minIterCount - 12)) * .13,
+    );
 
     const normalizedMin = 1;
     const normalizedAvg = 10;
@@ -326,7 +333,7 @@ function doMapToRgba(iterArray, canvasCoords, maxIterations, velocity, minIterCo
 
     /**
      * 0 = min
-     * 1 = median
+     * 1 = highPercentile
      */
     function compressIterCount(iterCount) {
         const compressedIterCount =
@@ -352,17 +359,16 @@ function doMapToRgba(iterArray, canvasCoords, maxIterations, velocity, minIterCo
             const compressedIterCount = compressIterCount(iterCount);
 
             // [0, colors.length)
-            const myHue = (
-                2 * colors.length /* to avoid negatives */
-                + hueOffset
-                + userHueOffset
-                + minIterCount * .17
-                + (compressedIterCount / huePeriod) * colors.length
+            const currColor = (
+                colorOffset * colors.length
+                + colorHueOffset * colors.length
+                + colorOffsetByMinIter * colors.length
+                + (compressedIterCount * colorFreq * colorFreqByMinIterMultiplier) * colors.length
             ) % colors.length;
 
-            const fromColor = colors[Math.floor(myHue)];
-            const toColor = colors[(Math.floor(myHue) + 1) % colors.length];
-            const progress = myHue % 1;
+            const fromColor = colors[Math.floor(currColor)];
+            const toColor = colors[(Math.floor(currColor) + 1) % colors.length];
+            const progress = currColor % 1;
 
             const [r, g, b] = fromColor
                 .map((fc, i) => fc * (1 - progress) + toColor[i] * progress);
