@@ -16,9 +16,9 @@ export async function render(immediately = false) {
             await render0(thisRenderTaskId);
         } catch (e) {
             document.body.innerHTML = '<div class="error-wr">' +
-                '<h1>Could not run WASM script</h1>' +
+                '<h1>Could not run WASM program</h1>' +
                 '<p>Maybe <a href="https://browser-update.org/update-browser.html" target="_blank">update your browser</a>?</p>' +
-                '<p>Required browser versions: Chrome 96; Firefox 89; Safari 16.4. <a href="https://webassembly.org/roadmap/" target="_blank">More...</a></p>' +
+                '<p>Required browser versions: Chrome 96, Firefox 89, Safari 16.4. <a href="https://webassembly.org/roadmap/" target="_blank">More...</a></p>' +
                 `<code>${e}</code>` +
                 '</div>';
         }

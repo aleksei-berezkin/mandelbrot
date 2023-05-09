@@ -72,11 +72,7 @@ async function renderMain(renderTaskId, coords, canvasCoords, maxIterations) {
             sample: getSample(iterNums, canvasCoords),
         };
     } catch (e) {
-        if (e instanceof WebAssembly.CompileError) {
-            return e.toString();
-        } else {
-            throw e;
-        }
+        return e.toString();
     }
 }
 
@@ -293,7 +289,7 @@ const colors = [
     '#fff0b2',
     '#671b6f',
     '#d2f7ff',
-    '#995300',
+    '#7d4300',
     '#e3ffd1',
     '#0d470f',
     '#ffe9fd',
