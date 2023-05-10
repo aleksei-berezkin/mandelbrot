@@ -158,7 +158,7 @@ async function render0(thisRenderTaskId) {
         sample.push(...a.sample.filter(s => !notCounted.includes(s)))
     );
     sample.sort((a, b) => a < b ? -1 : 1);
-    const sampleMedian = sample[Math.floor(sample.length * .8)] ?? /* All black, +1 just not to /0 */ (minIterCount + 1);
+    const highPercentileIterCount = sample[Math.floor(sample.length * .8)] ?? /* All black, +1 just not to /0 */ (minIterCount + 1);
 
     let rgbaTasksDone = 0;
     const rgbaPromises = workers.map(async (worker) => {
@@ -168,7 +168,7 @@ async function render0(thisRenderTaskId) {
             'mapToRgba',
             {
                 minIterCount,
-                medianIterCount: sampleMedian,
+                highPercentileIterCount,
                 colorsRangeVal,
                 hueRangeVal,
             },

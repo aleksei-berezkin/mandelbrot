@@ -23,8 +23,8 @@ async function messageHandler(message) {
         const {coords, canvasCoords, maxIterations} = data;
         resultData = await renderMain(renderTaskId, coords, canvasCoords, maxIterations);
     } else if (commandName === 'mapToRgba') {
-        const {minIterCount, medianIterCount, colorsRangeVal, hueRangeVal} = data;
-        resultData = mapToRgba(renderTaskId, minIterCount, medianIterCount, colorsRangeVal, hueRangeVal);
+        const {minIterCount, highPercentileIterCount, colorsRangeVal, hueRangeVal} = data;
+        resultData = mapToRgba(renderTaskId, minIterCount, highPercentileIterCount, colorsRangeVal, hueRangeVal);
     }
     self.postMessage({workerCallId, data: resultData});
 }
@@ -71,14 +71,14 @@ async function renderMain(renderTaskId, coords, canvasCoords, maxIterations) {
     }
 }
 
-function mapToRgba(renderTaskId, minIterCount, medianIterCount, colorsRangeVal, hueRangeVal) {
+function mapToRgba(renderTaskId, minIterCount, highPercentileIterCount, colorsRangeVal, hueRangeVal) {
     if (lastRenderTaskId !== renderTaskId) {
         return;
     }
 
     const rgbaParts = lastResults.map(({iterNums, canvasCoords, maxIterations}) => ({
         canvasCoords,
-        rgba: doMapToRgba(iterNums, canvasCoords, maxIterations, minIterCount, medianIterCount, colorsRangeVal, hueRangeVal),
+        rgba: doMapToRgba(iterNums, canvasCoords, maxIterations, minIterCount, highPercentileIterCount, colorsRangeVal, hueRangeVal),
     }));
 
     lastRenderTaskId = undefined;
@@ -276,13 +276,13 @@ const colors = [
  * @param canvasCoords {CanvasCoords}
  * @param maxIterations {number}
  * @param minIterCount {number}
- * @param medianIterCount {number}
+ * @param highPercentileIterCount {number}
  * @param colorsRangeVal {number}
  * @param hueRangeVal {number}
  */
-function doMapToRgba(iterArray, canvasCoords, maxIterations, minIterCount, medianIterCount, colorsRangeVal, hueRangeVal) {
-    const initZoneBound = minIterCount + (medianIterCount - minIterCount) * .95;
-    const chaosZoneStart = medianIterCount + (medianIterCount - minIterCount) * 1.7;
+function doMapToRgba(iterArray, canvasCoords, maxIterations, minIterCount, highPercentileIterCount, colorsRangeVal, hueRangeVal) {
+    const initZoneBound = minIterCount + (highPercentileIterCount - minIterCount) * .95;
+    const chaosZoneStart = highPercentileIterCount + (highPercentileIterCount - minIterCount) * 1.7;
 
     // Offsets and frequencies are given in the scale
     // [0..1) for [minIterCount..highPercentile)
@@ -310,7 +310,7 @@ function doMapToRgba(iterArray, canvasCoords, maxIterations, minIterCount, media
             : iterCount > chaosZoneStart ? chaosZoneStart + Math.pow(iterCount - chaosZoneStart + 1, .59) - 1
             : iterCount;
 
-        const normalizedIterCount = normalizedMin + (compressedIterCount - minIterCount) / (medianIterCount - minIterCount) * (normalizedAvg - normalizedMin);
+        const normalizedIterCount = normalizedMin + (compressedIterCount - minIterCount) / (highPercentileIterCount - minIterCount) * (normalizedAvg - normalizedMin);
 
         const logIterCount = Math.log10(normalizedIterCount) - Math.log10(normalizedMin);
 
