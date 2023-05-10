@@ -9,6 +9,8 @@ export function trackMouse(canvas) {
     let prevClientPoint = undefined;
 
     canvas.addEventListener('mousedown', function(e) {
+        if (e.button !== 0) return;
+
         e.preventDefault();
 
         prevClientPoint = {x: e.clientX, y :e.clientY};
@@ -17,6 +19,8 @@ export function trackMouse(canvas) {
     });
 
     canvas.addEventListener('mousemove', function(e) {
+        if (e.button !== 0) return;
+
         if (prevClientPoint == null || e.clientX == null || e.clientY == null) {
             return;
         }
@@ -36,7 +40,9 @@ export function trackMouse(canvas) {
         void render();
     });
 
-    const mouseupHandler = function() {
+    const mouseupHandler = function(e) {
+        if (e.button !== 0) return;
+
         prevClientPoint = undefined;
 
         window.document.body.style.removeProperty('cursor');
