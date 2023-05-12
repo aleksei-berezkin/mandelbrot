@@ -320,27 +320,38 @@ function doMapToRgba(iterArray, canvasCoords, maxIterations, minIterCount, highP
     const {w, h} = canvasCoords;
     const rgba = new Uint8ClampedArray(4 * w * h);
 
+    const cache = new Map();
+
     for (let i = 0; i < w * h; i++) {
         const iterCount = iterArray[i];
         const arrOffset = i * 4;
 
         if (iterCount < maxIterations) {
-            const compressedIterCount = compressIterCount(iterCount);
+            let r, g, b;
+            if (cache.has(iterCount)) {
+                [r, g, b] = cache.get(iterCount);
+            } else {
+                const compressedIterCount = compressIterCount(iterCount);
 
-            // [0, colors.length)
-            const currColor = (
-                colorOffset * colors.length
-                + colorHueOffset * colors.length
-                + colorOffsetByMinIter * colors.length
-                + (compressedIterCount * colorFreq * colorFreqByMinIterMultiplier) * colors.length
-            ) % colors.length;
+                // [0, colors.length)
+                const currColor = (
+                    colorOffset * colors.length
+                    + colorHueOffset * colors.length
+                    + colorOffsetByMinIter * colors.length
+                    + (compressedIterCount * colorFreq * colorFreqByMinIterMultiplier) * colors.length
+                ) % colors.length;
 
-            const fromColor = colors[Math.floor(currColor)];
-            const toColor = colors[(Math.floor(currColor) + 1) % colors.length];
-            const progress = currColor % 1;
+                const fromColor = colors[Math.floor(currColor)];
+                const toColor = colors[(Math.floor(currColor) + 1) % colors.length];
+                const progress = currColor % 1;
 
-            const [r, g, b] = fromColor
-                .map((fc, i) => fc * (1 - progress) + toColor[i] * progress);
+                const rgb = fromColor
+                    .map((fc, i) => fc * (1 - progress) + toColor[i] * progress);
+
+                cache.set(iterCount, rgb);
+
+                [r, g, b] = rgb;
+            }
 
             rgba[arrOffset] = r;
             rgba[arrOffset + 1] = g;
