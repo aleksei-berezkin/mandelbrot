@@ -1,4 +1,4 @@
-# mandelbrot
+# Mandelbrot.run
 
 https://mandelbrot.run/
 

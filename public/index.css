@@ -322,7 +322,7 @@ a, .text-btn {
     position: absolute;
     top: var(--m);
     left: var(--l);
-    max-height: calc(100vh - 2 * var(--m));
+    max-height: calc(100% - 2 * var(--m));
     width: var(--w);
 }
 
