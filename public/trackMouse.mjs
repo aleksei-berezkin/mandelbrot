@@ -1,6 +1,7 @@
 import { getMathCoords, moveCoords, setMathCoords } from './mathCoords.mjs';
 import { render } from './render.mjs';
 import { prerender } from './prerender.mjs';
+import { zoomByDoublePointer } from './zoomByDoublePointer.mjs';
 
 export function trackMouse(canvas) {
     /**
@@ -51,4 +52,14 @@ export function trackMouse(canvas) {
     canvas.addEventListener('mouseup', mouseupHandler);
 
     canvas.addEventListener('mouseout', mouseupHandler);
+
+    canvas.addEventListener('dblclick', function (e) {
+        e.preventDefault();
+        const {width, height} = canvas.getBoundingClientRect();
+        const originFraction = {
+            x: e.clientX / width,
+            y: 1 - e.clientY / height,
+        }
+        zoomByDoublePointer(canvas, originFraction);
+    });
 }

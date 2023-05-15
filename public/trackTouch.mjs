@@ -1,6 +1,7 @@
 import { getMathCoords, moveCoords, setMathCoords, zoomCoords } from './mathCoords.mjs';
 import { render } from './render.mjs';
 import { prerender } from './prerender.mjs';
+import { zoomByDoublePointer } from './zoomByDoublePointer.mjs';
 
 export function trackTouch(canvas) {
 
@@ -8,11 +9,14 @@ export function trackTouch(canvas) {
      * @type {TouchList}
      */
     let prevTouches = undefined;
+    let firstCenter = undefined;
 
     canvas.addEventListener('touchstart', e => {
         e.preventDefault();
 
         prevTouches = e.touches;
+        firstCenter = getCenter(e.touches, canvas);
+
     }, {passive: false});
 
     canvas.addEventListener('touchmove', e => {
@@ -47,11 +51,31 @@ export function trackTouch(canvas) {
 
     }, {passive: false});
 
+    let prevTouchEnd;
+
     canvas.addEventListener('touchend', () => {
-        if (!prevTouches) return;
+        if (!prevTouches || !firstCenter) return;
 
+        const prevCenter = getCenter(prevTouches, canvas);
+        if (prevTouches.length === 1
+            && Math.hypot(prevCenter.x - firstCenter.x, prevCenter.y - firstCenter.y) < 10
+        ) {
+            if (prevTouchEnd != null && Date.now() - prevTouchEnd < 1000) {
+                const {width, height} = canvas.getBoundingClientRect();
+                zoomByDoublePointer(canvas, {
+                    x: prevCenter.x / width,
+                    y: 1 - prevCenter.y / height
+                });
+                prevTouchEnd = undefined;
+            } else {
+                prevTouchEnd = Date.now();
+            }
+        } else {
+            prevTouchEnd = undefined;
+        }
+
+        firstCenter = undefined;
         prevTouches = undefined;
-
     }, {passive: false});
 }
 
