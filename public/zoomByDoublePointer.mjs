@@ -39,10 +39,10 @@ function easeProgress(progress) {
     if (progress <= 0) return 0;
     if (progress >= 1) return 1;
 
-    return searchPoint(progress, 0, bezierPoints.length);
+    return binSearchPoint(progress, 0, bezierPoints.length);
 }
 
-function searchPoint(progress, from, bound) {
+function binSearchPoint(progress, from, bound) {
     if (from >= bound) {
         const left = bezierPoints[from - 1];
         const right = bezierPoints[from]
@@ -52,25 +52,25 @@ function searchPoint(progress, from, bound) {
 
     const mid = Math.floor((from + bound) / 2);
     if (progress < bezierPoints[mid][0]) {
-        return searchPoint(progress, from, mid);
+        return binSearchPoint(progress, from, mid);
     } else {
-        return searchPoint(progress, mid + 1, bound);
+        return binSearchPoint(progress, mid + 1, bound);
     }
 }
 
 const bezierPoints = Array.from({length: 32});
 
-const P1 = [0, 0];
+// const P1 = [0, 0];
 const P2 = [.32, .18]
 const P3 = [.25, 1]
-const P4 = [1, 1];
+// const P4 = [1, 1];
 
 for (let pIx = 0; pIx < bezierPoints.length; pIx++) {
     const t = pIx / (bezierPoints.length - 1); // [0, 1]
     bezierPoints[pIx] = [0, 1].map(i =>
-        (1 - t) ** 3 * P1[i]
+        // (1 - t) ** 3 * P1[i] == 0
         + 3 * (1 - t) ** 2 * t * P2[i]
         + 3 * (1 - t) * t ** 2 * P3[i]
-        + t ** 3 * P4[i]
+        + t ** 3 // * P4[i] == 1
     );
 }
