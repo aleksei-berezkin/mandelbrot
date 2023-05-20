@@ -9,7 +9,7 @@ export function trackWheel(canvas) {
 
         const coords = getMathCoords(canvas);
         const originFraction = getMouseLocationFraction(canvas);
-        const zoomFactor = Math.pow(1.001, -e.deltaY);
+        const zoomFactor = 1 - ease(e.deltaY);
 
         const newCoords = zoomCoords(coords, originFraction, zoomFactor);
         setMathCoords(canvas, newCoords);
@@ -18,4 +18,8 @@ export function trackWheel(canvas) {
         void render();
 
     }, {passive: false});
+}
+
+function ease(delta) {
+    return Math.sign(delta) * Math.pow(Math.abs(delta), .9) *.007;
 }
