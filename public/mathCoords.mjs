@@ -156,8 +156,14 @@ export function zoomCoords(coords, originFraction, zoomFactor) {
     // zoom preserving origin:
     // newXMin + newW * originFraction.x = origin.x
     // newYMin + newH * originFraction.y = origin.y
-    const newW = mulBigIntByNum(coords.w, 1 / zoomFactor);
-    const newH = mulBigIntByNum(coords.h, 1 / zoomFactor);
+    const newW = minBigNum(
+        coords.unit * 50n,
+        mulBigIntByNum(coords.w, 1 / zoomFactor),
+    );
+
+    const _zoomFactor = divToNum(coords.w, newW);
+    const newH = mulBigIntByNum(coords.h, 1 / _zoomFactor);
+
     const newXMin = origin.x - mulBigIntByNum(newW, originFraction.x);
     const newYMin = origin.y - mulBigIntByNum(newH, originFraction.y);
 
@@ -183,4 +189,8 @@ export function fitCoords(canvas) {
         const yMin = coords.yMin - (h - coords.h) / 2n;
         setMathCoords(canvas, {...coords, yMin, h});
     }
+}
+
+function minBigNum(a, b) {
+    return a < b ? a : b;
 }

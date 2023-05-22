@@ -9,7 +9,7 @@ export function trackWheel(canvas) {
 
         const coords = getMathCoords(canvas);
         const originFraction = getMouseLocationFraction(canvas);
-        const zoomFactor = 1 - ease(e.deltaY);
+        const zoomFactor = 1 - toZoomDelta(e.deltaY);
 
         const newCoords = zoomCoords(coords, originFraction, zoomFactor);
         setMathCoords(canvas, newCoords);
@@ -20,6 +20,13 @@ export function trackWheel(canvas) {
     }, {passive: false});
 }
 
-function ease(delta) {
-    return Math.sign(delta) * Math.pow(Math.abs(delta), .9) *.007;
+
+function toZoomDelta(delta) {
+    const compressThreshold = 26;
+
+    const compressedDelta = Math.abs(delta) <= compressThreshold
+        ? delta
+        : Math.sign(delta) * (compressThreshold + (Math.abs(delta) - compressThreshold) * .3);
+
+    return Math.min(.8, compressedDelta * .009);
 }
